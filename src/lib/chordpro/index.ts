@@ -14,7 +14,7 @@ export function parseChordPro(source: string) {
  */
 export function renderToHtml(source: string): string {
   const song = parseChordPro(source);
-  const formatter = new ChordSheetJS.HtmlDivFormatter();
+  const formatter = new ChordSheetJS.HtmlDivFormatter({ expandChorusDirective: true });
   return formatter.format(song);
 }
 

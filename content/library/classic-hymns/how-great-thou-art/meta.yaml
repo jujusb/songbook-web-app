@@ -9,7 +9,7 @@ references:
   - type: bible
     label: "Psalm 8:1-9"
     target: bible-kjv/psalm-8
-    verse: "Verse 1"
+    verse: "1"
   - type: song
     label: "Related: Amazing Grace"
     target: amazing-grace

@@ -9,7 +9,7 @@ references:
   - type: bible
     label: "1 Timothy 1:15"
     target: bible-kjv/1-timothy-1
-    verse: "Verse 1"
+    verse: "1"
     text: "This is a faithful saying, and worthy of all acceptation, that Christ Jesus came into the world to save sinners; of whom I am chief."
     highlight: "to save sinners"
   - type: bible
@@ -19,11 +19,11 @@ references:
       en: "For by grace are ye saved through faith; and that not of yourselves: it is the gift of God: Not of works, lest any man should boast."
       pt: "Porque pela graça sois salvos, por meio da fé; e isto não vem de vós, é dom de Deus; não vem das obras, para que ninguém se glorie."
     locations:
-      - verse: "Verse 1"
+      - verse: "1"
         highlights:
           en: "by grace are ye saved through faith"
           pt: "pela graça sois salvos"
-      - verse: "Verse 2"
+      - verse: "2"
         highlights:
           en: "it is the gift of God"
           pt: "é dom de Deus"

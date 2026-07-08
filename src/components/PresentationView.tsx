@@ -13,7 +13,7 @@ interface Section {
 function parseSections(source: string): Section[] {
   const parser = new ChordSheetJS.ChordProParser();
   const song = parser.parse(source);
-  const formatter = new ChordSheetJS.HtmlDivFormatter();
+  const formatter = new ChordSheetJS.HtmlDivFormatter({ expandChorusDirective: true });
 
   const sections: Section[] = [];
 

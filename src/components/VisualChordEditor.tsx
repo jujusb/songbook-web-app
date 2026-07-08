@@ -74,12 +74,12 @@ function linesToChordPro(lines: ParsedLine[]): string {
 function directiveLabel(raw: string): string | null {
   const m = raw
     .trim()
-    .match(/^\{(start_of_verse|start_of_chorus|start_of_bridge|comment)(?:\s*:\s*(.+?))?\}$/i);
+    .match(/^\{(?:start_of_|s)(verse|chorus|bridge)(?:\s*:\s*(.+?))?\}$/i);
   if (m) {
-    const label = m[2] || m[1].replace("start_of_", "").replace(/^\w/, (c) => c.toUpperCase());
+    const label = m[2] || m[1].replace(/^\w/, (c) => c.toUpperCase());
     return label;
   }
-  if (/^\{end_of_(verse|chorus|bridge)\}/i.test(raw.trim())) return null;
+  if (/^\{(?:end_of_|e)(verse|chorus|bridge)\}$/i.test(raw.trim())) return null;
   return null;
 }
 

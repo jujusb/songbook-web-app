@@ -9,7 +9,7 @@ function renderPreview(source: string): string {
   try {
     const parser = new ChordSheetJS.ChordProParser();
     const song = parser.parse(source);
-    const formatter = new ChordSheetJS.HtmlDivFormatter();
+    const formatter = new ChordSheetJS.HtmlDivFormatter({ expandChorusDirective: true });
     return formatter.format(song);
   } catch {
     return "<p class='text-red-500'>Unable to parse — check the format</p>";

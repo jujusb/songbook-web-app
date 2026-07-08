@@ -36,7 +36,7 @@ interface Footnote {
 function renderSource(source: string): string {
   const parser = new ChordSheetJS.ChordProParser();
   const song = parser.parse(source);
-  const formatter = new ChordSheetJS.HtmlDivFormatter();
+  const formatter = new ChordSheetJS.HtmlDivFormatter({ expandChorusDirective: true });
   return formatter.format(song);
 }
 
@@ -62,13 +62,13 @@ function parseSectionMap(
 
   for (const line of lines) {
     const match = line.match(
-      /\{start_of_(verse|chorus|bridge)(?:\s*:\s*(.+?))?\}/i
+      /\{(?:start_of_|s)(verse|chorus|bridge)(?:\s*:\s*(.+?))?\}/i
     );
     if (match) {
       const sectionType = match[1].toLowerCase(); // verse, chorus, bridge
       const label =
         match[2] ||
-        match[1].charAt(0).toUpperCase() + match[1].slice(1);
+        sectionType.charAt(0).toUpperCase() + sectionType.slice(1);
       sections.push({ type: sectionType, label, startLine: lineCounter });
     }
     if (
