@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback, useMemo } from "react";
+import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { useRouter } from "next/navigation";
 import ChordSheetJS from "chordsheetjs";
 
@@ -113,48 +113,58 @@ export function PresentationView({
   const [currentIndex, setCurrentIndex] = useState(0);
   const [showChords, setShowChords] = useState(!isAudience);
 
-  const activeSong = isSetlist ? setlistSongs[currentSongIndex] : { songId, title, source };
-  const sections = useMemo(() => parseSections(activeSong.source), [activeSong.source]);
+  const activeSong = isSetlist
+    ? setlistSongs?.[currentSongIndex]
+    : { songId, title, source };
+  const sections = useMemo(
+    () => (activeSong ? parseSections(activeSong.source) : []),
+    [activeSong?.source]
+  );
   const total = sections.length;
 
+  const songIdxRef = useRef(currentSongIndex);
+  const secIdxRef = useRef(currentIndex);
+  const totalRef = useRef(total);
+
+  songIdxRef.current = currentSongIndex;
+  secIdxRef.current = currentIndex;
+  totalRef.current = total;
+
   const goNext = useCallback(() => {
-    setCurrentIndex((i) => {
-      if (i < total - 1) return i + 1;
-      // At last section — advance to next song in setlist
-      if (isSetlist && currentSongIndex < setlistSongs.length - 1) {
-        setCurrentSongIndex((si) => si + 1);
-        return 0; // reset to first section of new song (will be set via effect)
-      }
-      return i;
-    });
-  }, [total, isSetlist, currentSongIndex, setlistSongs?.length]);
+    const ci = secIdxRef.current;
+    const csi = songIdxRef.current;
+    const t = totalRef.current;
+
+    if (ci < t - 1) {
+      setCurrentIndex(ci + 1);
+    } else if (
+      isSetlist &&
+      setlistSongs &&
+      csi < setlistSongs.length - 1
+    ) {
+      setCurrentSongIndex(csi + 1);
+      setCurrentIndex(0);
+    }
+  }, [isSetlist, setlistSongs]);
 
   const goPrev = useCallback(() => {
-    setCurrentIndex((i) => {
-      if (i > 0) return i - 1;
-      // At first section — go back to previous song's last section
-      if (isSetlist && currentSongIndex > 0) {
-        setCurrentSongIndex((si) => si - 1);
-        return -1; // sentinel — will be corrected by effect
-      }
-      return i;
-    });
-  }, [isSetlist, currentSongIndex]);
+    const ci = secIdxRef.current;
+    const csi = songIdxRef.current;
 
-  // When changing songs, reset section index (handle the -1 sentinel for going backward)
-  useEffect(() => {
-    if (currentIndex === -1) {
-      // Going backward — jump to last section of the new song
-      // Need to wait for sections to update, so use a small delay
-      setCurrentIndex(0); // will be corrected once sections are recalculated
+    if (ci > 0) {
+      setCurrentIndex(ci - 1);
+    } else if (isSetlist && setlistSongs && csi > 0) {
+      setCurrentSongIndex(csi - 1);
+      setCurrentIndex(-1);
     }
-  }, [currentSongIndex, currentIndex]);
+  }, [isSetlist, setlistSongs]);
 
-  // When sections change (new song), fix the -1 sentinel
+  // Fix currentIndex when sections change (new song via goPrev sentinel -1,
+  // or safety clamp for goNext when sections length differs)
   useEffect(() => {
     setCurrentIndex((prev) => {
       if (prev === -1) return sections.length - 1;
-      if (prev >= sections.length) return 0;
+      if (prev >= sections.length && sections.length > 0) return 0;
       return prev;
     });
   }, [sections]);
