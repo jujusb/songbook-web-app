@@ -6,85 +6,81 @@ import ChordSheetJS from "chordsheetjs";
 
 interface Section {
   label: string;
-  lines: { chords: string; lyrics: string }[];
   rawHtml: string;
 }
 
 function parseSections(source: string): Section[] {
-  const parser = new ChordSheetJS.ChordProParser();
-  const song = parser.parse(source);
-  const formatter = new ChordSheetJS.HtmlDivFormatter({ expandChorusDirective: true });
-
+  // Split the source into section blocks by tracking start_of/end_of directives
+  const lines = source.split("\n");
   const sections: Section[] = [];
+  let currentLabel = "";
+  let currentLines: string[] = [];
+  let inSection = false;
+  const sectionStack: string[] = [];
+  let lastChorusLabel = "";
+  let lastChorusHtml = "";
 
-  for (const line of song.lines) {
-    // Check if this is a section start (has a tag like start_of_verse, start_of_chorus)
-    const sectionTag = line.items?.find(
-      (item: any) => item.type === "tag" && item.name?.startsWith("start_of_")
-    ) as any;
+  function flushSection() {
+    if (!currentLabel || currentLines.length === 0) return;
+    const sectionSource = currentLines.join("\n");
+    // Render this section independently through the formatter
+    const parser = new ChordSheetJS.ChordProParser();
+    const song = parser.parse(sectionSource);
+    const formatter = new ChordSheetJS.HtmlDivFormatter({ expandChorusDirective: true });
+    const html = formatter.format(song);
+    sections.push({ label: currentLabel, rawHtml: html });
+  }
 
-    if (sectionTag) {
-      sections.push({
-        label: sectionTag.value || sectionTag.name?.replace("start_of_", "") || "Section",
-        lines: [],
-        rawHtml: "",
-      });
-      continue;
-    }
-
-    const endTag = line.items?.find(
-      (item: any) => item.type === "tag" && item.name?.startsWith("end_of_")
+  for (const line of lines) {
+    const startMatch = line.match(
+      /\{(?:start_of_|s)(verse|chorus|bridge)(?:\s*:\s*(.+?))?\}/i
     );
-    if (endTag) continue;
+    const endMatch = line.match(
+      /\{(?:end_of_|e)(verse|chorus|bridge)\}/i
+    );
+    const isChorusRepeat = /^\{chorus\}$/i.test(line.trim());
 
-    // Add content lines to current section
-    const currentSection =
-      sections.length > 0 ? sections[sections.length - 1] : null;
-    if (!currentSection) {
-      // Lines before any section
-      if (line.items && line.items.length > 0) {
-        sections.push({ label: "", lines: [], rawHtml: "" });
-      }
+    if (isChorusRepeat && lastChorusHtml) {
+      // Create a copy of the last chorus section
+      sections.push({ label: lastChorusLabel, rawHtml: lastChorusHtml });
       continue;
     }
 
-    const chords: string[] = [];
-    const lyrics: string[] = [];
-    if (line.items) {
-      for (const item of line.items) {
-        if ((item as any).chords) chords.push((item as any).chords);
-        if ((item as any).lyrics) lyrics.push((item as any).lyrics);
+    if (startMatch) {
+      flushSection();
+      currentLabel = startMatch[2] || startMatch[1].charAt(0).toUpperCase() + startMatch[1].slice(1);
+      currentLines = [line];
+      inSection = true;
+      sectionStack.push(startMatch[1].toLowerCase());
+    } else if (endMatch && inSection) {
+      currentLines.push(line);
+      sectionStack.pop();
+      if (sectionStack.length === 0) {
+        flushSection();
+        // Remember the last chorus for {chorus} repeats
+        if (currentLabel && /chorus/i.test(currentLabel) && sections.length > 0) {
+          const last = sections[sections.length - 1];
+          lastChorusLabel = last.label;
+          lastChorusHtml = last.rawHtml;
+        }
+        currentLabel = "";
+        currentLines = [];
+        inSection = false;
       }
-    }
-    if (chords.length > 0 || lyrics.join("").trim()) {
-      currentSection.lines.push({
-        chords: chords.join(" "),
-        lyrics: lyrics.join(""),
-      });
+    } else if (inSection) {
+      currentLines.push(line);
     }
   }
 
-  // Generate HTML for each section individually
-  // We'll use a simpler approach: split the full HTML by section
-  const fullHtml = formatter.format(song);
-  // For simplicity, assign fullHtml to first section if we can't split
-  if (sections.length > 0) {
-    // Split on section markers in the HTML
-    const sectionDivs = fullHtml.split(/<div class="[^"]*section[^"]*">/);
-    for (let i = 0; i < sections.length; i++) {
-      if (sectionDivs[i + 1]) {
-        sections[i].rawHtml = `<div class="chord-sheet-section">${sectionDivs[i + 1]}`;
-      }
-    }
-  }
+  // Flush any remaining section
+  flushSection();
 
-  // Fallback: if no sections found, treat entire content as one section
+  // Fallback: no sections found
   if (sections.length === 0) {
-    sections.push({
-      label: "Song",
-      lines: [{ chords: "", lyrics: source }],
-      rawHtml: formatter.format(song),
-    });
+    const parser = new ChordSheetJS.ChordProParser();
+    const song = parser.parse(source);
+    const formatter = new ChordSheetJS.HtmlDivFormatter({ expandChorusDirective: true });
+    sections.push({ label: "Song", rawHtml: formatter.format(song) });
   }
 
   return sections;
@@ -236,28 +232,11 @@ export function PresentationView({
       )}
 
       {/* Content */}
-      <div className="max-w-4xl w-full px-8 text-center">
-        {section?.rawHtml ? (
-          <div
-            className={`presentation-content ${showChords ? "" : "hide-chords"}`}
-            dangerouslySetInnerHTML={{ __html: section.rawHtml }}
-          />
-        ) : (
-          <div className="space-y-2">
-            {section?.lines.map((line, i) => (
-              <div key={i}>
-                {showChords && line.chords && (
-                  <div className="text-blue-400 font-bold text-2xl">
-                    {line.chords}
-                  </div>
-                )}
-                <div className="text-4xl font-light leading-relaxed">
-                  {line.lyrics}
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
+      <div className="max-w-6xl w-full px-8 text-center">
+        <div
+          className={`presentation-content ${showChords ? "" : "hide-chords"}`}
+          dangerouslySetInnerHTML={{ __html: section?.rawHtml || "" }}
+        />
       </div>
 
       {/* Navigation hint */}

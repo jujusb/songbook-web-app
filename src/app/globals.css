@@ -103,6 +103,7 @@ body {
   display: flex;
   flex-wrap: wrap;
   justify-content: center;
+  gap: 0 0.5rem;
 }
 
 .presentation-content .column {
@@ -116,6 +117,7 @@ body {
   font-weight: 700;
   font-size: 1.5rem;
   line-height: 2rem;
+  min-height: 2rem;
 }
 
 .presentation-content .lyrics {
@@ -134,6 +136,21 @@ body {
 
 .presentation-content.hide-chords .chord {
   display: none;
+}
+
+.presentation-content.hide-chords .row {
+  display: block;
+  text-align: center;
+  gap: 0;
+}
+
+.presentation-content.hide-chords .column {
+  display: inline;
+  align-items: baseline;
+}
+
+.presentation-content.hide-chords .lyrics {
+  display: inline;
 }
 
 /* Visual Chord Editor */
