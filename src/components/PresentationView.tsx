@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { useRouter } from "next/navigation";
 import ChordSheetJS from "chordsheetjs";
+import { useTranslation } from "@/lib/i18n";
 
 interface Section {
   label: string;
@@ -108,6 +109,7 @@ export function PresentationView({
   setlistTitle?: string;
 }) {
   const router = useRouter();
+  const { t } = useTranslation();
   const isSetlist = setlistSongs && setlistSongs.length > 1;
   const [currentSongIndex, setCurrentSongIndex] = useState(0);
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -118,7 +120,7 @@ export function PresentationView({
     : { songId, title, source };
   const sections = useMemo(
     () => (activeSong ? parseSections(activeSong.source) : []),
-    [activeSong?.source]
+    [activeSong]
   );
   const total = sections.length;
 
@@ -126,9 +128,12 @@ export function PresentationView({
   const secIdxRef = useRef(currentIndex);
   const totalRef = useRef(total);
 
-  songIdxRef.current = currentSongIndex;
-  secIdxRef.current = currentIndex;
-  totalRef.current = total;
+  // Sync refs after each render
+  useEffect(() => {
+    songIdxRef.current = currentSongIndex;
+    secIdxRef.current = currentIndex;
+    totalRef.current = total;
+  });
 
   const goNext = useCallback(() => {
     const ci = secIdxRef.current;
@@ -162,6 +167,7 @@ export function PresentationView({
   // Fix currentIndex when sections change (new song via goPrev sentinel -1,
   // or safety clamp for goNext when sections length differs)
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setCurrentIndex((prev) => {
       if (prev === -1) return sections.length - 1;
       if (prev >= sections.length && sections.length > 0) return 0;
@@ -215,12 +221,12 @@ export function PresentationView({
             onClick={() => setShowChords((s) => !s)}
             className={`px-2 py-1 rounded ${showChords ? "bg-blue-600" : "bg-neutral-800"}`}
           >
-            Chords {showChords ? "ON" : "OFF"}
+            {showChords ? t('presentation.chordsOn') : t('presentation.chordsOff')}
           </button>
           <span>
             {isSetlist && (
               <span className="mr-3">
-                Song {currentSongIndex + 1}/{setlistSongs.length}
+                {t('presentation.song')} {currentSongIndex + 1}/{setlistSongs.length}
               </span>
             )}
             {(currentIndex >= 0 ? currentIndex : 0) + 1} / {total}
@@ -229,7 +235,7 @@ export function PresentationView({
             onClick={() => router.back()}
             className="px-2 py-1 bg-neutral-800 rounded hover:bg-neutral-700"
           >
-            ESC
+            {t('presentation.esc')}
           </button>
         </div>
       </div>
@@ -251,8 +257,7 @@ export function PresentationView({
 
       {/* Navigation hint */}
       <div className="absolute bottom-4 text-neutral-600 text-xs">
-        Arrow keys or Space to navigate &middot; C to toggle chords &middot; ESC
-        to exit
+        {t('presentation.navigationHint')}
       </div>
     </div>
   );

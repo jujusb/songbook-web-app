@@ -1,17 +1,20 @@
 import { notFound, redirect } from "next/navigation";
-import { getSong, getSongTranslation } from "@/lib/content";
+import { getSong, getSongTranslation, getSongTranslations, getLanguagesConfig } from "@/lib/content";
 import { getSession, canEdit } from "@/lib/auth";
-import { EditorView } from "@/components/EditorView";
+import { EditPageClient } from "@/components/EditPageClient";
 
 export default async function EditPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ songId: string; lang: string }>;
+  searchParams: Promise<{ references?: string }>;
 }) {
   const session = await getSession();
   if (!canEdit(session?.role ?? null)) redirect("/login");
 
   const { songId, lang } = await params;
+  const { references: showRefs } = await searchParams;
 
   let meta;
   try {
@@ -27,21 +30,22 @@ export default async function EditPage({
     notFound();
   }
 
+  const translations = await getSongTranslations(songId);
+  const langConfig = await getLanguagesConfig();
+  const allLanguages = langConfig.languages.map((l) => l.code);
+  // Use all configured languages + any song-specific languages
+  const languages = Array.from(new Set([...allLanguages, ...translations]));
+
   return (
-    <div className="h-[calc(100vh-3.5rem)] flex flex-col">
-      <div className="px-4 py-2 border-b border-neutral-200 dark:border-neutral-800 flex items-center justify-between bg-white dark:bg-neutral-950">
-        <div>
-          <h1 className="font-semibold">{meta.title}</h1>
-          <span className="text-xs text-neutral-500">
-            Editing: {lang.toUpperCase()} &middot; Status: {translation.meta.status}
-          </span>
-        </div>
-      </div>
-      <EditorView
-        songId={songId}
-        lang={lang}
-        initialContent={translation.body}
-      />
-    </div>
+    <EditPageClient
+      songId={songId}
+      lang={lang}
+      initialContent={translation.body}
+      references={meta.references}
+      languages={languages}
+      title={meta.title}
+      status={translation.meta.status}
+      initialShowReferences={showRefs === '1'}
+    />
   );
 }

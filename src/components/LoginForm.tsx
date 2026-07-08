@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { useTranslation } from "@/lib/i18n";
 
 interface LoginFormProps {
   oidcEnabled?: boolean;
@@ -10,8 +11,9 @@ interface LoginFormProps {
 
 export function LoginForm({
   oidcEnabled = false,
-  oidcButtonLabel = "Sign in with SSO",
+  oidcButtonLabel,
 }: LoginFormProps) {
+  const { t } = useTranslation();
   const router = useRouter();
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
@@ -52,7 +54,7 @@ export function LoginForm({
             href="/api/auth/oidc"
             className="block w-full py-2.5 bg-neutral-800 dark:bg-neutral-200 text-white dark:text-neutral-900 rounded-md font-medium text-sm text-center hover:bg-neutral-900 dark:hover:bg-neutral-100 transition-colors"
           >
-            {oidcButtonLabel}
+            {oidcButtonLabel || t('auth.signInWithSSO')}
           </a>
           <div className="relative">
             <div className="absolute inset-0 flex items-center">
@@ -60,7 +62,7 @@ export function LoginForm({
             </div>
             <div className="relative flex justify-center text-xs">
               <span className="bg-white dark:bg-neutral-950 px-2 text-neutral-500">
-                or sign in with password
+                {t('auth.login')}
               </span>
             </div>
           </div>
@@ -73,7 +75,7 @@ export function LoginForm({
           </div>
         )}
         <div>
-          <label className="block text-sm font-medium mb-1">Username</label>
+          <label className="block text-sm font-medium mb-1">{t('auth.username')}</label>
           <input
             type="text"
             value={username}
@@ -83,7 +85,7 @@ export function LoginForm({
           />
         </div>
         <div>
-          <label className="block text-sm font-medium mb-1">Password</label>
+          <label className="block text-sm font-medium mb-1">{t('auth.password')}</label>
           <input
             type="password"
             value={password}
@@ -97,7 +99,7 @@ export function LoginForm({
           disabled={loading}
           className="w-full py-2.5 bg-blue-600 text-white rounded-md font-medium text-sm hover:bg-blue-700 disabled:opacity-50 transition-colors"
         >
-          {loading ? "Signing in..." : "Sign In"}
+          {loading ? t('common.saving') : t('auth.login')}
         </button>
       </form>
     </div>

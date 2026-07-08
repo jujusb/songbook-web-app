@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { useTranslation } from "@/lib/i18n";
 
 interface UserInfo {
   id: string;
@@ -13,6 +14,7 @@ interface UserInfo {
 
 export function UserMenu() {
   const router = useRouter();
+  const { t } = useTranslation();
   const [user, setUser] = useState<UserInfo | null>(null);
   const [loaded, setLoaded] = useState(false);
 
@@ -34,7 +36,7 @@ export function UserMenu() {
         href="/login"
         className="text-sm text-neutral-600 dark:text-neutral-400 hover:text-foreground transition-colors"
       >
-        Sign In
+        {t('auth.login')}
       </Link>
     );
   }
@@ -64,7 +66,7 @@ export function UserMenu() {
         onClick={handleLogout}
         className="text-xs text-neutral-400 hover:text-red-500 transition-colors"
       >
-        Logout
+        {t('auth.logout')}
       </button>
     </div>
   );

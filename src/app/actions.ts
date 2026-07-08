@@ -1,7 +1,7 @@
 "use server";
 
-import { saveSongTranslation, createSong, getSongTranslation } from "@/lib/content";
-import { SongTranslationFrontmatterSchema } from "@/lib/content/schemas";
+import { saveSongTranslation, saveSongMeta, createSong, getSong, getSongTranslation } from "@/lib/content";
+import { SongTranslationFrontmatterSchema, type Reference } from "@/lib/content/schemas";
 import { revalidatePath } from "next/cache";
 import matter from "gray-matter";
 
@@ -49,4 +49,12 @@ export async function createSongAction(formData: FormData) {
   await createSong(id, title, lang);
   revalidatePath("/songs");
   return { id, lang };
+}
+
+export async function saveSongReferencesAction(songId: string, references: Reference[]) {
+  const meta = await getSong(songId);
+  meta.references = references;
+  await saveSongMeta(songId, meta);
+  revalidatePath(`/songs/${songId}`);
+  revalidatePath(`/edit/${songId}/[lang]`);
 }

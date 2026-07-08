@@ -1,32 +1,34 @@
 id: amazing-grace
 title: Amazing Grace
-tags: [hymn, grace, traditional]
+tags:
+  - hymn
+  - grace
+  - traditional
 key: G
 tempo: 72
-ccli: "22025"
-created: 2024-03-01
+ccli: '22025'
+created: '2024-03-01'
 references:
-  - type: bible
-    label: "1 Timothy 1:15"
+  - type: text
+    label: 1 Timothy 1:15
     target: bible-kjv/1-timothy-1
-    verse: "1"
-    text: "This is a faithful saying, and worthy of all acceptation, that Christ Jesus came into the world to save sinners; of whom I am chief."
-    highlight: "to save sinners"
+    verse: '1'
+    text: This is a faithful saying, and worthy of all acceptation, that Christ Jesus came into the world to save sinners; of whom I am chief.
+    highlight: to save sinners
   - type: bible
-    label: "Ephesians 2:8-9"
+    label: Ephesians 2:8-9
     target: bible-kjv/ephesians-2
     texts:
-      en: "For by grace are ye saved through faith; and that not of yourselves: it is the gift of God: Not of works, lest any man should boast."
-      pt: "Porque pela graça sois salvos, por meio da fé; e isto não vem de vós, é dom de Deus; não vem das obras, para que ninguém se glorie."
+      en: 'For by grace are ye saved through faith; and that not of yourselves: it is the gift of God: Not of works, lest any man should boast.'
+      pt: Porque pela graça sois salvos, por meio da fé; e isto não vem de vós, é dom de Deus; não vem das obras, para que ninguém se glorie.
     locations:
-      - verse: "1"
+      - line: 1
+        verse: '1'
         highlights:
-          en: "by grace are ye saved through faith"
-          pt: "pela graça sois salvos"
-      - verse: "2"
+          en: by grace are ye saved through faith
+          pt: pela graça sois salvos
+      - line: 3
+        verse: '1'
         highlights:
-          en: "it is the gift of God"
-          pt: "é dom de Deus"
-  - type: song
-    label: "Related: How Great Thou Art"
-    target: how-great-thou-art
+          en: it is the gift of God
+          pt: é dom de Deus

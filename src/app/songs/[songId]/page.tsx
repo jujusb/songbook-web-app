@@ -95,12 +95,20 @@ export default async function SongPage({
         </div>
         <div className="flex gap-2 text-sm">
           {showEditActions && (
-            <Link
-              href={`/edit/${songId}/${lang}`}
-              className="px-3 py-1.5 border border-neutral-300 dark:border-neutral-700 rounded-md hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors"
-            >
-              Edit
-            </Link>
+            <>
+              <Link
+                href={`/edit/${songId}/${lang}`}
+                className="px-3 py-1.5 border border-neutral-300 dark:border-neutral-700 rounded-md hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors"
+              >
+                Edit
+              </Link>
+              <Link
+                href={`/edit/${songId}/${lang}?references=1`}
+                className="px-3 py-1.5 border border-neutral-300 dark:border-neutral-700 rounded-md hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors"
+              >
+                Edit References
+              </Link>
+            </>
           )}
           <Link
             href={`/present/${songId}?lang=${lang}`}

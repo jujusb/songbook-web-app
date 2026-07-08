@@ -2,6 +2,7 @@
 
 import { useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
+import { useTranslation } from "@/lib/i18n";
 
 export function DeleteButton({
   apiEndpoint,
@@ -15,6 +16,7 @@ export function DeleteButton({
   redirectTo: string;
 }) {
   const router = useRouter();
+  const { t } = useTranslation();
   const [confirming, setConfirming] = useState(false);
   const [deleting, setDeleting] = useState(false);
 
@@ -36,7 +38,7 @@ export function DeleteButton({
     return (
       <div className="flex items-center gap-2">
         <span className="text-sm text-red-600 dark:text-red-400">
-          Delete {label}?
+          {t('common.confirmDelete', { label })}
         </span>
         <button
           type="button"
@@ -44,14 +46,14 @@ export function DeleteButton({
           disabled={deleting}
           className="text-sm px-3 py-1 bg-red-600 text-white rounded-md hover:bg-red-700 disabled:opacity-50"
         >
-          {deleting ? "Deleting..." : "Yes, delete"}
+          {deleting ? t('common.deleting') : t('common.delete')}
         </button>
         <button
           type="button"
           onClick={() => setConfirming(false)}
           className="text-sm px-3 py-1 border border-neutral-300 dark:border-neutral-700 rounded-md hover:bg-neutral-100 dark:hover:bg-neutral-800"
         >
-          Cancel
+          {t('common.cancel')}
         </button>
       </div>
     );
@@ -63,7 +65,7 @@ export function DeleteButton({
       onClick={() => setConfirming(true)}
       className="px-3 py-1.5 border border-red-300 dark:border-red-800 text-red-600 dark:text-red-400 rounded-md text-sm hover:bg-red-50 dark:hover:bg-red-950 transition-colors"
     >
-      Delete
+      {t('common.delete')}
     </button>
   );
 }

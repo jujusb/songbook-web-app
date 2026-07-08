@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useState } from "react";
+import { useTranslation } from "@/lib/i18n";
 
 interface Song {
   id: string;
@@ -11,6 +12,7 @@ interface Song {
 }
 
 export function SongListFilter({ songs }: { songs: Song[] }) {
+  const { t } = useTranslation();
   const [query, setQuery] = useState("");
 
   const filtered = songs.filter((song) => {
@@ -26,7 +28,7 @@ export function SongListFilter({ songs }: { songs: Song[] }) {
     <>
       <input
         type="text"
-        placeholder="Search songs..."
+        placeholder={t('common.search')}
         value={query}
         onChange={(e) => setQuery(e.target.value)}
         className="w-full mb-6 px-4 py-2 border border-neutral-300 dark:border-neutral-700 rounded-lg bg-white dark:bg-neutral-900 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
@@ -41,7 +43,7 @@ export function SongListFilter({ songs }: { songs: Song[] }) {
             <h2 className="font-semibold mb-1">{song.title}</h2>
             {song.key && (
               <span className="text-sm text-neutral-500 mr-3">
-                Key: {song.key}
+                {t('common.key')}: {song.key}
               </span>
             )}
             {song.tags.length > 0 && (
@@ -59,7 +61,7 @@ export function SongListFilter({ songs }: { songs: Song[] }) {
           </Link>
         ))}
         {filtered.length === 0 && (
-          <p className="text-neutral-500 col-span-full">No songs found.</p>
+          <p className="text-neutral-500 col-span-full">{t('browse.noSongs')}</p>
         )}
       </div>
     </>

@@ -10,15 +10,16 @@ import { searchKeymap } from "@codemirror/search";
 import ChordSheetJS from "chordsheetjs";
 import { saveSongAction } from "@/app/actions";
 import { VisualChordEditor } from "@/components/VisualChordEditor";
+import { useTranslation } from "@/lib/i18n";
 
-function renderChordPro(source: string): string {
+function renderChordPro(source: string, t: (key: string) => string): string {
   try {
     const parser = new ChordSheetJS.ChordProParser();
     const song = parser.parse(source);
     const formatter = new ChordSheetJS.HtmlDivFormatter({ expandChorusDirective: true });
     return formatter.format(song);
   } catch {
-    return "<p class='text-red-500'>Parse error</p>";
+    return `<p class='text-red-500'>${t('editor.parseError')}</p>`;
   }
 }
 
@@ -33,6 +34,7 @@ export function EditorView({
   lang: string;
   initialContent: string;
 }) {
+  const { t } = useTranslation();
   const editorRef = useRef<HTMLDivElement>(null);
   const cmViewRef = useRef<CMEditorView | null>(null);
   const [content, setContent] = useState(initialContent);
@@ -40,7 +42,7 @@ export function EditorView({
   const [saved, setSaved] = useState(false);
   const [mode, setMode] = useState<EditorMode>("visual");
 
-  const preview = renderChordPro(content);
+  const preview = renderChordPro(content, t);
 
   // Initialize CodeMirror when switching to code mode
   useEffect(() => {
@@ -125,7 +127,7 @@ export function EditorView({
                   : "text-neutral-500 hover:text-neutral-700 dark:hover:text-neutral-300"
               }`}
             >
-              Visual
+              {t('editor.visual')}
             </button>
             <button
               onClick={() => setMode("code")}
@@ -135,7 +137,7 @@ export function EditorView({
                   : "text-neutral-500 hover:text-neutral-700 dark:hover:text-neutral-300"
               }`}
             >
-              Code
+              {t('editor.code')}
             </button>
           </div>
           <button
@@ -143,7 +145,7 @@ export function EditorView({
             disabled={saving}
             className="text-xs px-3 py-1 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50 transition-colors"
           >
-            {saving ? "Saving..." : saved ? "Saved" : "Save"}
+            {saving ? t('common.saving') : saved ? t('common.saved') : t('common.save')}
           </button>
         </div>
 
@@ -163,7 +165,7 @@ export function EditorView({
       {/* Preview pane */}
       <div className="w-1/2 flex flex-col">
         <div className="px-3 py-1.5 border-b border-neutral-200 dark:border-neutral-800 bg-neutral-50 dark:bg-neutral-900">
-          <span className="text-xs text-neutral-500 font-medium">PREVIEW</span>
+          <span className="text-xs text-neutral-500 font-medium">{t('editor.preview')}</span>
         </div>
         <div className="flex-1 overflow-auto p-4">
           <div

@@ -4,6 +4,8 @@ import Link from "next/link";
 import { getSiteConfig } from "@/lib/content";
 import { getSession, canEdit } from "@/lib/auth";
 import { UserMenu } from "@/components/UserMenu";
+import { LocaleSwitcher } from "@/components/LocaleSwitcher";
+import { RootClientLayout } from "@/components/RootClientLayout";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -40,6 +42,7 @@ export default async function RootLayout({
   } catch {}
 
   return (
+    <RootClientLayout>
     <html
       lang="en"
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
@@ -91,6 +94,7 @@ export default async function RootLayout({
                   + New Song
                 </Link>
               )}
+              <LocaleSwitcher />
               <UserMenu />
             </div>
           </nav>
@@ -98,5 +102,6 @@ export default async function RootLayout({
         <main className="flex-1">{children}</main>
       </body>
     </html>
+    </RootClientLayout>
   );
 }
