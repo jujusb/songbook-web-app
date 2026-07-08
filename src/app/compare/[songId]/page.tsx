@@ -63,7 +63,7 @@ export default async function ComparePage({
               <span className="font-semibold text-sm">{lang.toUpperCase()}</span>
             </div>
             <div className="p-4">
-              <ChordSheet initialSource={body} songKey={meta.key ?? null} references={meta.references} idPrefix={lang} />
+              <ChordSheet initialSource={body} songKey={meta.key ?? null} references={meta.references} idPrefix={lang} lang={lang} />
             </div>
           </div>
         ))}

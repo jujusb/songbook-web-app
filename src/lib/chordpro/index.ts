@@ -1,4 +1,5 @@
 import ChordSheetJS from 'chordsheetjs';
+import { getReferenceText, getHighlight } from '@/lib/content/references';
 
 /**
  * Parse a ChordPro source string into a ChordSheetJS Song object.
@@ -40,7 +41,10 @@ export function getKey(source: string): string | null {
 /**
  * Render references as HTML for print view.
  */
-export function renderReferencesHtml(references: { type: string; label: string; target: string; text?: string; highlight?: string }[]): string {
+export function renderReferencesHtml(
+  references: { type: string; label: string; target: string; text?: string; texts?: Record<string, string>; highlight?: string; highlights?: Record<string, string> }[],
+  lang = 'en'
+): string {
   if (references.length === 0) return '';
   const items = references
     .map((r) => {
@@ -52,9 +56,11 @@ export function renderReferencesHtml(references: { type: string; label: string; 
       } else {
         link = escapeHtml(r.label);
       }
+      const text = getReferenceText(r, lang);
+      const hl = getHighlight(r, lang);
       let textHtml = '';
-      if (r.text) {
-        textHtml = `<div class="ref-text">${renderHighlightedHtml(r.text, r.highlight)}</div>`;
+      if (text) {
+        textHtml = `<div class="ref-text">${renderHighlightedHtml(text, hl)}</div>`;
       }
       return `<li>${link}${textHtml}</li>`;
     })

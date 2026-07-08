@@ -137,12 +137,13 @@ export default async function SongPage({
             initialSource={body}
             songKey={meta.key ?? null}
             references={meta.references}
+            lang={lang}
           />
         </div>
 
         {meta.references.length > 0 && (
           <aside className="w-64 shrink-0 hidden lg:block">
-            <ReferencePanel references={meta.references} />
+            <ReferencePanel references={meta.references} lang={lang} />
           </aside>
         )}
       </div>

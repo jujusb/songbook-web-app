@@ -1,4 +1,13 @@
 import Link from "next/link";
+import { getReferenceText, getHighlight } from "@/lib/content/references";
+
+interface ReferenceLocation {
+  line?: number;
+  verse?: string;
+  chorus?: string;
+  highlight?: string;
+  highlights?: Record<string, string>;
+}
 
 interface Reference {
   type: string;
@@ -8,7 +17,28 @@ interface Reference {
   verse?: string;
   chorus?: string;
   text?: string;
+  texts?: Record<string, string>;
   highlight?: string;
+  highlights?: Record<string, string>;
+  locations?: ReferenceLocation[];
+}
+
+function getLocationLabel(
+  loc: { line?: number; verse?: string; chorus?: string }
+): string | null {
+  if (loc.verse) return loc.verse;
+  if (loc.chorus) return loc.chorus;
+  if (loc.line !== undefined) return `Line ${loc.line + 1}`;
+  return null;
+}
+
+function isLocated(r: Reference): boolean {
+  return (
+    r.line !== undefined ||
+    !!r.verse ||
+    !!r.chorus ||
+    (!!r.locations && r.locations.length > 0)
+  );
 }
 
 function ReferenceLink({ reference: r }: { reference: Reference }) {
@@ -41,10 +71,6 @@ function ReferenceLink({ reference: r }: { reference: Reference }) {
   );
 }
 
-/**
- * Renders text with the `highlight` substring wrapped in a <mark>.
- * If highlight is absent or not found, renders the full text plain.
- */
 function HighlightedText({ text, highlight }: { text: string; highlight?: string }) {
   if (!highlight) {
     return <span>{text}</span>;
@@ -69,37 +95,54 @@ function HighlightedText({ text, highlight }: { text: string; highlight?: string
   );
 }
 
-function ReferenceText({ reference: r }: { reference: Reference }) {
-  if (!r.text) return null;
+function ReferenceText({
+  reference: r,
+  highlight: highlightOverride,
+  lang = "en",
+}: {
+  reference: Reference;
+  highlight?: string;
+  lang?: string;
+}) {
+  const text = getReferenceText(r, lang);
+  const hl = highlightOverride ?? getHighlight(r, lang);
+  if (!text) return null;
   return (
     <div className="mt-1 text-xs text-neutral-500 dark:text-neutral-400 leading-relaxed italic pl-2 border-l-2 border-neutral-200 dark:border-neutral-700">
-      <HighlightedText text={r.text} highlight={r.highlight} />
+      <HighlightedText text={text} highlight={hl} />
     </div>
   );
 }
 
-function getLocationLabel(r: Reference): string | null {
-  if (r.verse) return r.verse;
-  if (r.chorus) return r.chorus;
-  if (r.line !== undefined) return `Line ${r.line + 1}`;
-  return null;
-}
-
-function isLocated(r: Reference): boolean {
-  return r.line !== undefined || !!r.verse || !!r.chorus;
-}
-
-export function ReferencePanel({ references }: { references: Reference[] }) {
+export function ReferencePanel({ references, lang = "en" }: { references: Reference[]; lang?: string }) {
   const general = references.filter((r) => !isLocated(r));
   const located = references.filter(isLocated);
 
-  // Group located references by their location label
-  const byLocationMap = new Map<string, Reference[]>();
+  // Expand each located reference into display entries — one per location
+  // Each entry carries the per-location highlight if set, falling back to the reference-level one
+  const entries: { label: string; reference: Reference; highlight?: string }[] = [];
   for (const r of located) {
-    const key = getLocationLabel(r) || "Unknown";
-    const existing = byLocationMap.get(key) || [];
-    existing.push(r);
-    byLocationMap.set(key, existing);
+    if (r.locations && r.locations.length > 0) {
+      for (const loc of r.locations) {
+        const label = getLocationLabel(loc);
+        if (label) {
+          entries.push({ label, reference: r, highlight: getHighlight(loc, lang) || getHighlight(r, lang) });
+        }
+      }
+    } else {
+      const label = getLocationLabel(r);
+      if (label) {
+        entries.push({ label, reference: r });
+      }
+    }
+  }
+
+  // Group entries by location label
+  const byLocationMap = new Map<string, { reference: Reference; highlight?: string }[]>();
+  for (const { label, reference, highlight } of entries) {
+    const existing = byLocationMap.get(label) || [];
+    existing.push({ reference, highlight });
+    byLocationMap.set(label, existing);
   }
   const byLocation = Array.from(byLocationMap.entries());
 
@@ -109,19 +152,17 @@ export function ReferencePanel({ references }: { references: Reference[] }) {
         References
       </h3>
 
-      {/* General references */}
       {general.length > 0 && (
         <ul className="space-y-3 mb-4">
           {general.map((ref, i) => (
             <li key={`g-${i}`}>
               <ReferenceLink reference={ref} />
-              <ReferenceText reference={ref} />
+              <ReferenceText reference={ref} lang={lang} />
             </li>
           ))}
         </ul>
       )}
 
-      {/* Located references grouped by verse/chorus/line */}
       {byLocation.length > 0 && (
         <div className="space-y-3">
           {general.length > 0 && (
@@ -141,9 +182,9 @@ export function ReferencePanel({ references }: { references: Reference[] }) {
                   <li key={i}>
                     <div className="flex items-start gap-1">
                       <span className="text-amber-500 text-xs mt-0.5">*</span>
-                      <ReferenceLink reference={ref} />
+                      <ReferenceLink reference={ref.reference} />
                     </div>
-                    <ReferenceText reference={ref} />
+                    <ReferenceText reference={ref.reference} highlight={ref.highlight} lang={lang} />
                   </li>
                 ))}
               </ul>

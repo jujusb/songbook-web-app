@@ -91,7 +91,7 @@ export default async function PrintPage({
         const { body } = await getSongTranslation(song.id, lang);
         const html = renderToHtml(body);
         const refsHtml = showRefs && songMeta?.references?.length
-          ? renderReferencesHtml(songMeta.references)
+          ? renderReferencesHtml(songMeta.references, lang)
           : "";
         printSongs.push({
           id: song.id,

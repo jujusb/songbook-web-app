@@ -2,6 +2,15 @@
 
 import { useState, useMemo } from "react";
 import ChordSheetJS from "chordsheetjs";
+import { getReferenceText, getHighlight } from "@/lib/content/references";
+
+interface ReferenceLocation {
+  line?: number;
+  verse?: string;
+  chorus?: string;
+  highlight?: string;
+  highlights?: Record<string, string>;
+}
 
 interface Reference {
   type: string;
@@ -11,13 +20,17 @@ interface Reference {
   verse?: string;
   chorus?: string;
   text?: string;
+  texts?: Record<string, string>;
   highlight?: string;
+  highlights?: Record<string, string>;
+  locations?: ReferenceLocation[];
 }
 
 interface Footnote {
   index: number;
   reference: Reference;
   lineIndex: number;
+  highlight?: string; // per-location override
 }
 
 function renderSource(source: string): string {
@@ -69,46 +82,78 @@ function parseSectionMap(
 }
 
 /**
+ * Resolve a single location (verse/chorus/line) to a content-line index.
+ */
+function resolveLocation(
+  loc: { line?: number; verse?: string; chorus?: string },
+  sectionMap: { type: string; label: string; startLine: number }[]
+): number | null {
+  if (loc.line !== undefined) return loc.line;
+  if (loc.verse) {
+    const sec = sectionMap.find(
+      (s) => s.type === "verse" && s.label === loc.verse
+    );
+    if (sec) return sec.startLine;
+  }
+  if (loc.chorus) {
+    const sec = sectionMap.find(
+      (s) =>
+        s.type === "chorus" &&
+        (!loc.chorus || loc.chorus === s.label || s.label === "Chorus")
+    );
+    if (sec) return sec.startLine;
+  }
+  return null;
+}
+
+/**
  * Build numbered footnotes from references.
- * Matches verse: to {start_of_verse: X} and chorus: to {start_of_chorus: X}.
+ *
+ * Each reference gets ONE footnote index. If it has a `locations` array
+ * the same index is placed at every resolved location. Legacy single
+ * `verse`/`chorus`/`line` fields are treated as a single-element locations
+ * array for backward compatibility.
  */
 function buildFootnotes(
   references: Reference[],
-  sectionMap: { type: string; label: string; startLine: number }[]
+  sectionMap: { type: string; label: string; startLine: number }[],
+  lang: string
 ): Footnote[] {
   const footnotes: Footnote[] = [];
   let idx = 1;
 
   for (const ref of references) {
-    if (ref.line !== undefined) {
-      footnotes.push({ index: idx++, reference: ref, lineIndex: ref.line });
-    } else if (ref.verse) {
-      // Match verse: value against {start_of_verse: value}
-      const sec = sectionMap.find(
-        (s) => s.type === "verse" && s.label === ref.verse
-      );
-      if (sec) {
-        footnotes.push({
-          index: idx++,
-          reference: ref,
-          lineIndex: sec.startLine,
-        });
-      }
-    } else if (ref.chorus) {
-      // Match chorus: value against {start_of_chorus: value}
-      // Also match if chorus is just "true" or empty — matches any chorus
-      const sec = sectionMap.find(
-        (s) => s.type === "chorus" && (!ref.chorus || ref.chorus === s.label || s.label === "Chorus")
-      );
-      if (sec) {
-        footnotes.push({
-          index: idx++,
-          reference: ref,
-          lineIndex: sec.startLine,
+    const locs: (ReferenceLocation)[] = [];
+
+    if (ref.locations && ref.locations.length > 0) {
+      locs.push(...ref.locations);
+    } else if (ref.line !== undefined || ref.verse || ref.chorus) {
+      locs.push({ line: ref.line, verse: ref.verse, chorus: ref.chorus });
+    }
+
+    if (locs.length === 0) continue;
+
+    const resolved: { lineIndex: number; highlight?: string }[] = [];
+    const seen = new Set<number>();
+    for (const loc of locs) {
+      const lineIndex = resolveLocation(loc, sectionMap);
+      if (lineIndex !== null && !seen.has(lineIndex)) {
+        seen.add(lineIndex);
+        resolved.push({
+          lineIndex,
+          highlight: getHighlight(loc, lang) || getHighlight(ref, lang),
         });
       }
     }
+
+    if (resolved.length === 0) continue;
+
+    const fnIndex = idx++;
+    for (const { lineIndex, highlight } of resolved) {
+      footnotes.push({ index: fnIndex, reference: ref, lineIndex, highlight });
+    }
   }
+
   return footnotes;
 }
 
@@ -212,11 +257,13 @@ export function ChordSheet({
   songKey,
   references = [],
   idPrefix = "",
+  lang = "en",
 }: {
   initialSource: string;
   songKey: string | null;
   references?: Reference[];
   idPrefix?: string;
+  lang?: string;
 }) {
   const [semitones, setSemitones] = useState(0);
 
@@ -228,8 +275,8 @@ export function ChordSheet({
 
   // Build numbered footnotes
   const footnotes = useMemo(
-    () => buildFootnotes(references, sectionMap),
-    [references, sectionMap]
+    () => buildFootnotes(references, sectionMap, lang),
+    [references, sectionMap, lang]
   );
 
   // Group footnotes by line index
@@ -251,12 +298,13 @@ export function ChordSheet({
 
     // Post-process: turn plain-text (1), (2) etc. into clickable anchor links
     if (footnotes.length > 0) {
+      const maxIndex = Math.max(...footnotes.map((fn) => fn.index));
       const prefix = idPrefix ? `${idPrefix}-` : "";
       rendered = rendered.replace(
         /\((\d+)\)/g,
         (match, num) => {
           const n = parseInt(num);
-          if (n >= 1 && n <= footnotes.length) {
+          if (n >= 1 && n <= maxIndex) {
             return `<a href="#${prefix}ref-${n}" class="ref-marker">(${n})</a>`;
           }
           return match;
@@ -269,8 +317,52 @@ export function ChordSheet({
 
   // General (non-line) references
   const generalRefs = references.filter(
-    (r) => r.line === undefined && !r.verse && !r.chorus
+    (r) =>
+      r.line === undefined &&
+      !r.verse &&
+      !r.chorus &&
+      (!r.locations || r.locations.length === 0)
   );
+
+  // Group footnotes by index — one entry per reference in the <ol>, showing all locations
+  const footnoteGroups = useMemo(() => {
+    type Group = {
+      index: number;
+      reference: Reference;
+      lineIndices: number[];
+      effectiveHighlight?: string;
+    };
+    const groups = new Map<number, Group>();
+    for (const fn of footnotes) {
+      const existing = groups.get(fn.index);
+      if (existing) {
+        if (!existing.lineIndices.includes(fn.lineIndex)) {
+          existing.lineIndices.push(fn.lineIndex);
+        }
+      } else {
+        groups.set(fn.index, {
+          index: fn.index,
+          reference: fn.reference,
+          lineIndices: [fn.lineIndex],
+          effectiveHighlight: fn.highlight || getHighlight(fn.reference, lang),
+        });
+      }
+    }
+    return Array.from(groups.values()).sort((a, b) => a.index - b.index);
+  }, [footnotes, lang]);
+
+  // Map line index to section name for display
+  const sectionNames = useMemo(() => {
+    const map = new Map<number, string>();
+    for (const sec of sectionMap) {
+      let label = sec.type.charAt(0).toUpperCase() + sec.type.slice(1);
+      if (sec.type === "verse" || sec.type === "chorus") {
+        label = sec.label;
+      }
+      map.set(sec.startLine, label);
+    }
+    return map;
+  }, [sectionMap]);
 
   return (
     <div>
@@ -316,44 +408,45 @@ export function ChordSheet({
       />
 
       {/* Footnotes */}
-      {footnotes.length > 0 && (
+      {footnoteGroups.length > 0 && (
         <div className="mt-6 pt-4 border-t border-neutral-200 dark:border-neutral-800">
           <div className="text-xs font-semibold text-neutral-400 uppercase tracking-wide mb-2">
             References
           </div>
           <ol className="space-y-2.5">
-            {footnotes.map((fn) => {
+            {footnoteGroups.map((group) => {
               const prefix = idPrefix ? `${idPrefix}-` : "";
+              // Build location labels for this group
+              const locLabels = group.lineIndices
+                .map((li) => sectionNames.get(li))
+                .filter(Boolean)
+                .filter((v, i, a) => a.indexOf(v) === i);
+              const locLabel = locLabels.length > 0 ? locLabels.join(", ") : null;
               return (
-                <li key={fn.index} id={`${prefix}ref-${fn.index}`} className="flex items-start gap-2 text-sm">
+                <li key={group.index} id={`${prefix}ref-${group.index}`} className="flex items-start gap-2 text-sm">
                   <a
-                    href={`#${prefix}ref-${fn.index}`}
+                    href={`#${prefix}ref-${group.index}`}
                     className="text-amber-600 dark:text-amber-400 font-bold text-xs mt-0.5 shrink-0 hover:underline"
                   >
-                    ({fn.index})
+                    ({group.index})
                   </a>
                 <div>
-                  <FootnoteLink fn={fn} />
-                  {fn.reference.verse && (
-                    <span className="text-xs text-neutral-400 ml-1">
-                      &mdash; {fn.reference.verse}
-                    </span>
-                  )}
-                  {fn.reference.chorus && (
-                    <span className="text-xs text-neutral-400 ml-1">
-                      &mdash; {fn.reference.chorus}
-                    </span>
-                  )}
-                  {fn.reference.line !== undefined && !fn.reference.verse && !fn.reference.chorus && (
-                    <span className="text-xs text-neutral-400 ml-1">
-                      &mdash; line {fn.reference.line + 1}
-                    </span>
-                  )}
-                  {fn.reference.text && (
-                    <div className="mt-1 text-xs text-neutral-500 dark:text-neutral-400 leading-relaxed italic pl-2 border-l-2 border-neutral-200 dark:border-neutral-700">
-                      <HighlightedText text={fn.reference.text} highlight={fn.reference.highlight} />
-                    </div>
-                  )}
+                  <div>
+                    <FootnoteLink fn={{ index: group.index, reference: group.reference, lineIndex: group.lineIndices[0] }} />
+                    {locLabel && (
+                      <span className="text-xs text-neutral-400 ml-1">
+                        &mdash; {locLabel}
+                      </span>
+                    )}
+                  </div>
+                  {(() => {
+                    const text = getReferenceText(group.reference, lang);
+                    return text && (
+                      <div className="mt-1 text-xs text-neutral-500 dark:text-neutral-400 leading-relaxed italic pl-2 border-l-2 border-neutral-200 dark:border-neutral-700">
+                        <HighlightedText text={text} highlight={group.effectiveHighlight} />
+                      </div>
+                    );
+                  })()}
                 </div>
               </li>
               );
@@ -403,11 +496,15 @@ export function ChordSheet({
                     </span>
                   )}
                 </div>
-                {r.text && (
-                  <div className="mt-1 text-xs text-neutral-500 dark:text-neutral-400 leading-relaxed italic pl-2 border-l-2 border-neutral-200 dark:border-neutral-700">
-                    <HighlightedText text={r.text} highlight={r.highlight} />
-                  </div>
-                )}
+                {(() => {
+                  const text = getReferenceText(r, lang);
+                  const hl = getHighlight(r, lang);
+                  return text && (
+                    <div className="mt-1 text-xs text-neutral-500 dark:text-neutral-400 leading-relaxed italic pl-2 border-l-2 border-neutral-200 dark:border-neutral-700">
+                      <HighlightedText text={text} highlight={hl} />
+                    </div>
+                  );
+                })()}
               </li>
             ))}
           </ul>

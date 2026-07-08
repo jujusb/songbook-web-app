@@ -1,5 +1,15 @@
 import { z } from 'zod';
 
+export const ReferenceLocationSchema = z.object({
+  line: z.number().optional(),
+  verse: z.string().optional(),
+  chorus: z.string().optional(),
+  highlight: z.string().optional(),  // per-location override of the reference-level highlight
+  highlights: z.record(z.string(), z.string()).optional(), // language-keyed highlight
+});
+
+export type ReferenceLocation = z.infer<typeof ReferenceLocationSchema>;
+
 export const ReferenceSchema = z.object({
   type: z.string(),
   label: z.string(),
@@ -8,7 +18,10 @@ export const ReferenceSchema = z.object({
   verse: z.string().optional(),      // matches {start_of_verse: <value>} in .cho
   chorus: z.string().optional(),     // matches {start_of_chorus: <value>} in .cho
   text: z.string().optional(),       // full text of the reference (e.g. Bible verse content)
+  texts: z.record(z.string(), z.string()).optional(), // language-keyed reference text
   highlight: z.string().optional(),  // substring within `text` to highlight as directly relevant
+  highlights: z.record(z.string(), z.string()).optional(), // language-keyed highlight
+  locations: z.array(ReferenceLocationSchema).optional(), // multiple anchors in the song
 });
 
 export const SongMetaSchema = z.object({

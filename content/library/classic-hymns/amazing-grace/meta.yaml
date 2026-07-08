@@ -15,9 +15,18 @@ references:
   - type: bible
     label: "Ephesians 2:8-9"
     target: bible-kjv/ephesians-2
-    line: 0
-    text: "For by grace are ye saved through faith; and that not of yourselves: it is the gift of God: Not of works, lest any man should boast."
-    highlight: "by grace are ye saved through faith"
+    texts:
+      en: "For by grace are ye saved through faith; and that not of yourselves: it is the gift of God: Not of works, lest any man should boast."
+      pt: "Porque pela graça sois salvos, por meio da fé; e isto não vem de vós, é dom de Deus; não vem das obras, para que ninguém se glorie."
+    locations:
+      - verse: "Verse 1"
+        highlights:
+          en: "by grace are ye saved through faith"
+          pt: "pela graça sois salvos"
+      - verse: "Verse 2"
+        highlights:
+          en: "it is the gift of God"
+          pt: "é dom de Deus"
   - type: song
     label: "Related: How Great Thou Art"
     target: how-great-thou-art
