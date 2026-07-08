@@ -40,9 +40,15 @@ export function UserMenu() {
   }
 
   const handleLogout = async () => {
-    await fetch("/api/auth/logout", { method: "POST" });
-    router.push("/");
-    router.refresh();
+    const res = await fetch("/api/auth/logout", { method: "POST" });
+    const data = await res.json();
+    if (data.redirectUrl) {
+      // OIDC provider logout — redirect to the provider's logout endpoint
+      window.location.href = data.redirectUrl;
+    } else {
+      router.push("/");
+      router.refresh();
+    }
   };
 
   return (

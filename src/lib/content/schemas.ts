@@ -73,11 +73,34 @@ export const LanguagesConfigSchema = z.object({
 
 export type LanguagesConfig = z.infer<typeof LanguagesConfigSchema>;
 
+export const OidcRoleMappingSchema = z.object({
+  admin: z.union([z.string(), z.array(z.string())]).optional(),
+  reviewer: z.union([z.string(), z.array(z.string())]).optional(),
+});
+
+export type OidcRoleMapping = z.infer<typeof OidcRoleMappingSchema>;
+
+export const OidcConfigSchema = z.object({
+  enabled: z.boolean().default(false),
+  issuer: z.string(),                                    // e.g. https://auth.example.com/realms/main
+  clientId: z.string(),
+  scopes: z.array(z.string()).default(['openid', 'profile', 'email']),
+  roleClaim: z.string().default('groups'),               // JWT claim holding role/group info
+  roleMapping: OidcRoleMappingSchema.optional(),         // map claim values → songbook roles
+  defaultRole: z.enum(['public', 'reviewer', 'admin']).default('public'),
+  buttonLabel: z.string().default('Sign in with SSO'),
+  autoRedirect: z.boolean().default(false),              // skip login form, go straight to OIDC
+  logoutUrl: z.string().optional(),                      // OIDC provider logout endpoint
+});
+
+export type OidcConfig = z.infer<typeof OidcConfigSchema>;
+
 export const SiteConfigSchema = z.object({
   title: z.string(),
   defaultLanguage: z.string(),
   pdfPageSize: z.string().default('A4'),
   enableArtistPages: z.boolean().default(true),
+  oidc: OidcConfigSchema.optional(),
 });
 
 export type SiteConfig = z.infer<typeof SiteConfigSchema>;

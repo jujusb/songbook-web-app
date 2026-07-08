@@ -25,6 +25,11 @@ Production Dockerfile installs Chromium + Noto fonts for Puppeteer PDF generatio
 
 - `ADMIN_PASSWORD` — seed password for auto-created admin user (default: `"admin"`)
 - `JWT_SECRET` — signing key for session JWTs (default: `"songbook-default-secret-change-me"`)
+- `OIDC_ISSUER` — OIDC provider URL; setting this enables OIDC (auto-sets `oidc.enabled: true`)
+- `OIDC_CLIENT_ID` — OAuth2 client ID
+- `OIDC_CLIENT_SECRET` — OAuth2 client secret
+- `OIDC_LOGOUT_URL` — provider logout endpoint (optional)
+- See `docker-compose.yml` for the full set of `OIDC_*` env vars; they override `site.yaml` values
 
 ## Architecture
 
@@ -52,6 +57,8 @@ All content schemas are Zod-validated in `src/lib/content/schemas.ts`. CRUD oper
 ### Auth
 
 Custom JWT auth (no NextAuth). Users stored as YAML in `content/users/`. Bcrypt password hashing, HTTP-only cookie (`songbook-session`), 7-day expiry. Three roles: `public` (read), `reviewer` (read+edit), `admin` (full). Auth checked per-route via `getSession()`/`getCurrentUser()` — no middleware.
+
+Optional OIDC support configured in `site.yaml` (`oidc:` block). Uses standard Authorization Code flow with OIDC Discovery. Client secret via `OIDC_CLIENT_SECRET` env var. OIDC users are auto-provisioned with `authProvider: 'oidc'` in their YAML file. Role mapping from OIDC claims is configurable. See `src/lib/auth/oidc.ts` for the implementation.
 
 ### Key libraries
 

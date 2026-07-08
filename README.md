@@ -44,8 +44,19 @@ Dev server runs on `http://localhost:3000`.
 |---|---|---|
 | `ADMIN_PASSWORD` | Password for the auto-created admin user | `admin` |
 | `JWT_SECRET` | Signing key for session JWTs | `songbook-default-secret-change-me` |
+| `OIDC_ISSUER` | OIDC provider URL; setting this enables OIDC | _(none)_ |
+| `OIDC_CLIENT_ID` | OAuth2 client ID | _(none)_ |
+| `OIDC_CLIENT_SECRET` | OAuth2 client secret | _(none)_ |
+| `OIDC_SCOPES` | Space-separated scopes | `openid profile email` |
+| `OIDC_ROLE_CLAIM` | JWT claim for role mapping | `groups` |
+| `OIDC_ROLE_ADMIN` | Claim value that maps to admin role | _(none)_ |
+| `OIDC_ROLE_REVIEWER` | Claim value that maps to reviewer role | _(none)_ |
+| `OIDC_DEFAULT_ROLE` | Fallback role if no mapping matches | `public` |
+| `OIDC_BUTTON_LABEL` | Text for the SSO button on the login page | `Sign in with SSO` |
+| `OIDC_AUTO_REDIRECT` | Skip login form, redirect straight to OIDC | `false` |
+| `OIDC_LOGOUT_URL` | Provider logout endpoint (optional) | _(none)_ |
 
-Both should be changed for any non-local deployment.
+`ADMIN_PASSWORD` and `JWT_SECRET` should be changed for any non-local deployment. All `OIDC_*` env vars override values in `site.yaml`.
 
 ## Content Structure
 
@@ -142,6 +153,30 @@ src/
 ### Auth
 
 Custom JWT-based authentication with no external dependencies. Users are stored as YAML files. Session tokens are HTTP-only cookies (`songbook-session`) with 7-day expiry. An admin user is auto-created on first login if no users exist. Auth is checked per-route — there is no Next.js middleware.
+
+#### OIDC / SSO (optional)
+
+The app supports OpenID Connect for single sign-on. The simplest way to enable it is via env vars in `docker-compose.yml` — just set `OIDC_ISSUER` and the rest:
+
+```yaml
+environment:
+  - OIDC_ISSUER=https://auth.example.com/realms/main
+  - OIDC_CLIENT_ID=songbook
+  - OIDC_CLIENT_SECRET=your-client-secret
+  - OIDC_LOGOUT_URL=https://auth.example.com/realms/main/protocol/openid-connect/logout
+```
+
+Setting `OIDC_ISSUER` automatically enables OIDC. All `OIDC_*` env vars override values in `content/config/site.yaml`, so you can configure everything from Docker without touching YAML files. See the env vars table above for the full list.
+
+Alternatively, configure the `oidc:` block directly in `content/config/site.yaml` (see the commented example there). The client secret is always read from the `OIDC_CLIENT_SECRET` env var for security.
+
+The callback URL to register with your provider is: `https://your-domain/api/auth/oidc/callback`
+
+The app uses standard Authorization Code flow with OIDC Discovery (`/.well-known/openid-configuration`). OIDC users are auto-provisioned on first login. Their role is mapped from a configurable JWT claim (default: `groups`). If no mapping matches, the `defaultRole` (default: `public`) is assigned. Users provisioned via OIDC are stored with `authProvider: oidc` in their YAML file and cannot log in with a password.
+
+When `OIDC_LOGOUT_URL` is set, logging out will clear the local session and redirect the user to the provider's logout endpoint.
+
+Set `OIDC_AUTO_REDIRECT=true` to skip the login form and send users directly to the OIDC provider. Local password login remains available at `/login?error=` (any error parameter prevents the auto-redirect loop).
 
 ## License
 

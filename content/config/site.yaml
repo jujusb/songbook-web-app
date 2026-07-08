@@ -2,3 +2,21 @@ title: Songbook
 defaultLanguage: en
 pdfPageSize: A4
 enableArtistPages: true
+
+# OAuth2 / OpenID Connect (optional)
+# Can be configured here OR via env vars (env vars take precedence).
+# Setting OIDC_ISSUER env var automatically enables OIDC.
+# See docker-compose.yml for the full list of OIDC_* env vars.
+# oidc:
+#   enabled: true
+#   issuer: https://auth.example.com/realms/main
+#   clientId: songbook
+#   scopes: [openid, profile, email]
+#   roleClaim: groups                  # JWT claim that carries role/group values
+#   roleMapping:
+#     admin: songbook-admin            # claim value → admin role
+#     reviewer: songbook-editor        # claim value → reviewer role
+#   defaultRole: public               # fallback role if no mapping matches
+#   buttonLabel: Sign in with SSO
+#   autoRedirect: false                # true = skip login form, redirect straight to OIDC
+#   logoutUrl: https://auth.example.com/realms/main/protocol/openid-connect/logout

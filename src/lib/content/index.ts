@@ -234,7 +234,36 @@ export async function getLanguagesConfig(): Promise<LanguagesConfig> {
 export async function getSiteConfig(): Promise<SiteConfig> {
   const filePath = path.join(getContentDir(), 'config', 'site.yaml');
   const raw = await readFile(filePath, 'utf-8');
-  const parsed = yaml.load(raw);
+  const parsed = yaml.load(raw) as Record<string, unknown>;
+
+  // Build / override OIDC config from env vars.
+  // Setting OIDC_ISSUER is the trigger — if present, OIDC is enabled.
+  const envIssuer = process.env.OIDC_ISSUER;
+  if (envIssuer) {
+    const yamlOidc = (parsed.oidc ?? {}) as Record<string, unknown>;
+
+    // Build role mapping from env vars, falling back to site.yaml values
+    const roleMapping: Record<string, unknown> = {
+      ...(yamlOidc.roleMapping as Record<string, unknown> | undefined),
+    };
+    if (process.env.OIDC_ROLE_ADMIN) roleMapping.admin = process.env.OIDC_ROLE_ADMIN;
+    if (process.env.OIDC_ROLE_REVIEWER) roleMapping.reviewer = process.env.OIDC_ROLE_REVIEWER;
+
+    parsed.oidc = {
+      ...yamlOidc,
+      enabled: true,
+      issuer: envIssuer,
+      ...(process.env.OIDC_CLIENT_ID && { clientId: process.env.OIDC_CLIENT_ID }),
+      ...(process.env.OIDC_SCOPES && { scopes: process.env.OIDC_SCOPES.split(/[\s,]+/).filter(Boolean) }),
+      ...(process.env.OIDC_ROLE_CLAIM && { roleClaim: process.env.OIDC_ROLE_CLAIM }),
+      ...(Object.keys(roleMapping).length > 0 && { roleMapping }),
+      ...(process.env.OIDC_DEFAULT_ROLE && { defaultRole: process.env.OIDC_DEFAULT_ROLE }),
+      ...(process.env.OIDC_BUTTON_LABEL && { buttonLabel: process.env.OIDC_BUTTON_LABEL }),
+      ...(process.env.OIDC_AUTO_REDIRECT && { autoRedirect: process.env.OIDC_AUTO_REDIRECT === 'true' }),
+      ...(process.env.OIDC_LOGOUT_URL && { logoutUrl: process.env.OIDC_LOGOUT_URL }),
+    };
+  }
+
   return SiteConfigSchema.parse(parsed);
 }
 

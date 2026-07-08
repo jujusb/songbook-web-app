@@ -1,5 +1,4 @@
 import { readdir, readFile, writeFile, mkdir } from 'fs/promises';
-import { existsSync } from 'fs';
 import path from 'path';
 import * as yaml from 'js-yaml';
 import bcrypt from 'bcryptjs';
@@ -51,6 +50,52 @@ export async function getUserByUsername(username: string): Promise<User | null> 
   return users.find((u) => u.username === username) || null;
 }
 
+export async function getUserByOidcSub(sub: string): Promise<User | null> {
+  const users = await listUsers();
+  return users.find((u) => u.authProvider === 'oidc' && u.oidcSub === sub) || null;
+}
+
+export async function findOrCreateOidcUser(
+  sub: string,
+  claims: { email?: string; name?: string; preferred_username?: string },
+  role: Role
+): Promise<User> {
+  const existing = await getUserByOidcSub(sub);
+  if (existing) {
+    // Update display name / email if changed at the provider
+    let changed = false;
+    if (claims.name && claims.name !== existing.displayName) {
+      existing.displayName = claims.name;
+      changed = true;
+    }
+    if (claims.email && claims.email !== existing.email) {
+      existing.email = claims.email;
+      changed = true;
+    }
+    if (role !== existing.role) {
+      existing.role = role;
+      changed = true;
+    }
+    if (changed) await saveUser(existing);
+    return existing;
+  }
+
+  const username = claims.preferred_username || claims.email || sub;
+  const id = `oidc-${sub.replace(/[^a-zA-Z0-9]/g, '-').slice(0, 60)}`;
+  const user: User = {
+    id,
+    username,
+    role,
+    authProvider: 'oidc',
+    oidcSub: sub,
+    displayName: claims.name,
+    email: claims.email,
+    created: new Date().toISOString(),
+  };
+  await saveUser(user);
+  return user;
+}
+
 export async function saveUser(user: User): Promise<void> {
   const dir = getUsersDir();
   await mkdir(dir, { recursive: true });
@@ -72,6 +117,7 @@ export async function createUser(
     username,
     passwordHash,
     role,
+    authProvider: 'local',
     displayName,
     created: new Date().toISOString(),
   };
@@ -86,6 +132,7 @@ export async function deleteUser(id: string): Promise<void> {
 }
 
 export async function verifyPassword(user: User, password: string): Promise<boolean> {
+  if (!user.passwordHash) return false; // OIDC-only users cannot use password login
   return bcrypt.compare(password, user.passwordHash);
 }
 
@@ -115,7 +162,7 @@ export async function getCurrentUser(): Promise<User | null> {
   return getUser(session.userId);
 }
 
-export function canRead(role: Role | null): boolean {
+export function canRead(_role: Role | null): boolean {
   return true; // everyone can read
 }
 

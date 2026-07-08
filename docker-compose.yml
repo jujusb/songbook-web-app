@@ -13,6 +13,18 @@ services:
     environment:
       - NODE_ENV=development
       - WATCHPACK_POLLING=true
+      # --- OIDC / SSO (all optional — set OIDC_ISSUER to enable) ---
+      # - OIDC_ISSUER=https://auth.example.com/realms/main
+      # - OIDC_CLIENT_ID=songbook
+      # - OIDC_CLIENT_SECRET=your-client-secret
+      # - OIDC_SCOPES=openid profile email
+      # - OIDC_ROLE_CLAIM=groups
+      # - OIDC_ROLE_ADMIN=songbook-admin
+      # - OIDC_ROLE_REVIEWER=songbook-editor
+      # - OIDC_DEFAULT_ROLE=public
+      # - OIDC_BUTTON_LABEL=Sign in with SSO
+      # - OIDC_AUTO_REDIRECT=false
+      # - OIDC_LOGOUT_URL=https://auth.example.com/realms/main/protocol/openid-connect/logout
     restart: unless-stopped
 
 volumes:

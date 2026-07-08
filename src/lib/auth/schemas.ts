@@ -3,9 +3,12 @@ import { z } from 'zod';
 export const UserSchema = z.object({
   id: z.string(),
   username: z.string(),
-  passwordHash: z.string(),
+  passwordHash: z.string().optional(),       // absent for OIDC-only users
   role: z.enum(['public', 'reviewer', 'admin']),
   displayName: z.string().optional(),
+  email: z.string().optional(),
+  authProvider: z.enum(['local', 'oidc']).default('local'),
+  oidcSub: z.string().optional(),            // OIDC subject identifier
   created: z.union([z.string(), z.date()]).optional(),
 });
 
