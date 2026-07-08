@@ -109,10 +109,8 @@ function resolveLocation(
 /**
  * Build numbered footnotes from references.
  *
- * Each reference gets ONE footnote index. If it has a `locations` array
- * the same index is placed at every resolved location. Legacy single
- * `verse`/`chorus`/`line` fields are treated as a single-element locations
- * array for backward compatibility.
+ * Each resolved location gets its own sequential index. Legacy single
+ * `verse`/`chorus`/`line` fields are treated as a single location.
  */
 function buildFootnotes(
   references: Reference[],
@@ -133,24 +131,18 @@ function buildFootnotes(
 
     if (locs.length === 0) continue;
 
-    const resolved: { lineIndex: number; highlight?: string }[] = [];
     const seen = new Set<number>();
     for (const loc of locs) {
       const lineIndex = resolveLocation(loc, sectionMap);
       if (lineIndex !== null && !seen.has(lineIndex)) {
         seen.add(lineIndex);
-        resolved.push({
+        footnotes.push({
+          index: idx++,
+          reference: ref,
           lineIndex,
           highlight: getHighlight(loc, lang) || getHighlight(ref, lang),
         });
       }
-    }
-
-    if (resolved.length === 0) continue;
-
-    const fnIndex = idx++;
-    for (const { lineIndex, highlight } of resolved) {
-      footnotes.push({ index: fnIndex, reference: ref, lineIndex, highlight });
     }
   }
 
@@ -252,6 +244,49 @@ function HighlightedText({ text, highlight }: { text: string; highlight?: string
   );
 }
 
+function escapeHtml(str: string): string {
+  return str
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
+}
+
+/**
+ * Build HTML for reference text with inline footnote markers and highlights
+ * embedded at each highlight position. Used for multi-location references
+ * where different parts of the text are highlighted for different sections.
+ */
+function renderInlineRefText(
+  text: string,
+  entries: { index: number; highlight?: string; locLabel: string | null }[],
+  prefix: string
+): string {
+  const highlights: { start: number; end: number; index: number }[] = [];
+  for (const entry of entries) {
+    const hl = entry.highlight;
+    if (!hl) continue;
+    const start = text.indexOf(hl);
+    if (start === -1) continue;
+    const end = start + hl.length;
+    if (highlights.some((h) => h.start === start && h.end === end)) continue;
+    highlights.push({ start, end, index: entry.index });
+  }
+  highlights.sort((a, b) => a.start - b.start);
+
+  let html = escapeHtml(text);
+  for (let i = highlights.length - 1; i >= 0; i--) {
+    const h = highlights[i];
+    const before = html.slice(0, h.start);
+    const after = html.slice(h.end);
+    const marker = `<a href="#${prefix}ref-${h.index}" class="ref-marker">(${h.index})</a>`;
+    const marked = `<mark class="bg-amber-100 dark:bg-amber-900/50 text-amber-900 dark:text-amber-200 px-0.5 rounded-sm">${escapeHtml(text.slice(h.start, h.end))}</mark>`;
+    html = before + marker + marked + after;
+  }
+
+  return html;
+}
+
 export function ChordSheet({
   initialSource,
   songKey,
@@ -290,67 +325,6 @@ export function ChordSheet({
     return map;
   }, [footnotes]);
 
-  // Transpose first, then inject markers, then render, then linkify markers
-  const html = useMemo(() => {
-    const transposed = transposeSource(initialSource, semitones);
-    const withMarkers = injectMarkersIntoSource(transposed, footnotesByLine);
-    let rendered = renderSource(withMarkers);
-
-    // Post-process: turn plain-text (1), (2) etc. into clickable anchor links
-    if (footnotes.length > 0) {
-      const maxIndex = Math.max(...footnotes.map((fn) => fn.index));
-      const prefix = idPrefix ? `${idPrefix}-` : "";
-      rendered = rendered.replace(
-        /\((\d+)\)/g,
-        (match, num) => {
-          const n = parseInt(num);
-          if (n >= 1 && n <= maxIndex) {
-            return `<a href="#${prefix}ref-${n}" class="ref-marker">(${n})</a>`;
-          }
-          return match;
-        }
-      );
-    }
-
-    return rendered;
-  }, [initialSource, semitones, footnotesByLine, footnotes.length, idPrefix]);
-
-  // General (non-line) references
-  const generalRefs = references.filter(
-    (r) =>
-      r.line === undefined &&
-      !r.verse &&
-      !r.chorus &&
-      (!r.locations || r.locations.length === 0)
-  );
-
-  // Group footnotes by index — one entry per reference in the <ol>, showing all locations
-  const footnoteGroups = useMemo(() => {
-    type Group = {
-      index: number;
-      reference: Reference;
-      lineIndices: number[];
-      effectiveHighlight?: string;
-    };
-    const groups = new Map<number, Group>();
-    for (const fn of footnotes) {
-      const existing = groups.get(fn.index);
-      if (existing) {
-        if (!existing.lineIndices.includes(fn.lineIndex)) {
-          existing.lineIndices.push(fn.lineIndex);
-        }
-      } else {
-        groups.set(fn.index, {
-          index: fn.index,
-          reference: fn.reference,
-          lineIndices: [fn.lineIndex],
-          effectiveHighlight: fn.highlight || getHighlight(fn.reference, lang),
-        });
-      }
-    }
-    return Array.from(groups.values()).sort((a, b) => a.index - b.index);
-  }, [footnotes, lang]);
-
   // Map line index to section name for display
   const sectionNames = useMemo(() => {
     const map = new Map<number, string>();
@@ -363,6 +337,70 @@ export function ChordSheet({
     }
     return map;
   }, [sectionMap]);
+
+  // Group footnotes by reference — one entry per reference in the <ol>
+  // showing comma-separated indices and per-location highlights
+  const referenceGroups = useMemo(() => {
+    return references
+      .filter((ref) => footnotes.some((fn) => fn.reference === ref))
+      .map((ref) => ({
+        reference: ref,
+        entries: footnotes
+          .filter((fn) => fn.reference === ref)
+          .sort((a, b) => a.index - b.index)
+          .map((fn) => ({
+            index: fn.index,
+            lineIndex: fn.lineIndex,
+            highlight: fn.highlight,
+            locLabel: sectionNames.get(fn.lineIndex) ?? null,
+          })),
+      }));
+  }, [references, footnotes, sectionNames]);
+
+  // Transpose first, then inject markers, then render, then linkify markers
+  const html = useMemo(() => {
+    const transposed = transposeSource(initialSource, semitones);
+    const withMarkers = injectMarkersIntoSource(transposed, footnotesByLine);
+    let rendered = renderSource(withMarkers);
+
+    // Post-process: turn plain-text (1), (2) etc. into clickable anchor links
+    if (footnotes.length > 0) {
+      const maxIndex = Math.max(...footnotes.map((fn) => fn.index));
+      const prefix = idPrefix ? `${idPrefix}-` : "";
+
+      // Build a map from any marker index to the group's anchor index
+      const indexMap: Record<number, number> = {};
+      for (const group of referenceGroups) {
+        const anchor = group.entries[0].index;
+        for (const e of group.entries) {
+          indexMap[e.index] = anchor;
+        }
+      }
+
+      rendered = rendered.replace(
+        /\((\d+)\)/g,
+        (match, num) => {
+          const n = parseInt(num);
+          const anchor = indexMap[n] || n;
+          if (n >= 1 && n <= maxIndex) {
+            return `<a href="#${prefix}ref-${anchor}" class="ref-marker">(${n})</a>`;
+          }
+          return match;
+        }
+      );
+    }
+
+    return rendered;
+  }, [initialSource, semitones, footnotesByLine, footnotes.length, idPrefix, referenceGroups]);
+
+  // General (non-line) references
+  const generalRefs = references.filter(
+    (r) =>
+      r.line === undefined &&
+      !r.verse &&
+      !r.chorus &&
+      (!r.locations || r.locations.length === 0)
+  );
 
   return (
     <div>
@@ -408,45 +446,48 @@ export function ChordSheet({
       />
 
       {/* Footnotes */}
-      {footnoteGroups.length > 0 && (
+      {referenceGroups.length > 0 && (
         <div className="mt-6 pt-4 border-t border-neutral-200 dark:border-neutral-800">
           <div className="text-xs font-semibold text-neutral-400 uppercase tracking-wide mb-2">
             References
           </div>
           <ol className="space-y-2.5">
-            {footnoteGroups.map((group) => {
+            {referenceGroups.map((group) => {
               const prefix = idPrefix ? `${idPrefix}-` : "";
-              // Build location labels for this group
-              const locLabels = group.lineIndices
-                .map((li) => sectionNames.get(li))
-                .filter(Boolean)
-                .filter((v, i, a) => a.indexOf(v) === i);
-              const locLabel = locLabels.length > 0 ? locLabels.join(", ") : null;
+              const indicesStr = group.entries.map((e) => e.index).join(", ");
+              const groupText = getReferenceText(group.reference, lang);
+              const groupHl = getHighlight(group.reference, lang);
+              const hasInlineHighlights =
+                group.entries.length > 1 &&
+                group.entries.some((e) => e.highlight);
+              const inlineHtml =
+                hasInlineHighlights && groupText
+                  ? renderInlineRefText(groupText, group.entries, prefix)
+                  : null;
               return (
-                <li key={group.index} id={`${prefix}ref-${group.index}`} className="flex items-start gap-2 text-sm">
+                <li key={indicesStr} id={`${prefix}ref-${group.entries[0].index}`} className="flex items-start gap-2 text-sm">
                   <a
-                    href={`#${prefix}ref-${group.index}`}
+                    href={`#${prefix}ref-${group.entries[0].index}`}
                     className="text-amber-600 dark:text-amber-400 font-bold text-xs mt-0.5 shrink-0 hover:underline"
                   >
-                    ({group.index})
+                    ({indicesStr})
                   </a>
                 <div>
                   <div>
-                    <FootnoteLink fn={{ index: group.index, reference: group.reference, lineIndex: group.lineIndices[0] }} />
-                    {locLabel && (
-                      <span className="text-xs text-neutral-400 ml-1">
-                        &mdash; {locLabel}
-                      </span>
-                    )}
+                    <FootnoteLink fn={{ index: group.entries[0].index, reference: group.reference, lineIndex: group.entries[0].lineIndex }} />
                   </div>
-                  {(() => {
-                    const text = getReferenceText(group.reference, lang);
-                    return text && (
+                  {groupText && (
+                    inlineHtml ? (
+                      <div
+                        className="mt-1 text-xs text-neutral-500 dark:text-neutral-400 leading-relaxed italic pl-2 border-l-2 border-neutral-200 dark:border-neutral-700"
+                        dangerouslySetInnerHTML={{ __html: inlineHtml }}
+                      />
+                    ) : (
                       <div className="mt-1 text-xs text-neutral-500 dark:text-neutral-400 leading-relaxed italic pl-2 border-l-2 border-neutral-200 dark:border-neutral-700">
-                        <HighlightedText text={text} highlight={group.effectiveHighlight} />
+                        <HighlightedText text={groupText} highlight={groupHl} />
                       </div>
-                    );
-                  })()}
+                    )
+                  )}
                 </div>
               </li>
               );
