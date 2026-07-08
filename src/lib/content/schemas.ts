@@ -7,6 +7,8 @@ export const ReferenceSchema = z.object({
   line: z.number().optional(),
   verse: z.string().optional(),      // matches {start_of_verse: <value>} in .cho
   chorus: z.string().optional(),     // matches {start_of_chorus: <value>} in .cho
+  text: z.string().optional(),       // full text of the reference (e.g. Bible verse content)
+  highlight: z.string().optional(),  // substring within `text` to highlight as directly relevant
 });
 
 export const SongMetaSchema = z.object({
@@ -104,3 +106,24 @@ export const SiteConfigSchema = z.object({
 });
 
 export type SiteConfig = z.infer<typeof SiteConfigSchema>;
+
+// --- Setlists ---
+
+export const SetlistItemSchema = z.object({
+  songId: z.string(),
+  lang: z.string(),                // language to present
+});
+
+export type SetlistItem = z.infer<typeof SetlistItemSchema>;
+
+export const SetlistSchema = z.object({
+  id: z.string(),
+  title: z.string(),
+  description: z.string().optional(),
+  date: z.string().optional(),               // e.g. service date "2025-07-13"
+  songs: z.array(SetlistItemSchema).default([]),
+  created: z.union([z.string(), z.date()]).optional(),
+  modified: z.union([z.string(), z.date()]).optional(),
+});
+
+export type Setlist = z.infer<typeof SetlistSchema>;

@@ -99,7 +99,7 @@ export default async function AlbumPage({
             </Link>
           )}
           <Link
-            href={`/print/en?album=${albumId}`}
+            href={`/print?album=${albumId}`}
             className="text-sm px-3 py-1.5 border border-neutral-300 dark:border-neutral-700 rounded-md hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors"
           >
             Print Album

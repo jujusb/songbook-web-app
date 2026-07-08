@@ -11,12 +11,14 @@ import {
   SiteConfigSchema,
   AlbumSchema,
   ArtistSchema,
+  SetlistSchema,
   type SongMeta,
   type SongTranslationFrontmatter,
   type LanguagesConfig,
   type SiteConfig,
   type Album,
   type Artist,
+  type Setlist,
 } from './schemas';
 
 export function getContentDir(): string {
@@ -109,6 +111,63 @@ export async function listSongs(): Promise<SongMeta[]> {
   }
 
   return songs;
+}
+
+// --- Setlists ---
+// Setlists live at: content/setlists/<setlist-id>.yaml
+
+function getSetlistsDir(): string {
+  return path.join(getContentDir(), 'setlists');
+}
+
+export async function listSetlists(): Promise<Setlist[]> {
+  const dir = getSetlistsDir();
+  try {
+    const entries = await readdir(dir);
+    const setlists: Setlist[] = [];
+    for (const entry of entries) {
+      if (!entry.endsWith('.yaml') && !entry.endsWith('.yml')) continue;
+      try {
+        const raw = await readFile(path.join(dir, entry), 'utf-8');
+        const parsed = yaml.load(raw);
+        setlists.push(SetlistSchema.parse(parsed));
+      } catch {}
+    }
+    // Sort by date descending (newest first), then by title
+    setlists.sort((a, b) => {
+      if (a.date && b.date) return b.date.localeCompare(a.date);
+      if (a.date) return -1;
+      if (b.date) return 1;
+      return a.title.localeCompare(b.title);
+    });
+    return setlists;
+  } catch {
+    return [];
+  }
+}
+
+export async function getSetlist(id: string): Promise<Setlist> {
+  const filePath = path.join(getSetlistsDir(), `${id}.yaml`);
+  const raw = await readFile(filePath, 'utf-8');
+  const parsed = yaml.load(raw);
+  return SetlistSchema.parse(parsed);
+}
+
+export async function saveSetlist(setlist: Setlist): Promise<void> {
+  const validated = SetlistSchema.parse(setlist);
+  const dir = getSetlistsDir();
+  await mkdir(dir, { recursive: true });
+  const filePath = path.join(dir, `${validated.id}.yaml`);
+  const content = yaml.dump(
+    { ...validated, modified: new Date().toISOString() },
+    { lineWidth: -1 }
+  );
+  await writeFile(filePath, content, 'utf-8');
+}
+
+export async function deleteSetlist(id: string): Promise<void> {
+  const filePath = path.join(getSetlistsDir(), `${id}.yaml`);
+  await rm(filePath);
 }
 
 export async function getSong(id: string): Promise<SongMeta> {

@@ -90,31 +90,81 @@ function parseSections(source: string): Section[] {
   return sections;
 }
 
+interface SetlistSong {
+  songId: string;
+  title: string;
+  source: string;
+}
+
 export function PresentationView({
   songId,
   title,
   source,
   isAudience,
+  setlistSongs,
+  setlistTitle,
 }: {
   songId: string;
   title: string;
   source: string;
   isAudience: boolean;
+  setlistSongs?: SetlistSong[];
+  setlistTitle?: string;
 }) {
   const router = useRouter();
+  const isSetlist = setlistSongs && setlistSongs.length > 1;
+  const [currentSongIndex, setCurrentSongIndex] = useState(0);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [showChords, setShowChords] = useState(!isAudience);
 
-  const sections = useMemo(() => parseSections(source), [source]);
+  const activeSong = isSetlist ? setlistSongs[currentSongIndex] : { songId, title, source };
+  const sections = useMemo(() => parseSections(activeSong.source), [activeSong.source]);
   const total = sections.length;
 
   const goNext = useCallback(() => {
-    setCurrentIndex((i) => Math.min(i + 1, total - 1));
-  }, [total]);
+    setCurrentIndex((i) => {
+      if (i < total - 1) return i + 1;
+      // At last section — advance to next song in setlist
+      if (isSetlist && currentSongIndex < setlistSongs.length - 1) {
+        setCurrentSongIndex((si) => si + 1);
+        return 0; // reset to first section of new song (will be set via effect)
+      }
+      return i;
+    });
+  }, [total, isSetlist, currentSongIndex, setlistSongs?.length]);
 
   const goPrev = useCallback(() => {
-    setCurrentIndex((i) => Math.max(i - 1, 0));
-  }, []);
+    setCurrentIndex((i) => {
+      if (i > 0) return i - 1;
+      // At first section — go back to previous song's last section
+      if (isSetlist && currentSongIndex > 0) {
+        setCurrentSongIndex((si) => si - 1);
+        return -1; // sentinel — will be corrected by effect
+      }
+      return i;
+    });
+  }, [isSetlist, currentSongIndex]);
+
+  // When changing songs, reset section index (handle the -1 sentinel for going backward)
+  useEffect(() => {
+    if (currentIndex === -1) {
+      // Going backward — jump to last section of the new song
+      // Need to wait for sections to update, so use a small delay
+      setCurrentIndex(0); // will be corrected once sections are recalculated
+    }
+  }, [currentSongIndex, currentIndex]);
+
+  // When sections change (new song), fix the -1 sentinel
+  useEffect(() => {
+    setCurrentIndex((prev) => {
+      if (prev === -1) return sections.length - 1;
+      if (prev >= sections.length) return 0;
+      return prev;
+    });
+  }, [sections]);
+
+  // When switching songs forward, reset to section 0
+  // This is handled by goNext returning 0 above
 
   useEffect(() => {
     const handleKey = (e: KeyboardEvent) => {
@@ -133,22 +183,27 @@ export function PresentationView({
           setShowChords((s) => !s);
           break;
         case "Escape":
-          router.push(`/songs/${songId}`);
+          router.back();
           break;
       }
     };
 
     window.addEventListener("keydown", handleKey);
     return () => window.removeEventListener("keydown", handleKey);
-  }, [goNext, goPrev, router, songId]);
+  }, [goNext, goPrev, router]);
 
-  const section = sections[currentIndex];
+  const section = sections[currentIndex >= 0 ? currentIndex : 0];
 
   return (
     <div className="fixed inset-0 bg-black text-white flex flex-col items-center justify-center z-[100]">
       {/* Title bar */}
       <div className="absolute top-0 left-0 right-0 px-6 py-3 flex items-center justify-between opacity-50 hover:opacity-100 transition-opacity">
-        <span className="text-sm">{title}</span>
+        <div className="flex items-center gap-3 min-w-0">
+          {isSetlist && (
+            <span className="text-xs text-neutral-500">{setlistTitle}</span>
+          )}
+          <span className="text-sm truncate">{activeSong.title}</span>
+        </div>
         <div className="flex items-center gap-4 text-xs">
           <button
             onClick={() => setShowChords((s) => !s)}
@@ -157,10 +212,15 @@ export function PresentationView({
             Chords {showChords ? "ON" : "OFF"}
           </button>
           <span>
-            {currentIndex + 1} / {total}
+            {isSetlist && (
+              <span className="mr-3">
+                Song {currentSongIndex + 1}/{setlistSongs.length}
+              </span>
+            )}
+            {(currentIndex >= 0 ? currentIndex : 0) + 1} / {total}
           </span>
           <button
-            onClick={() => router.push(`/songs/${songId}`)}
+            onClick={() => router.back()}
             className="px-2 py-1 bg-neutral-800 rounded hover:bg-neutral-700"
           >
             ESC

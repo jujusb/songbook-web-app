@@ -10,6 +10,8 @@ interface Reference {
   line?: number;
   verse?: string;
   chorus?: string;
+  text?: string;
+  highlight?: string;
 }
 
 interface Footnote {
@@ -184,6 +186,27 @@ function FootnoteLink({ fn }: { fn: Footnote }) {
   );
 }
 
+function HighlightedText({ text, highlight }: { text: string; highlight?: string }) {
+  if (!highlight) {
+    return <span>{text}</span>;
+  }
+  const index = text.indexOf(highlight);
+  if (index === -1) {
+    return <span>{text}</span>;
+  }
+  const before = text.slice(0, index);
+  const after = text.slice(index + highlight.length);
+  return (
+    <span>
+      {before}
+      <mark className="bg-amber-100 dark:bg-amber-900/50 text-amber-900 dark:text-amber-200 px-0.5 rounded-sm">
+        {highlight}
+      </mark>
+      {after}
+    </span>
+  );
+}
+
 export function ChordSheet({
   initialSource,
   songKey,
@@ -298,7 +321,7 @@ export function ChordSheet({
           <div className="text-xs font-semibold text-neutral-400 uppercase tracking-wide mb-2">
             References
           </div>
-          <ol className="space-y-1.5">
+          <ol className="space-y-2.5">
             {footnotes.map((fn) => {
               const prefix = idPrefix ? `${idPrefix}-` : "";
               return (
@@ -326,6 +349,11 @@ export function ChordSheet({
                       &mdash; line {fn.reference.line + 1}
                     </span>
                   )}
+                  {fn.reference.text && (
+                    <div className="mt-1 text-xs text-neutral-500 dark:text-neutral-400 leading-relaxed italic pl-2 border-l-2 border-neutral-200 dark:border-neutral-700">
+                      <HighlightedText text={fn.reference.text} highlight={fn.reference.highlight} />
+                    </div>
+                  )}
                 </div>
               </li>
               );
@@ -349,29 +377,36 @@ export function ChordSheet({
               See Also
             </div>
           )}
-          <ul className="space-y-1">
+          <ul className="space-y-2">
             {generalRefs.map((r, i) => (
-              <li key={i} className="text-sm">
-                {r.type === "song" ? (
-                  <a
-                    href={`/songs/${r.target}`}
-                    className="text-blue-600 dark:text-blue-400 hover:underline"
-                  >
-                    {r.label}
-                  </a>
-                ) : r.type === "link" ? (
-                  <a
-                    href={r.target}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-blue-600 dark:text-blue-400 hover:underline"
-                  >
-                    {r.label}
-                  </a>
-                ) : (
-                  <span className="text-neutral-600 dark:text-neutral-400">
-                    {r.label}
-                  </span>
+              <li key={i}>
+                <div className="text-sm">
+                  {r.type === "song" ? (
+                    <a
+                      href={`/songs/${r.target}`}
+                      className="text-blue-600 dark:text-blue-400 hover:underline"
+                    >
+                      {r.label}
+                    </a>
+                  ) : r.type === "link" ? (
+                    <a
+                      href={r.target}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-blue-600 dark:text-blue-400 hover:underline"
+                    >
+                      {r.label}
+                    </a>
+                  ) : (
+                    <span className="text-neutral-600 dark:text-neutral-400">
+                      {r.label}
+                    </span>
+                  )}
+                </div>
+                {r.text && (
+                  <div className="mt-1 text-xs text-neutral-500 dark:text-neutral-400 leading-relaxed italic pl-2 border-l-2 border-neutral-200 dark:border-neutral-700">
+                    <HighlightedText text={r.text} highlight={r.highlight} />
+                  </div>
                 )}
               </li>
             ))}

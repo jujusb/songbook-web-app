@@ -69,6 +69,12 @@ export default async function RootLayout({
               >
                 Albums
               </Link>
+              <Link
+                href="/setlists"
+                className="text-sm text-neutral-600 dark:text-neutral-400 hover:text-foreground transition-colors"
+              >
+                Setlists
+              </Link>
               {enableArtistPages && (
                 <Link
                   href="/artists"

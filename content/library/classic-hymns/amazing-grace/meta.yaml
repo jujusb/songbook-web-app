@@ -10,10 +10,14 @@ references:
     label: "1 Timothy 1:15"
     target: bible-kjv/1-timothy-1
     verse: "Verse 1"
+    text: "This is a faithful saying, and worthy of all acceptation, that Christ Jesus came into the world to save sinners; of whom I am chief."
+    highlight: "to save sinners"
   - type: bible
     label: "Ephesians 2:8-9"
     target: bible-kjv/ephesians-2
     line: 0
+    text: "For by grace are ye saved through faith; and that not of yourselves: it is the gift of God: Not of works, lest any man should boast."
+    highlight: "by grace are ye saved through faith"
   - type: song
     label: "Related: How Great Thou Art"
     target: how-great-thou-art

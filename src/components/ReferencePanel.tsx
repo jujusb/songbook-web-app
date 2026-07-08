@@ -7,6 +7,8 @@ interface Reference {
   line?: number;
   verse?: string;
   chorus?: string;
+  text?: string;
+  highlight?: string;
 }
 
 function ReferenceLink({ reference: r }: { reference: Reference }) {
@@ -36,6 +38,43 @@ function ReferenceLink({ reference: r }: { reference: Reference }) {
     <span className="text-sm text-neutral-600 dark:text-neutral-400">
       {r.label}
     </span>
+  );
+}
+
+/**
+ * Renders text with the `highlight` substring wrapped in a <mark>.
+ * If highlight is absent or not found, renders the full text plain.
+ */
+function HighlightedText({ text, highlight }: { text: string; highlight?: string }) {
+  if (!highlight) {
+    return <span>{text}</span>;
+  }
+
+  const index = text.indexOf(highlight);
+  if (index === -1) {
+    return <span>{text}</span>;
+  }
+
+  const before = text.slice(0, index);
+  const after = text.slice(index + highlight.length);
+
+  return (
+    <span>
+      {before}
+      <mark className="bg-amber-100 dark:bg-amber-900/50 text-amber-900 dark:text-amber-200 px-0.5 rounded-sm">
+        {highlight}
+      </mark>
+      {after}
+    </span>
+  );
+}
+
+function ReferenceText({ reference: r }: { reference: Reference }) {
+  if (!r.text) return null;
+  return (
+    <div className="mt-1 text-xs text-neutral-500 dark:text-neutral-400 leading-relaxed italic pl-2 border-l-2 border-neutral-200 dark:border-neutral-700">
+      <HighlightedText text={r.text} highlight={r.highlight} />
+    </div>
   );
 }
 
@@ -72,10 +111,11 @@ export function ReferencePanel({ references }: { references: Reference[] }) {
 
       {/* General references */}
       {general.length > 0 && (
-        <ul className="space-y-2 mb-4">
+        <ul className="space-y-3 mb-4">
           {general.map((ref, i) => (
             <li key={`g-${i}`}>
               <ReferenceLink reference={ref} />
+              <ReferenceText reference={ref} />
             </li>
           ))}
         </ul>
@@ -96,11 +136,14 @@ export function ReferencePanel({ references }: { references: Reference[] }) {
               <div className="text-xs font-semibold text-neutral-500 mb-1">
                 {locationName}
               </div>
-              <ul className="space-y-1 pl-2 border-l-2 border-neutral-200 dark:border-neutral-800">
+              <ul className="space-y-2 pl-2 border-l-2 border-neutral-200 dark:border-neutral-800">
                 {refs.map((ref, i) => (
-                  <li key={i} className="flex items-start gap-1">
-                    <span className="text-amber-500 text-xs mt-0.5">*</span>
-                    <ReferenceLink reference={ref} />
+                  <li key={i}>
+                    <div className="flex items-start gap-1">
+                      <span className="text-amber-500 text-xs mt-0.5">*</span>
+                      <ReferenceLink reference={ref} />
+                    </div>
+                    <ReferenceText reference={ref} />
                   </li>
                 ))}
               </ul>
