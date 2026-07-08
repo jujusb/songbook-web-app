@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { listSetlists, listSongs } from "@/lib/content";
 import { getSession, canEdit } from "@/lib/auth";
+import { T } from "@/components/Translate";
 
 export default async function SetlistsPage() {
   const setlists = await listSetlists();
@@ -12,19 +13,19 @@ export default async function SetlistsPage() {
   return (
     <div className="max-w-6xl mx-auto px-4 py-8">
       <div className="flex items-center justify-between mb-6">
-        <h1 className="text-2xl font-bold">Setlists</h1>
+        <h1 className="text-2xl font-bold"><T k="setlist.title" /></h1>
         {showEditActions && (
           <Link
             href="/setlists/new"
             className="text-sm px-3 py-1.5 bg-neutral-900 dark:bg-white text-white dark:text-neutral-900 rounded-md font-medium hover:opacity-90 transition-opacity"
           >
-            + New Setlist
+            <T k="setlist.newSetlist" />
           </Link>
         )}
       </div>
 
       {setlists.length === 0 ? (
-        <p className="text-neutral-500">No setlists yet.</p>
+        <p className="text-neutral-500"><T k="setlist.noSetlists" /></p>
       ) : (
         <div className="space-y-3">
           {setlists.map((setlist) => (

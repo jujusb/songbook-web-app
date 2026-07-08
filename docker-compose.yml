@@ -9,7 +9,8 @@ services:
     volumes:
       - .:/app
       - songbook_node_modules:/app/node_modules
-      - ./content:/app/content
+      - ${MUSIC_DIR:-/music}:/app/music
+      - ${CONTENT_DIR:-/content}:/app/content
     environment:
       - NODE_ENV=development
       - WATCHPACK_POLLING=true

@@ -6,6 +6,7 @@ import {
 } from "@/lib/content";
 import { getSession, canEdit } from "@/lib/auth";
 import { BrowseTree, type TreeData } from "@/components/BrowseTree";
+import { T } from "@/components/Translate";
 
 export default async function BrowsePage() {
   const session = await getSession();
@@ -76,18 +77,18 @@ export default async function BrowsePage() {
   return (
     <div className="max-w-6xl mx-auto px-4 py-8">
       <div className="flex items-center justify-between mb-2">
-        <h1 className="text-2xl font-bold">Browse</h1>
+        <h1 className="text-2xl font-bold"><T k="browse.title" /></h1>
         {showEditActions && (
           <a
             href="/artists/new"
             className="text-sm px-3 py-1.5 bg-neutral-900 dark:bg-white text-white dark:text-neutral-900 rounded-md font-medium hover:opacity-90 transition-opacity"
           >
-            + Artist
+            <T k="artist.newArtist" />
           </a>
         )}
       </div>
       <p className="text-sm text-neutral-500 mb-6">
-        Artists, albums, and songs organized as a tree.
+        <T k="browse.description" />
       </p>
       <BrowseTree data={treeData} canEdit={showEditActions} />
     </div>

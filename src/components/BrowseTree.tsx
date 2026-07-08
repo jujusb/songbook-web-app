@@ -3,6 +3,7 @@
 import { useState, useCallback } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { useTranslation } from "@/lib/i18n";
 
 interface TreeSong {
   id: string;
@@ -53,25 +54,26 @@ function DeleteButton({
   onDelete: () => void;
   label: string;
 }) {
+  const { t } = useTranslation();
   const [confirming, setConfirming] = useState(false);
 
   if (confirming) {
     return (
       <span className="flex items-center gap-1 text-[11px]">
-        <span className="text-red-500">Delete?</span>
+        <span className="text-red-500">{t('common.deleteQuestion')}</span>
         <button
           type="button"
           onClick={onDelete}
           className="text-red-600 font-semibold hover:underline"
         >
-          Yes
+          {t('common.yes')}
         </button>
         <button
           type="button"
           onClick={() => setConfirming(false)}
           className="text-neutral-400 hover:underline"
         >
-          No
+          {t('common.no')}
         </button>
       </span>
     );
@@ -82,7 +84,7 @@ function DeleteButton({
       type="button"
       onClick={() => setConfirming(true)}
       className="text-[11px] text-neutral-400 hover:text-red-500 transition-colors"
-      title={`Delete ${label}`}
+      title={`${t('common.delete')} ${label}`}
     >
       &times;
     </button>
@@ -100,6 +102,7 @@ function SongNode({
   onRefresh: () => void;
   canEdit: boolean;
 }) {
+  const { t } = useTranslation();
   const handleDelete = useCallback(async () => {
     await fetch(`/api/songs?id=${song.id}`, { method: "DELETE" });
     onRefresh();
@@ -144,9 +147,9 @@ function SongNode({
           <Link
             href={`/edit/${song.id}/${song.translations[0] || "en"}`}
             className="text-[11px] text-neutral-400 hover:text-blue-500"
-            title="Edit song"
+            title={t('browse.editSongTitle')}
           >
-            edit
+            {t('common.edit')}
           </Link>
           <DeleteButton onDelete={handleDelete} label={song.title} />
         </div>
@@ -164,6 +167,7 @@ function AlbumNode({
   onRefresh: () => void;
   canEdit: boolean;
 }) {
+  const { t } = useTranslation();
   const [open, setOpen] = useState(false);
 
   const handleDelete = useCallback(async () => {
@@ -202,7 +206,7 @@ function AlbumNode({
             </span>
           )}
           <span className="text-xs text-neutral-400 shrink-0">
-            {album.songs.length} song{album.songs.length !== 1 ? "s" : ""}
+            {t('album.count', { n: album.songs.length })}
           </span>
         </button>
         {canEdit && (
@@ -210,16 +214,16 @@ function AlbumNode({
             <Link
               href={`/songs/new?album=${album.id}`}
               className="text-[11px] text-green-600 hover:text-green-500 font-medium"
-              title="Add song to this album"
+              title={t('browse.addSongTitle')}
             >
-              + song
+              {t('browse.addSong')}
             </Link>
             <Link
               href={`/albums/${album.id}/edit`}
               className="text-[11px] text-neutral-400 hover:text-blue-500"
-              title="Edit album"
+              title={t('browse.editAlbumTitle')}
             >
-              edit
+              {t('common.edit')}
             </Link>
             <DeleteButton onDelete={handleDelete} label={album.title} />
           </div>
@@ -228,7 +232,7 @@ function AlbumNode({
       {open && (
         <div className="ml-6 border-l border-neutral-200 dark:border-neutral-800 pl-3">
           {album.songs.length === 0 ? (
-            <p className="text-xs text-neutral-400 py-1 pl-2">Empty album</p>
+            <p className="text-xs text-neutral-400 py-1 pl-2">{t('album.empty')}</p>
           ) : (
             album.songs.map((song) => (
               <SongNode
@@ -255,6 +259,7 @@ function ArtistNode({
   onRefresh: () => void;
   canEdit: boolean;
 }) {
+  const { t } = useTranslation();
   const [open, setOpen] = useState(false);
   const totalSongs = artist.albums.reduce(
     (sum, a) => sum + a.songs.length,
@@ -293,11 +298,10 @@ function ArtistNode({
           </span>
           <div className="flex gap-2 text-xs text-neutral-400 shrink-0">
             <span>
-              {artist.albums.length} album
-              {artist.albums.length !== 1 ? "s" : ""}
+              {t('artist.countAlbums', { n: artist.albums.length })}
             </span>
             <span>
-              {totalSongs} song{totalSongs !== 1 ? "s" : ""}
+              {t('artist.countSongs', { n: totalSongs })}
             </span>
           </div>
         </button>
@@ -306,16 +310,16 @@ function ArtistNode({
             <Link
               href={`/albums/new?artist=${artist.id}`}
               className="text-[11px] text-green-600 hover:text-green-500 font-medium"
-              title="Add album to this artist"
+              title={t('artist.addAlbumTitle')}
             >
-              + album
+              {t('artist.addAlbum')}
             </Link>
             <Link
               href={`/artists/${artist.id}`}
               className="text-[11px] text-neutral-400 hover:text-blue-500"
-              title="Edit artist"
+              title={t('artist.editTitle')}
             >
-              edit
+              {t('common.edit')}
             </Link>
             {artist.id !== "various-artists" && (
               <DeleteButton onDelete={handleDelete} label={artist.name} />
@@ -329,7 +333,7 @@ function ArtistNode({
             <AlbumNode key={album.id} album={album} onRefresh={onRefresh} canEdit={canEdit} />
           ))}
           {artist.albums.length === 0 && (
-            <p className="text-xs text-neutral-400 py-1 pl-2">No albums</p>
+            <p className="text-xs text-neutral-400 py-1 pl-2">{t('album.noAlbumsInArtist')}</p>
           )}
         </div>
       )}
@@ -339,6 +343,7 @@ function ArtistNode({
 
 export function BrowseTree({ data, canEdit = false }: { data: TreeData; canEdit?: boolean }) {
   const router = useRouter();
+  const { t } = useTranslation();
   const [filter, setFilter] = useState("");
 
   const onRefresh = useCallback(() => {
@@ -382,12 +387,11 @@ export function BrowseTree({ data, canEdit = false }: { data: TreeData; canEdit?
           type="text"
           value={filter}
           onChange={(e) => setFilter(e.target.value)}
-          placeholder="Filter artists, albums, songs..."
+          placeholder={t('browse.filter')}
           className="flex-1 px-3 py-2 border border-neutral-300 dark:border-neutral-700 rounded-md bg-white dark:bg-neutral-900 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
         />
         <div className="text-xs text-neutral-400 shrink-0">
-          {totalArtists} artists &middot; {totalAlbums} albums &middot;{" "}
-          {totalSongs} songs
+          {t('browse.stats', { artists: totalArtists, albums: totalAlbums, songs: totalSongs })}
         </div>
       </div>
 
@@ -404,8 +408,8 @@ export function BrowseTree({ data, canEdit = false }: { data: TreeData; canEdit?
         {filteredArtists.length === 0 && (
           <p className="text-neutral-500 text-sm py-4">
             {filter
-              ? "No results matching your filter."
-              : "No content yet. Create an artist to get started."}
+              ? t('browse.noResults')
+              : t('browse.noContent')}
           </p>
         )}
       </div>

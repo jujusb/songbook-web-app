@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { listArtists, getSiteConfig } from "@/lib/content";
+import { T } from "@/components/Translate";
 
 export default async function ArtistsPage() {
   const config = await getSiteConfig();
@@ -12,10 +13,10 @@ export default async function ArtistsPage() {
 
   return (
     <div className="max-w-6xl mx-auto px-4 py-8">
-      <h1 className="text-2xl font-bold mb-6">Artists</h1>
+      <h1 className="text-2xl font-bold mb-6"><T k="artist.title" /></h1>
 
       {artists.length === 0 ? (
-        <p className="text-neutral-500">No artists yet.</p>
+        <p className="text-neutral-500"><T k="artist.noArtists" /></p>
       ) : (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {artists.map((artist) => (

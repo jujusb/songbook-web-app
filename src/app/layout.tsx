@@ -6,6 +6,7 @@ import { getSession, canEdit } from "@/lib/auth";
 import { UserMenu } from "@/components/UserMenu";
 import { LocaleSwitcher } from "@/components/LocaleSwitcher";
 import { RootClientLayout } from "@/components/RootClientLayout";
+import { T } from "@/components/Translate";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -58,32 +59,32 @@ export default async function RootLayout({
                 href="/browse"
                 className="text-sm text-neutral-600 dark:text-neutral-400 hover:text-foreground transition-colors"
               >
-                Browse
+                <T k="nav.browse" />
               </Link>
               <Link
                 href="/songs"
                 className="text-sm text-neutral-600 dark:text-neutral-400 hover:text-foreground transition-colors"
               >
-                Songs
+                <T k="nav.songs" />
               </Link>
               <Link
                 href="/albums"
                 className="text-sm text-neutral-600 dark:text-neutral-400 hover:text-foreground transition-colors"
               >
-                Albums
+                <T k="nav.albums" />
               </Link>
               <Link
                 href="/setlists"
                 className="text-sm text-neutral-600 dark:text-neutral-400 hover:text-foreground transition-colors"
               >
-                Setlists
+                <T k="nav.setlists" />
               </Link>
               {enableArtistPages && (
                 <Link
                   href="/artists"
                   className="text-sm text-neutral-600 dark:text-neutral-400 hover:text-foreground transition-colors"
                 >
-                  Artists
+                  <T k="nav.artists" />
                 </Link>
               )}
               {showEditActions && (
@@ -91,7 +92,7 @@ export default async function RootLayout({
                   href="/songs/new"
                   className="text-sm px-3 py-1.5 bg-neutral-900 dark:bg-white text-white dark:text-neutral-900 rounded-md font-medium hover:opacity-90 transition-opacity"
                 >
-                  + New Song
+                  <T k="nav.newSong" />
                 </Link>
               )}
               <LocaleSwitcher />

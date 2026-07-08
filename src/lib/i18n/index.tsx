@@ -111,16 +111,3 @@ export function I18nProvider({
 export function useTranslation() {
   return useContext(I18nContext);
 }
-
-/**
- * Server-side locale resolution (for server components).
- * Reads from a cookie or falls back to 'en'.
- * Usage: await getLocale(cookies())
- */
-export function getLocale(cookieStore?: { get: (name: string) => { value: string } | undefined }): string {
-  if (cookieStore) {
-    const cookie = cookieStore.get(LOCALE_STORAGE_KEY);
-    if (cookie && locales[cookie.value]) return cookie.value;
-  }
-  return 'en';
-}

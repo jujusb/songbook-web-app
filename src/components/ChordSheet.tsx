@@ -3,6 +3,7 @@
 import { useState, useMemo } from "react";
 import ChordSheetJS from "chordsheetjs";
 import { getReferenceText, getHighlight } from "@/lib/content/references";
+import { useTranslation } from "@/lib/i18n";
 
 interface ReferenceLocation {
   line?: number;
@@ -300,6 +301,7 @@ export function ChordSheet({
   idPrefix?: string;
   lang?: string;
 }) {
+  const { t } = useTranslation();
   const [semitones, setSemitones] = useState(0);
 
   // Build section map from the original source
@@ -405,13 +407,13 @@ export function ChordSheet({
   return (
     <div>
       <div className="flex items-center gap-3 mb-4">
-        <span className="text-sm text-neutral-500">Transpose:</span>
+        <span className="text-sm text-neutral-500">{t('common.transpose')}:</span>
         <button
           type="button"
           onClick={() => setSemitones((s) => s - 1)}
           className="w-8 h-8 flex items-center justify-center border border-neutral-300 dark:border-neutral-700 rounded-md hover:bg-neutral-100 dark:hover:bg-neutral-800 text-sm font-mono"
         >
-          -
+          &minus;
         </button>
         <span className="text-sm font-mono w-8 text-center">
           {semitones > 0 ? `+${semitones}` : semitones}
@@ -429,12 +431,12 @@ export function ChordSheet({
             onClick={() => setSemitones(0)}
             className="text-xs text-neutral-500 hover:text-foreground ml-1"
           >
-            Reset
+            {t('common.reset')}
           </button>
         )}
         {songKey && (
           <span className="text-xs text-neutral-400 ml-2">
-            Original key: {songKey}
+            {t('common.originalKey', { key: songKey })}
           </span>
         )}
       </div>

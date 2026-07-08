@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { listAlbums, listArtists } from "@/lib/content";
 import { getSession, canEdit } from "@/lib/auth";
+import { T } from "@/components/Translate";
 
 export default async function AlbumsPage() {
   const [albums, artists] = await Promise.all([listAlbums(), listArtists()]);
@@ -11,19 +12,19 @@ export default async function AlbumsPage() {
   return (
     <div className="max-w-6xl mx-auto px-4 py-8">
       <div className="flex items-center justify-between mb-6">
-        <h1 className="text-2xl font-bold">Albums</h1>
+        <h1 className="text-2xl font-bold"><T k="album.title" /></h1>
         {showEditActions && (
           <Link
             href="/albums/new"
             className="text-sm px-3 py-1.5 bg-neutral-900 dark:bg-white text-white dark:text-neutral-900 rounded-md font-medium hover:opacity-90 transition-opacity"
           >
-            + New Album
+            <T k="album.newAlbum" />
           </Link>
         )}
       </div>
 
       {albums.length === 0 ? (
-        <p className="text-neutral-500">No albums yet.</p>
+        <p className="text-neutral-500"><T k="album.noAlbums" /></p>
       ) : (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {albums.map((album) => (

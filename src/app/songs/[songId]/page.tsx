@@ -13,6 +13,7 @@ import { ChordSheet } from "@/components/ChordSheet";
 import { LanguageSwitcher } from "@/components/LanguageSwitcher";
 import { ReferencePanel } from "@/components/ReferencePanel";
 import { DeleteButton } from "@/components/DeleteButton";
+import { T } from "@/components/Translate";
 
 export default async function SongPage({
   params,
@@ -100,13 +101,13 @@ export default async function SongPage({
                 href={`/edit/${songId}/${lang}`}
                 className="px-3 py-1.5 border border-neutral-300 dark:border-neutral-700 rounded-md hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors"
               >
-                Edit
+                <T k="song.edit" />
               </Link>
               <Link
                 href={`/edit/${songId}/${lang}?references=1`}
                 className="px-3 py-1.5 border border-neutral-300 dark:border-neutral-700 rounded-md hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors"
               >
-                Edit References
+                <T k="song.editReferences" />
               </Link>
             </>
           )}
@@ -114,13 +115,13 @@ export default async function SongPage({
             href={`/present/${songId}?lang=${lang}`}
             className="px-3 py-1.5 border border-neutral-300 dark:border-neutral-700 rounded-md hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors"
           >
-            Present
+            <T k="song.present" />
           </Link>
           <Link
             href={`/compare/${songId}?langs=${translations.join(",")}`}
             className="px-3 py-1.5 border border-neutral-300 dark:border-neutral-700 rounded-md hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors"
           >
-            Compare
+            <T k="song.compare" />
           </Link>
           {showDeleteActions && (
             <DeleteButton
