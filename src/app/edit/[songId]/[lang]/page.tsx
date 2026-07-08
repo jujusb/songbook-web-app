@@ -1,5 +1,6 @@
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { getSong, getSongTranslation } from "@/lib/content";
+import { getSession, canEdit } from "@/lib/auth";
 import { EditorView } from "@/components/EditorView";
 
 export default async function EditPage({
@@ -7,6 +8,9 @@ export default async function EditPage({
 }: {
   params: Promise<{ songId: string; lang: string }>;
 }) {
+  const session = await getSession();
+  if (!canEdit(session?.role ?? null)) redirect("/login");
+
   const { songId, lang } = await params;
 
   let meta;

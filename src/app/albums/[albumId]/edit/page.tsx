@@ -1,5 +1,6 @@
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { getAlbum, listSongs, listArtists } from "@/lib/content";
+import { getSession, canEdit } from "@/lib/auth";
 import { AlbumForm } from "@/components/AlbumForm";
 
 export default async function EditAlbumPage({
@@ -7,6 +8,9 @@ export default async function EditAlbumPage({
 }: {
   params: Promise<{ albumId: string }>;
 }) {
+  const session = await getSession();
+  if (!canEdit(session?.role ?? null)) redirect("/login");
+
   const { albumId } = await params;
 
   let album;

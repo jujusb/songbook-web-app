@@ -1,20 +1,25 @@
 import Link from "next/link";
 import { listAlbums, listArtists } from "@/lib/content";
+import { getSession, canEdit } from "@/lib/auth";
 
 export default async function AlbumsPage() {
   const [albums, artists] = await Promise.all([listAlbums(), listArtists()]);
   const artistMap = new Map(artists.map((a) => [a.id, a.name]));
+  const session = await getSession();
+  const showEditActions = canEdit(session?.role ?? null);
 
   return (
     <div className="max-w-6xl mx-auto px-4 py-8">
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-2xl font-bold">Albums</h1>
-        <Link
-          href="/albums/new"
-          className="text-sm px-3 py-1.5 bg-neutral-900 dark:bg-white text-white dark:text-neutral-900 rounded-md font-medium hover:opacity-90 transition-opacity"
-        >
-          + New Album
-        </Link>
+        {showEditActions && (
+          <Link
+            href="/albums/new"
+            className="text-sm px-3 py-1.5 bg-neutral-900 dark:bg-white text-white dark:text-neutral-900 rounded-md font-medium hover:opacity-90 transition-opacity"
+          >
+            + New Album
+          </Link>
+        )}
       </div>
 
       {albums.length === 0 ? (

@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import Link from "next/link";
 import { getSiteConfig } from "@/lib/content";
+import { getSession, canEdit } from "@/lib/auth";
 import { UserMenu } from "@/components/UserMenu";
 import "./globals.css";
 
@@ -26,12 +27,17 @@ export default async function RootLayout({
   children: React.ReactNode;
 }>) {
   let enableArtistPages = false;
+  let showEditActions = false;
   try {
     const config = await getSiteConfig();
     enableArtistPages = config.enableArtistPages;
   } catch {
     // config not available yet
   }
+  try {
+    const session = await getSession();
+    showEditActions = canEdit(session?.role ?? null);
+  } catch {}
 
   return (
     <html
@@ -71,12 +77,14 @@ export default async function RootLayout({
                   Artists
                 </Link>
               )}
-              <Link
-                href="/songs/new"
-                className="text-sm px-3 py-1.5 bg-neutral-900 dark:bg-white text-white dark:text-neutral-900 rounded-md font-medium hover:opacity-90 transition-opacity"
-              >
-                + New Song
-              </Link>
+              {showEditActions && (
+                <Link
+                  href="/songs/new"
+                  className="text-sm px-3 py-1.5 bg-neutral-900 dark:bg-white text-white dark:text-neutral-900 rounded-md font-medium hover:opacity-90 transition-opacity"
+                >
+                  + New Song
+                </Link>
+              )}
               <UserMenu />
             </div>
           </nav>

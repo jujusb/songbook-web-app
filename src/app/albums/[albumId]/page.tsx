@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getAlbum, getArtist, getSong, getSongTranslations } from "@/lib/content";
+import { getSession, canEdit, canAdmin } from "@/lib/auth";
 import { DeleteButton } from "@/components/DeleteButton";
 
 export default async function AlbumPage({
@@ -37,6 +38,10 @@ export default async function AlbumPage({
     const artistData = await getArtist(album.artist);
     artistName = artistData.name;
   } catch {}
+
+  const session = await getSession();
+  const showEditActions = canEdit(session?.role ?? null);
+  const showDeleteActions = canAdmin(session?.role ?? null);
 
   return (
     <div className="max-w-6xl mx-auto px-4 py-8">
@@ -85,30 +90,36 @@ export default async function AlbumPage({
           </div>
         )}
         <div className="flex gap-2 mt-4">
-          <Link
-            href={`/albums/${albumId}/edit`}
-            className="text-sm px-3 py-1.5 border border-neutral-300 dark:border-neutral-700 rounded-md hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors"
-          >
-            Edit Album
-          </Link>
+          {showEditActions && (
+            <Link
+              href={`/albums/${albumId}/edit`}
+              className="text-sm px-3 py-1.5 border border-neutral-300 dark:border-neutral-700 rounded-md hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors"
+            >
+              Edit Album
+            </Link>
+          )}
           <Link
             href={`/print/en?album=${albumId}`}
             className="text-sm px-3 py-1.5 border border-neutral-300 dark:border-neutral-700 rounded-md hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors"
           >
             Print Album
           </Link>
-          <Link
-            href={`/songs/new?album=${albumId}`}
-            className="text-sm px-3 py-1.5 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
-          >
-            + Add Song
-          </Link>
-          <DeleteButton
-            apiEndpoint="/api/albums"
-            id={albumId}
-            label={album.title}
-            redirectTo="/browse"
-          />
+          {showEditActions && (
+            <Link
+              href={`/songs/new?album=${albumId}`}
+              className="text-sm px-3 py-1.5 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
+            >
+              + Add Song
+            </Link>
+          )}
+          {showDeleteActions && (
+            <DeleteButton
+              apiEndpoint="/api/albums"
+              id={albumId}
+              label={album.title}
+              redirectTo="/browse"
+            />
+          )}
         </div>
       </div>
 

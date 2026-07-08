@@ -7,6 +7,7 @@ import {
   getSong,
   getSongTranslations,
 } from "@/lib/content";
+import { getSession, canAdmin } from "@/lib/auth";
 import { DeleteButton } from "@/components/DeleteButton";
 
 export default async function ArtistPage({
@@ -56,6 +57,9 @@ export default async function ArtistPage({
     0
   );
 
+  const session = await getSession();
+  const showDeleteActions = canAdmin(session?.role ?? null);
+
   return (
     <div className="max-w-6xl mx-auto px-4 py-8">
       {/* Artist header */}
@@ -100,14 +104,16 @@ export default async function ArtistPage({
             ))}
           </div>
         )}
-        <div className="flex gap-2 mt-4">
-          <DeleteButton
-            apiEndpoint="/api/artists"
-            id={artistId}
-            label={artist.name}
-            redirectTo="/browse"
-          />
-        </div>
+        {showDeleteActions && (
+          <div className="flex gap-2 mt-4">
+            <DeleteButton
+              apiEndpoint="/api/artists"
+              id={artistId}
+              label={artist.name}
+              redirectTo="/browse"
+            />
+          </div>
+        )}
       </div>
 
       {/* Albums with songs */}

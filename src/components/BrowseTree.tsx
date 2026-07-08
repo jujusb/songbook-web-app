@@ -93,10 +93,12 @@ function SongNode({
   song,
   albumId,
   onRefresh,
+  canEdit,
 }: {
   song: TreeSong;
   albumId: string;
   onRefresh: () => void;
+  canEdit: boolean;
 }) {
   const handleDelete = useCallback(async () => {
     await fetch(`/api/songs?id=${song.id}`, { method: "DELETE" });
@@ -137,16 +139,18 @@ function SongNode({
           </span>
         ))}
       </div>
-      <div className="flex items-center gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
-        <Link
-          href={`/edit/${song.id}/${song.translations[0] || "en"}`}
-          className="text-[11px] text-neutral-400 hover:text-blue-500"
-          title="Edit song"
-        >
-          edit
-        </Link>
-        <DeleteButton onDelete={handleDelete} label={song.title} />
-      </div>
+      {canEdit && (
+        <div className="flex items-center gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
+          <Link
+            href={`/edit/${song.id}/${song.translations[0] || "en"}`}
+            className="text-[11px] text-neutral-400 hover:text-blue-500"
+            title="Edit song"
+          >
+            edit
+          </Link>
+          <DeleteButton onDelete={handleDelete} label={song.title} />
+        </div>
+      )}
     </div>
   );
 }
@@ -154,9 +158,11 @@ function SongNode({
 function AlbumNode({
   album,
   onRefresh,
+  canEdit,
 }: {
   album: TreeAlbum;
   onRefresh: () => void;
+  canEdit: boolean;
 }) {
   const [open, setOpen] = useState(false);
 
@@ -199,23 +205,25 @@ function AlbumNode({
             {album.songs.length} song{album.songs.length !== 1 ? "s" : ""}
           </span>
         </button>
-        <div className="flex items-center gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity shrink-0 ml-2">
-          <Link
-            href={`/songs/new?album=${album.id}`}
-            className="text-[11px] text-green-600 hover:text-green-500 font-medium"
-            title="Add song to this album"
-          >
-            + song
-          </Link>
-          <Link
-            href={`/albums/${album.id}/edit`}
-            className="text-[11px] text-neutral-400 hover:text-blue-500"
-            title="Edit album"
-          >
-            edit
-          </Link>
-          <DeleteButton onDelete={handleDelete} label={album.title} />
-        </div>
+        {canEdit && (
+          <div className="flex items-center gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity shrink-0 ml-2">
+            <Link
+              href={`/songs/new?album=${album.id}`}
+              className="text-[11px] text-green-600 hover:text-green-500 font-medium"
+              title="Add song to this album"
+            >
+              + song
+            </Link>
+            <Link
+              href={`/albums/${album.id}/edit`}
+              className="text-[11px] text-neutral-400 hover:text-blue-500"
+              title="Edit album"
+            >
+              edit
+            </Link>
+            <DeleteButton onDelete={handleDelete} label={album.title} />
+          </div>
+        )}
       </div>
       {open && (
         <div className="ml-6 border-l border-neutral-200 dark:border-neutral-800 pl-3">
@@ -228,6 +236,7 @@ function AlbumNode({
                 song={song}
                 albumId={album.id}
                 onRefresh={onRefresh}
+                canEdit={canEdit}
               />
             ))
           )}
@@ -240,9 +249,11 @@ function AlbumNode({
 function ArtistNode({
   artist,
   onRefresh,
+  canEdit,
 }: {
   artist: TreeArtist;
   onRefresh: () => void;
+  canEdit: boolean;
 }) {
   const [open, setOpen] = useState(false);
   const totalSongs = artist.albums.reduce(
@@ -290,30 +301,32 @@ function ArtistNode({
             </span>
           </div>
         </button>
-        <div className="flex items-center gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity shrink-0 ml-2">
-          <Link
-            href={`/albums/new?artist=${artist.id}`}
-            className="text-[11px] text-green-600 hover:text-green-500 font-medium"
-            title="Add album to this artist"
-          >
-            + album
-          </Link>
-          <Link
-            href={`/artists/${artist.id}`}
-            className="text-[11px] text-neutral-400 hover:text-blue-500"
-            title="Edit artist"
-          >
-            edit
-          </Link>
-          {artist.id !== "various-artists" && (
-            <DeleteButton onDelete={handleDelete} label={artist.name} />
-          )}
-        </div>
+        {canEdit && (
+          <div className="flex items-center gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity shrink-0 ml-2">
+            <Link
+              href={`/albums/new?artist=${artist.id}`}
+              className="text-[11px] text-green-600 hover:text-green-500 font-medium"
+              title="Add album to this artist"
+            >
+              + album
+            </Link>
+            <Link
+              href={`/artists/${artist.id}`}
+              className="text-[11px] text-neutral-400 hover:text-blue-500"
+              title="Edit artist"
+            >
+              edit
+            </Link>
+            {artist.id !== "various-artists" && (
+              <DeleteButton onDelete={handleDelete} label={artist.name} />
+            )}
+          </div>
+        )}
       </div>
       {open && (
         <div className="ml-6 border-l border-neutral-200 dark:border-neutral-800 pl-3">
           {artist.albums.map((album) => (
-            <AlbumNode key={album.id} album={album} onRefresh={onRefresh} />
+            <AlbumNode key={album.id} album={album} onRefresh={onRefresh} canEdit={canEdit} />
           ))}
           {artist.albums.length === 0 && (
             <p className="text-xs text-neutral-400 py-1 pl-2">No albums</p>
@@ -324,7 +337,7 @@ function ArtistNode({
   );
 }
 
-export function BrowseTree({ data }: { data: TreeData }) {
+export function BrowseTree({ data, canEdit = false }: { data: TreeData; canEdit?: boolean }) {
   const router = useRouter();
   const [filter, setFilter] = useState("");
 
@@ -384,6 +397,7 @@ export function BrowseTree({ data }: { data: TreeData }) {
             key={artist.id}
             artist={artist}
             onRefresh={onRefresh}
+            canEdit={canEdit}
           />
         ))}
 
