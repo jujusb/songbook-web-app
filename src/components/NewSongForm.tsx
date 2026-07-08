@@ -1,0 +1,401 @@
+"use client";
+
+import { useState, useCallback, useRef } from "react";
+import { useRouter } from "next/navigation";
+import ChordSheetJS from "chordsheetjs";
+import { txtToChordPro } from "@/lib/chordpro/txt-import";
+
+function renderPreview(source: string): string {
+  try {
+    const parser = new ChordSheetJS.ChordProParser();
+    const song = parser.parse(source);
+    const formatter = new ChordSheetJS.HtmlDivFormatter();
+    return formatter.format(song);
+  } catch {
+    return "<p class='text-red-500'>Unable to parse — check the format</p>";
+  }
+}
+
+export function NewSongForm({
+  albums,
+  preselectedAlbum,
+}: {
+  albums: { id: string; title: string; artist: string }[];
+  preselectedAlbum?: string;
+}) {
+  const router = useRouter();
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const [title, setTitle] = useState("");
+  const [lang, setLang] = useState("en");
+  const [key, setKey] = useState("");
+  const [albumId, setAlbumId] = useState(preselectedAlbum || (albums.length > 0 ? albums[0].id : ""));
+  const [chordpro, setChordpro] = useState("");
+  const [rawImport, setRawImport] = useState("");
+  const [importMode, setImportMode] = useState<"manual" | "file" | "paste" | "chordpro">("manual");
+  const [fileName, setFileName] = useState<string | null>(null);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const preview = chordpro ? renderPreview(chordpro) : "";
+
+  const handleFileUpload = useCallback(
+    (e: React.ChangeEvent<HTMLInputElement>) => {
+      const file = e.target.files?.[0];
+      if (!file) return;
+
+      setFileName(file.name);
+      const reader = new FileReader();
+      reader.onload = (ev) => {
+        const text = ev.target?.result as string;
+        if (!text) return;
+
+        setRawImport(text);
+        processImport(text);
+      };
+      reader.readAsText(file, "utf-8");
+    },
+    []
+  );
+
+  const processImport = useCallback(
+    (text: string) => {
+      const result = txtToChordPro(text);
+
+      setChordpro(result.chordpro);
+
+      if (result.title && !title) {
+        setTitle(result.title);
+      }
+      if (result.detectedKey && !key) {
+        setKey(result.detectedKey);
+      }
+    },
+    [title, key]
+  );
+
+  const handlePasteImport = useCallback(() => {
+    if (rawImport.trim()) {
+      processImport(rawImport);
+    }
+  }, [rawImport, processImport]);
+
+  const handleSave = useCallback(async () => {
+    if (!title.trim()) {
+      setError("Title is required");
+      return;
+    }
+    if (!chordpro.trim()) {
+      setError("Song content is required");
+      return;
+    }
+
+    setSaving(true);
+    setError(null);
+
+    try {
+      const id = title
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, "-")
+        .replace(/^-|-$/g, "");
+
+      // Prepend key directive if set and not already in the chordpro
+      let finalChordpro = chordpro;
+      if (key && !chordpro.includes("{key:")) {
+        finalChordpro = `{key: ${key}}\n\n${chordpro}`;
+      }
+      if (!chordpro.includes("{title:")) {
+        finalChordpro = `{title: ${title}}\n${finalChordpro}`;
+      }
+
+      const res = await fetch("/api/songs", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          id,
+          title,
+          lang,
+          albumId,
+          chordpro: finalChordpro,
+        }),
+      });
+
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.error || "Failed to create song");
+      }
+
+      router.push(`/songs/${id}?lang=${lang}`);
+      router.refresh();
+    } catch (err: any) {
+      setError(err.message || "Failed to save");
+    } finally {
+      setSaving(false);
+    }
+  }, [title, lang, key, albumId, chordpro, router]);
+
+  return (
+    <div className="max-w-6xl mx-auto px-4 py-8">
+      <h1 className="text-2xl font-bold mb-6">New Song</h1>
+
+      {error && (
+        <div className="mb-4 px-4 py-2 bg-red-50 dark:bg-red-950 border border-red-200 dark:border-red-800 rounded-md text-red-700 dark:text-red-300 text-sm">
+          {error}
+        </div>
+      )}
+
+      {/* Metadata fields */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+        <div>
+          <label className="block text-sm font-medium text-neutral-700 dark:text-neutral-300 mb-1">
+            Title *
+          </label>
+          <input
+            type="text"
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
+            placeholder="e.g. Amazing Grace"
+            className="w-full px-3 py-2 border border-neutral-300 dark:border-neutral-700 rounded-md bg-white dark:bg-neutral-900 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+          />
+        </div>
+        <div>
+          <label className="block text-sm font-medium text-neutral-700 dark:text-neutral-300 mb-1">
+            Album *
+          </label>
+          <select
+            value={albumId}
+            onChange={(e) => setAlbumId(e.target.value)}
+            className="w-full px-3 py-2 border border-neutral-300 dark:border-neutral-700 rounded-md bg-white dark:bg-neutral-900 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+          >
+            <option value="">Select an album...</option>
+            {albums.map((a) => (
+              <option key={a.id} value={a.id}>
+                {a.title} ({a.artist})
+              </option>
+            ))}
+          </select>
+        </div>
+        <div>
+          <label className="block text-sm font-medium text-neutral-700 dark:text-neutral-300 mb-1">
+            Language
+          </label>
+          <select
+            value={lang}
+            onChange={(e) => setLang(e.target.value)}
+            className="w-full px-3 py-2 border border-neutral-300 dark:border-neutral-700 rounded-md bg-white dark:bg-neutral-900 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+          >
+            <option value="en">English</option>
+            <option value="es">Espanol</option>
+            <option value="fr">Francais</option>
+            <option value="pt">Portugues</option>
+            <option value="de">Deutsch</option>
+            <option value="ar">Arabic</option>
+            <option value="zh">Chinese</option>
+            <option value="ko">Korean</option>
+            <option value="ja">Japanese</option>
+            <option value="ru">Russian</option>
+          </select>
+        </div>
+        <div>
+          <label className="block text-sm font-medium text-neutral-700 dark:text-neutral-300 mb-1">
+            Key
+          </label>
+          <input
+            type="text"
+            value={key}
+            onChange={(e) => setKey(e.target.value)}
+            placeholder="e.g. G, Am, Bb"
+            className="w-full px-3 py-2 border border-neutral-300 dark:border-neutral-700 rounded-md bg-white dark:bg-neutral-900 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+          />
+        </div>
+      </div>
+
+      {/* Import mode selector */}
+      <div className="mb-4">
+        <label className="block text-sm font-medium text-neutral-700 dark:text-neutral-300 mb-2">
+          Import Source
+        </label>
+        <div className="flex gap-2">
+          <button
+            type="button"
+            onClick={() => setImportMode("manual")}
+            className={`px-4 py-2 text-sm rounded-md border transition-colors ${
+              importMode === "manual"
+                ? "bg-blue-600 text-white border-blue-600"
+                : "border-neutral-300 dark:border-neutral-700 hover:bg-neutral-100 dark:hover:bg-neutral-800"
+            }`}
+          >
+            Write ChordPro
+          </button>
+          <button
+            type="button"
+            onClick={() => setImportMode("file")}
+            className={`px-4 py-2 text-sm rounded-md border transition-colors ${
+              importMode === "file"
+                ? "bg-blue-600 text-white border-blue-600"
+                : "border-neutral-300 dark:border-neutral-700 hover:bg-neutral-100 dark:hover:bg-neutral-800"
+            }`}
+          >
+            Import TXT File
+          </button>
+          <button
+            type="button"
+            onClick={() => setImportMode("paste")}
+            className={`px-4 py-2 text-sm rounded-md border transition-colors ${
+              importMode === "paste"
+                ? "bg-blue-600 text-white border-blue-600"
+                : "border-neutral-300 dark:border-neutral-700 hover:bg-neutral-100 dark:hover:bg-neutral-800"
+            }`}
+          >
+            Paste Text
+          </button>
+          <button
+            type="button"
+            onClick={() => setImportMode("chordpro")}
+            className={`px-4 py-2 text-sm rounded-md border transition-colors ${
+              importMode === "chordpro"
+                ? "bg-blue-600 text-white border-blue-600"
+                : "border-neutral-300 dark:border-neutral-700 hover:bg-neutral-100 dark:hover:bg-neutral-800"
+            }`}
+          >
+            Paste ChordPro
+          </button>
+        </div>
+      </div>
+
+      {/* Import area */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+        {/* Left: input */}
+        <div>
+          {importMode === "file" && (
+            <div className="mb-4">
+              <div className="flex items-center gap-3 mb-3">
+                <button
+                  type="button"
+                  onClick={() => fileInputRef.current?.click()}
+                  className="px-4 py-2 text-sm border border-neutral-300 dark:border-neutral-700 rounded-md hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors"
+                >
+                  Choose File
+                </button>
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept=".txt,.cho,.chordpro,.pro,.text"
+                  onChange={handleFileUpload}
+                  className="hidden"
+                />
+                {fileName && (
+                  <span className="text-sm text-blue-600 dark:text-blue-400 font-medium">
+                    {fileName}
+                  </span>
+                )}
+                {!fileName && (
+                  <span className="text-xs text-neutral-500">
+                    or paste / type text below
+                  </span>
+                )}
+              </div>
+              <label className="block text-sm font-medium text-neutral-700 dark:text-neutral-300 mb-1">
+                Song text (with chords) &mdash; upload, paste, or type
+              </label>
+              <textarea
+                value={rawImport}
+                onChange={(e) => setRawImport(e.target.value)}
+                placeholder={`Paste or type your song here, e.g.:\n\nVerse 1:\n   G        G7      C        G\nAmazing grace, how sweet the sound\n     G        Em      D\nThat saved a wretch like me`}
+                rows={14}
+                className="w-full px-3 py-2 border border-neutral-300 dark:border-neutral-700 rounded-md bg-white dark:bg-neutral-900 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+              <button
+                type="button"
+                onClick={() => { if (rawImport.trim()) processImport(rawImport); }}
+                disabled={!rawImport.trim()}
+                className="mt-2 px-4 py-2 bg-blue-600 text-white text-sm rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              >
+                Convert to ChordPro
+              </button>
+            </div>
+          )}
+
+          {importMode === "paste" && (
+            <div className="mb-4">
+              <label className="block text-sm font-medium text-neutral-700 dark:text-neutral-300 mb-1">
+                Paste your song text (with chords)
+              </label>
+              <textarea
+                value={rawImport}
+                onChange={(e) => setRawImport(e.target.value)}
+                placeholder={`Verse 1:\n   G        G7      C        G\nAmazing grace, how sweet the sound\n     G        Em      D\nThat saved a wretch like me\n\nChorus:\n  C       G\nAmazing grace\n   Em     D    G\nHow sweet the sound`}
+                rows={14}
+                className="w-full px-3 py-2 border border-neutral-300 dark:border-neutral-700 rounded-md bg-white dark:bg-neutral-900 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+              <button
+                type="button"
+                onClick={handlePasteImport}
+                className="mt-2 px-4 py-2 bg-blue-600 text-white text-sm rounded-md hover:bg-blue-700 transition-colors"
+              >
+                Convert to ChordPro
+              </button>
+            </div>
+          )}
+
+          <div>
+            <label className="block text-sm font-medium text-neutral-700 dark:text-neutral-300 mb-1">
+              {importMode === "chordpro"
+                ? "Paste or type ChordPro"
+                : importMode === "manual"
+                ? "ChordPro Content"
+                : "Converted ChordPro (editable)"}
+            </label>
+            <textarea
+              value={chordpro}
+              onChange={(e) => setChordpro(e.target.value)}
+              placeholder={importMode === "chordpro"
+                ? `Paste your ChordPro content here, e.g.:\n\n{title: Amazing Grace}\n{key: G}\n\n{start_of_verse: Verse 1}\n[G]Amazing [G7]grace, how [C]sweet the [G]sound\nThat [G]saved a [Em]wretch like [D]me\n{end_of_verse}`
+                : `{title: My Song}\n{key: G}\n\n{start_of_verse: Verse 1}\n[G]First line of [C]lyrics\n[Am]Second line of [D]lyrics\n{end_of_verse}`}
+              rows={importMode === "chordpro" ? 20 : 16}
+              className="w-full px-3 py-2 border border-neutral-300 dark:border-neutral-700 rounded-md bg-white dark:bg-neutral-900 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+          </div>
+        </div>
+
+        {/* Right: preview */}
+        <div>
+          <label className="block text-sm font-medium text-neutral-700 dark:text-neutral-300 mb-1">
+            Preview
+          </label>
+          <div className="border border-neutral-200 dark:border-neutral-800 rounded-md p-4 min-h-[400px] bg-white dark:bg-neutral-950">
+            {preview ? (
+              <div
+                className="chord-sheet"
+                dangerouslySetInnerHTML={{ __html: preview }}
+              />
+            ) : (
+              <p className="text-neutral-400 text-sm">
+                Enter or import song content to see a preview
+              </p>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* Actions */}
+      <div className="flex items-center gap-3 pt-4 border-t border-neutral-200 dark:border-neutral-800">
+        <button
+          type="button"
+          onClick={handleSave}
+          disabled={saving || !title.trim() || !chordpro.trim() || !albumId}
+          className="px-6 py-2.5 bg-blue-600 text-white rounded-md font-medium text-sm hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+        >
+          {saving ? "Creating..." : "Create Song"}
+        </button>
+        <button
+          type="button"
+          onClick={() => router.push("/songs")}
+          className="px-4 py-2.5 border border-neutral-300 dark:border-neutral-700 rounded-md text-sm hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors"
+        >
+          Cancel
+        </button>
+      </div>
+    </div>
+  );
+}

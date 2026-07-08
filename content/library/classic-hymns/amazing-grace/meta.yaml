@@ -1,0 +1,19 @@
+id: amazing-grace
+title: Amazing Grace
+tags: [hymn, grace, traditional]
+key: G
+tempo: 72
+ccli: "22025"
+created: 2024-03-01
+references:
+  - type: bible
+    label: "1 Timothy 1:15"
+    target: bible-kjv/1-timothy-1
+    verse: "Verse 1"
+  - type: bible
+    label: "Ephesians 2:8-9"
+    target: bible-kjv/ephesians-2
+    line: 0
+  - type: song
+    label: "Related: How Great Thou Art"
+    target: how-great-thou-art

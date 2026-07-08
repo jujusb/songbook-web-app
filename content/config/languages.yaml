@@ -1,0 +1,11 @@
+languages:
+  - code: en
+    label: English
+    rtl: false
+  - code: es
+    label: "Espa\u00F1ol"
+    rtl: false
+  - code: fr
+    label: "Fran\u00E7ais"
+    rtl: false
+default: en

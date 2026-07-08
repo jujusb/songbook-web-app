@@ -1,0 +1,15 @@
+id: how-great-thou-art
+title: How Great Thou Art
+tags: [hymn, worship, classic]
+key: Bb
+tempo: 76
+ccli: "14181"
+created: 2024-03-01
+references:
+  - type: bible
+    label: "Psalm 8:1-9"
+    target: bible-kjv/psalm-8
+    verse: "Verse 1"
+  - type: song
+    label: "Related: Amazing Grace"
+    target: amazing-grace

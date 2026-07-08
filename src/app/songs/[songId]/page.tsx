@@ -1,0 +1,142 @@
+import Link from "next/link";
+import { notFound } from "next/navigation";
+import {
+  getSong,
+  getSongTranslation,
+  getSongTranslations,
+  getAlbumsForSong,
+  getArtistForSong,
+  getSiteConfig,
+} from "@/lib/content";
+import { ChordSheet } from "@/components/ChordSheet";
+import { LanguageSwitcher } from "@/components/LanguageSwitcher";
+import { ReferencePanel } from "@/components/ReferencePanel";
+import { DeleteButton } from "@/components/DeleteButton";
+
+export default async function SongPage({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ songId: string }>;
+  searchParams: Promise<{ lang?: string }>;
+}) {
+  const { songId } = await params;
+  const { lang: langParam } = await searchParams;
+
+  let meta;
+  try {
+    meta = await getSong(songId);
+  } catch {
+    notFound();
+  }
+
+  const translations = await getSongTranslations(songId);
+  if (translations.length === 0) {
+    return (
+      <div className="max-w-4xl mx-auto px-4 py-8">
+        <h1 className="text-2xl font-bold mb-4">{meta.title}</h1>
+        <p className="text-neutral-500">No translations available.</p>
+      </div>
+    );
+  }
+
+  const lang =
+    langParam && translations.includes(langParam) ? langParam : translations[0];
+
+  const { body } = await getSongTranslation(songId, lang);
+  const albums = await getAlbumsForSong(songId);
+  const artist = await getArtistForSong(songId);
+
+  let enableArtistPages = false;
+  try {
+    const config = await getSiteConfig();
+    enableArtistPages = config.enableArtistPages;
+  } catch {}
+
+  return (
+    <div className="max-w-6xl mx-auto px-4 py-8">
+      <div className="flex items-start justify-between mb-6">
+        <div>
+          <h1 className="text-2xl font-bold">{meta.title}</h1>
+          <div className="flex items-center gap-3 mt-1 flex-wrap">
+            {artist && enableArtistPages && (
+              <Link
+                href={`/artists/${artist.id}`}
+                className="text-sm text-neutral-600 dark:text-neutral-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
+              >
+                {artist.name}
+              </Link>
+            )}
+            {artist && !enableArtistPages && (
+              <span className="text-sm text-neutral-500">{artist.name}</span>
+            )}
+            {meta.key && (
+              <span className="text-sm text-neutral-500">Key: {meta.key}</span>
+            )}
+            {albums.length > 0 && (
+              <div className="flex items-center gap-1.5">
+                {albums.map((album) => (
+                  <Link
+                    key={album.id}
+                    href={`/albums/${album.id}`}
+                    className="text-xs px-2 py-0.5 bg-blue-50 dark:bg-blue-950 text-blue-600 dark:text-blue-400 rounded-full hover:bg-blue-100 dark:hover:bg-blue-900 transition-colors"
+                  >
+                    {album.title}
+                  </Link>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+        <div className="flex gap-2 text-sm">
+          <Link
+            href={`/edit/${songId}/${lang}`}
+            className="px-3 py-1.5 border border-neutral-300 dark:border-neutral-700 rounded-md hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors"
+          >
+            Edit
+          </Link>
+          <Link
+            href={`/present/${songId}?lang=${lang}`}
+            className="px-3 py-1.5 border border-neutral-300 dark:border-neutral-700 rounded-md hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors"
+          >
+            Present
+          </Link>
+          <Link
+            href={`/compare/${songId}?langs=${translations.join(",")}`}
+            className="px-3 py-1.5 border border-neutral-300 dark:border-neutral-700 rounded-md hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors"
+          >
+            Compare
+          </Link>
+          <DeleteButton
+            apiEndpoint="/api/songs"
+            id={songId}
+            label={meta.title}
+            redirectTo="/browse"
+          />
+        </div>
+      </div>
+
+      <LanguageSwitcher
+        songId={songId}
+        languages={translations}
+        currentLang={lang}
+      />
+
+      <div className="mt-6 flex gap-8">
+        <div className="flex-1 min-w-0">
+          <ChordSheet
+            initialSource={body}
+            songKey={meta.key ?? null}
+            references={meta.references}
+          />
+        </div>
+
+        {meta.references.length > 0 && (
+          <aside className="w-64 shrink-0 hidden lg:block">
+            <ReferencePanel references={meta.references} />
+          </aside>
+        )}
+      </div>
+    </div>
+  );
+}

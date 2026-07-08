@@ -1,0 +1,19 @@
+services:
+  songbook:
+    image: node:20-slim
+    container_name: songbook
+    working_dir: /app
+    command: sh -c "npm install && npm run dev"
+    ports:
+      - "3100:3000"
+    volumes:
+      - .:/app
+      - songbook_node_modules:/app/node_modules
+      - ./content:/app/content
+    environment:
+      - NODE_ENV=development
+      - WATCHPACK_POLLING=true
+    restart: unless-stopped
+
+volumes:
+  songbook_node_modules:

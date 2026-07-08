@@ -1,0 +1,9 @@
+id: classic-hymns
+title: Classic Hymns Collection
+artist: various-artists
+year: 2024
+description: A collection of beloved traditional hymns arranged for worship.
+tags: [hymns, traditional, worship]
+songs:
+  - amazing-grace
+  - how-great-thou-art
