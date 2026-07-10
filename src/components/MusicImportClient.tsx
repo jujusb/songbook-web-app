@@ -53,6 +53,7 @@ interface FolderConfig {
   isOriginal: boolean;
   nestedLanguages: boolean;
   subdirs: SubdirConfig[];
+  albumNumber?: string;
 }
 
 interface BrowseResult {
@@ -267,6 +268,7 @@ export function MusicImportClient() {
             isOriginal: fc.isOriginal,
             nestedLanguages: fc.nestedLanguages,
           };
+          if (fc.albumNumber) entry.albumNumber = fc.albumNumber;
           entry.voiceDirs = fc.subdirs
             .filter((sd) => sd.role === "voice")
             .map((sd) => ({ dirName: sd.dirName, voice: sd.voiceName }));
@@ -369,8 +371,12 @@ export function MusicImportClient() {
     }
     groups.sort((a, b) => {
       if (a.albumNumber !== null && b.albumNumber !== null) {
-        const diff = parseInt(a.albumNumber, 10) - parseInt(b.albumNumber, 10);
-        if (diff !== 0) return diff;
+        const an = parseInt(a.albumNumber, 10);
+        const bn = parseInt(b.albumNumber, 10);
+        if (!isNaN(an) && !isNaN(bn)) {
+          const diff = an - bn;
+          if (diff !== 0) return diff;
+        }
       } else if (a.albumNumber !== null) return -1;
       else if (b.albumNumber !== null) return 1;
       return a.albumName.localeCompare(b.albumName);
@@ -380,11 +386,13 @@ export function MusicImportClient() {
 
   function extractNumber2(name: string): string | null {
     const m = name.match(/^(\d+)/);
-    return m ? m[1] : null;
+    if (m) return m[1];
+    const m2 = name.match(/^([A-Za-z]\d+)/);
+    return m2 ? m2[1] : null;
   }
 
   function extractSongNumber(songId: string): number | null {
-    const m = songId.match(/^\d+-(\d+)$/);
+    const m = songId.match(/^(?:[A-Za-z]?\d+)-(\d+)$/);
     if (m) return parseInt(m[1], 10);
     return null;
   }
@@ -549,6 +557,17 @@ export function MusicImportClient() {
                     className="accent-blue-600"
                   />
                   <span className="text-neutral-500">Original</span>
+                </label>
+
+                <label className="flex items-center gap-1.5 text-sm">
+                  <span className="text-neutral-500">Album #:</span>
+                  <input
+                    type="text"
+                    value={fc.albumNumber ?? ""}
+                    onChange={(e) => updateFolder(fi, { albumNumber: e.target.value || undefined })}
+                    placeholder="auto"
+                    className="border border-neutral-300 dark:border-neutral-700 rounded px-2 py-1 text-sm bg-white dark:bg-neutral-900 w-16 text-center"
+                  />
                 </label>
 
                 <button

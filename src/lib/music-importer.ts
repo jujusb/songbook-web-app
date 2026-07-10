@@ -1,4 +1,4 @@
-import { readdir, stat } from "fs/promises";
+import { readdir } from "fs/promises";
 import { existsSync } from "fs";
 import path from "path";
 import { parseFile } from "music-metadata";
@@ -58,6 +58,10 @@ export interface LangFolderConfig {
   /** When true, children of this folder are language-named subdirs (e.g. ES/, EN/),
    *  each of which is then scanned using this entry's voiceDirs config. */
   nestedLanguages?: boolean;
+  /** Override album number for unnumbered albums (e.g. "09"). When set, the slug is
+   *  built as `${albumNumber}-${trackNumber}` instead of falling back to `slugify(title)`.
+   *  Files without track metadata/filename numbers get sequential auto-assigned numbers. */
+  albumNumber?: string;
 }
 
 export interface ScanConfig {
@@ -90,13 +94,25 @@ function stripAccents(s: string): string {
 }
 
 function extractTitle(name: string): string {
-  const withoutExt = name.replace(/\.\w+$/, "");
+  const withoutExt = decodeFileName(name).replace(/\.\w+$/, "");
   return stripAccents(stripNumberPrefix(withoutExt)).trim();
 }
 
+function decodeFileName(name: string): string {
+  try {
+    return decodeURIComponent(name);
+  } catch {
+    return name;
+  }
+}
+
 function extractNumber(name: string): string | null {
-  const match = name.match(/^(\d+)/);
-  return match ? match[1] : null;
+  // Try leading digits first (e.g. "01-" → "01")
+  const digitMatch = name.match(/^(\d+)/);
+  if (digitMatch) return digitMatch[1];
+  // Then try letter + digits (e.g. "V0-", "M0-" → "V0", "M0")
+  const letterDigitMatch = name.match(/^([A-Za-z]\d+)/);
+  return letterDigitMatch ? letterDigitMatch[1] : null;
 }
 
 /* ------------------------------------------------------------------ */
@@ -152,20 +168,6 @@ async function readAudioMetadata(filePath: string): Promise<AudioMeta> {
     metadataCache.set(filePath, {});
     return {};
   }
-}
-
-/* ------------------------------------------------------------------ */
-/*  Lyric file helper                                                  */
-/* ------------------------------------------------------------------ */
-
-async function findLyricFile(dirPath: string, root: string): Promise<string | undefined> {
-  const entries = await readdir(dirPath, { withFileTypes: true });
-  for (const entry of entries) {
-    if (entry.isFile() && entry.name.toLowerCase().endsWith(".txt")) {
-      return path.relative(root, path.join(dirPath, entry.name));
-    }
-  }
-  return undefined;
 }
 
 /* ------------------------------------------------------------------ */
@@ -357,14 +359,17 @@ export async function scanMusicDir(
 
             if (!hasSubdirs) {
               // Flat audio files — treat each as its own song
-              const albumNumber = extractNumber(albumName);
-              for (const item of subItems) {
-                const ext = path.extname(item.name).toLowerCase();
-                if (![".mp3", ".wav", ".ogg", ".mp4", ".m4a"].includes(ext)) continue;
-
+              const albumNumber = extractNumber(albumName) || folderCfg.albumNumber;
+              // Sort audio files for consistent auto-numbering
+              const audioItems = subItems
+                .filter((si) => [".mp3", ".wav", ".ogg", ".mp4", ".m4a"].includes(path.extname(si.name).toLowerCase()))
+                .sort((a, b) => a.name.localeCompare(b.name));
+              let autoTrackIdx = 0;
+              for (const item of audioItems) {
                 const meta = await readAudioMetadata(path.join(albumDirPath, item.name));
                 const trackTitle = meta.title || extractTitle(item.name);
-                const trackNumber = meta.track !== undefined ? String(meta.track) : extractNumber(item.name);
+                let trackNumber = meta.track !== undefined ? String(meta.track) : extractNumber(item.name);
+                if (!trackNumber) { autoTrackIdx++; trackNumber = String(autoTrackIdx); }
                 const slug = albumNumber && trackNumber ? `${albumNumber}-${trackNumber}` : slugify(trackTitle);
                 if (songId && slug !== songId) continue;
 
@@ -390,7 +395,7 @@ export async function scanMusicDir(
 
                 let vg = lg.voices.find((v) => v.voice === voiceName);
                 if (!vg) { vg = { voice: voiceName, files: [] }; lg.voices.push(vg); }
-                vg.files.push({ voice: voiceName, path: path.relative(root, path.join(albumDirPath, item.name)), label: item.name });
+                vg.files.push({ voice: voiceName, path: path.relative(root, path.join(albumDirPath, item.name)), label: decodeFileName(item.name) });
               }
             } else {
               // Album has song subdirs
@@ -401,7 +406,7 @@ export async function scanMusicDir(
                 let songFiles: string[];
                 try { songFiles = await readdir(songPath); } catch { continue; }
 
-                let songTitle = stripNumberPrefix(songName);
+                let songTitle = stripNumberPrefix(decodeFileName(songName));
                 for (const f of songFiles) {
                   const ext = path.extname(f).toLowerCase();
                   if (![".mp3", ".wav", ".ogg", ".mp4", ".m4a"].includes(ext)) continue;
@@ -409,7 +414,7 @@ export async function scanMusicDir(
                   if (m.title) { songTitle = m.title; break; }
                 }
 
-                const albumNumber = extractNumber(albumName);
+                const albumNumber = extractNumber(albumName) || folderCfg.albumNumber;
                 const songNumber = extractNumber(songName);
                 const slug = albumNumber && songNumber ? `${albumNumber}-${songNumber}` : slugify(songTitle);
                 if (songId && slug !== songId) continue;
@@ -422,7 +427,7 @@ export async function scanMusicDir(
                   if (isGuide && ext === ".pdf") {
                     guides.push(path.relative(root, path.join(songPath, f)));
                   } else if ([".mp3", ".wav", ".ogg", ".mp4", ".m4a"].includes(ext)) {
-                    files.push({ voice: voiceName, path: path.relative(root, path.join(songPath, f)), label: f });
+                    files.push({ voice: voiceName, path: path.relative(root, path.join(songPath, f)), label: decodeFileName(f) });
                   } else if (ext === ".txt" && !lyricPath) {
                     lyricPath = path.relative(root, path.join(songPath, f));
                   }
@@ -463,24 +468,31 @@ export async function scanMusicDir(
           let trackFiles: string[];
           try { trackFiles = await readdir(albumPath); } catch { continue; }
 
-          // Look for a lyric file in the album directory
-          let albumLyricPath: string | undefined;
+          // Collect all TXT files in the album directory for per-track matching
+          const txtFiles = new Map<string, string>();
           for (const f of trackFiles) {
             if (path.extname(f).toLowerCase() === ".txt") {
-              albumLyricPath = path.relative(root, path.join(albumPath, f));
-              break;
+              const stem = path.basename(f, path.extname(f));
+              txtFiles.set(stem.toLowerCase(), path.relative(root, path.join(albumPath, f)));
             }
           }
 
-          for (const f of trackFiles) {
-            const ext = path.extname(f).toLowerCase();
-            if (![".mp3", ".wav", ".ogg", ".mp4", ".m4a"].includes(ext)) continue;
+          // Sort audio files in the album directory
+          const audioFiles = trackFiles
+            .filter((f) => [".mp3", ".wav", ".ogg", ".mp4", ".m4a"].includes(path.extname(f).toLowerCase()))
+            .sort((a, b) => a.localeCompare(b));
 
+          let autoTrackIdx = 0;
+          for (const f of audioFiles) {
             const fullPath = path.join(albumPath, f);
             const meta = await readAudioMetadata(fullPath);
             const trackTitle = meta.title || extractTitle(f);
-            const trackNumber = meta.track !== undefined ? String(meta.track) : extractNumber(f);
-            const albumNumber = extractNumber(albumName);
+            let trackNumber = meta.track !== undefined ? String(meta.track) : extractNumber(f);
+            if (!trackNumber) {
+              autoTrackIdx++;
+              trackNumber = String(autoTrackIdx);
+            }
+            const albumNumber = extractNumber(albumName) || folderCfg.albumNumber;
             const slug = albumNumber && trackNumber ? `${albumNumber}-${trackNumber}` : slugify(trackTitle);
             if (songId && slug !== songId) continue;
 
@@ -492,10 +504,14 @@ export async function scanMusicDir(
 
             let lg = item.languages.find((l) => l.lang === lang);
             if (!lg) { lg = { lang, isOriginal, album: meta.album || albumName, title: trackTitle, voices: [] }; item.languages.push(lg); }
-            if (albumLyricPath && !lg.lyricPath) lg.lyricPath = albumLyricPath;
+
+            // Match per-track TXT by filename stem
+            const stem = path.basename(f, path.extname(f));
+            const matchingTxt = txtFiles.get(stem.toLowerCase());
+            if (matchingTxt && !lg.lyricPath) lg.lyricPath = matchingTxt;
             let vg = lg.voices.find((v) => v.voice === "full");
             if (!vg) { vg = { voice: "full", files: [] }; lg.voices.push(vg); }
-            vg.files.push({ voice: "full", path: path.relative(root, fullPath), label: f });
+            vg.files.push({ voice: "full", path: path.relative(root, fullPath), label: decodeFileName(f) });
           }
         }
       }
@@ -541,7 +557,7 @@ export async function scanMusicDir(
           if (lg.guidePaths) existing.guidePaths = [...(existing.guidePaths ?? []), ...lg.guidePaths];
         }
         for (const vg of lg.voices) {
-          let existingVoice = existing.voices.find((v) => v.voice === vg.voice);
+          const existingVoice = existing.voices.find((v) => v.voice === vg.voice);
           if (!existingVoice) {
             existing.voices.push({ voice: vg.voice, files: [...vg.files] });
           } else {

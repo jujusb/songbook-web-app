@@ -20,9 +20,9 @@ export async function POST(request: Request) {
     const album = AlbumSchema.parse(body);
     await saveAlbum(album);
     return NextResponse.json({ success: true, id: album.id }, { status: 201 });
-  } catch (err: any) {
+  } catch (err: unknown) {
     return NextResponse.json(
-      { error: err.message || "Failed to create album" },
+      { error: err instanceof Error ? err.message : "Failed to create album" },
       { status: 400 }
     );
   }
@@ -34,9 +34,9 @@ export async function PUT(request: Request) {
     const album = AlbumSchema.parse(body);
     await saveAlbum(album);
     return NextResponse.json({ success: true, id: album.id });
-  } catch (err: any) {
+  } catch (err: unknown) {
     return NextResponse.json(
-      { error: err.message || "Failed to update album" },
+      { error: err instanceof Error ? err.message : "Failed to update album" },
       { status: 400 }
     );
   }
@@ -51,9 +51,9 @@ export async function DELETE(request: Request) {
     }
     await deleteAlbum(id);
     return NextResponse.json({ success: true });
-  } catch (err: any) {
+  } catch (err: unknown) {
     return NextResponse.json(
-      { error: err.message || "Failed to delete album" },
+      { error: err instanceof Error ? err.message : "Failed to delete album" },
       { status: 500 }
     );
   }

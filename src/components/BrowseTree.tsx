@@ -102,7 +102,8 @@ function SongNode({
   onRefresh: () => void;
   canEdit: boolean;
 }) {
-  const { t } = useTranslation();
+  const { t, locale } = useTranslation();
+  const displayLang = song.translations.includes(locale) ? locale : (song.translations[0] || "en");
   const handleDelete = useCallback(async () => {
     await fetch(`/api/songs?id=${song.id}`, { method: "DELETE" });
     onRefresh();
@@ -136,7 +137,11 @@ function SongNode({
         {song.translations.map((lang) => (
           <span
             key={lang}
-            className="text-[10px] px-1 py-0.5 bg-neutral-100 dark:bg-neutral-800 rounded text-neutral-500"
+            className={`text-[10px] px-1 py-0.5 rounded ${
+              lang === displayLang
+                ? "bg-neutral-900 dark:bg-white text-white dark:text-neutral-900 font-medium"
+                : "bg-neutral-100 dark:bg-neutral-800 text-neutral-400"
+            }`}
           >
             {lang.toUpperCase()}
           </span>
@@ -145,7 +150,7 @@ function SongNode({
       {canEdit && (
         <div className="flex items-center gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
           <Link
-            href={`/edit/${song.id}/${song.translations[0] || "en"}`}
+            href={`/edit/${song.id}/${displayLang}`}
             className="text-[11px] text-neutral-400 hover:text-blue-500"
             title={t('browse.editSongTitle')}
           >

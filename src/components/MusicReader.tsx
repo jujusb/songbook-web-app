@@ -20,7 +20,8 @@ function formatTime(seconds: number): string {
 
 function trackLabel(file: AudioFileEntry): string {
   // Extract a readable label from the path basename
-  const name = file.path.split("/").pop() || "";
+  const raw = file.path.split("/").pop() || "";
+  const name = decodeURIComponent(raw);
   const withoutExt = name.replace(/\.\w+$/, "");
   // Remove leading track numbers like "05 - ", "001 - "
   return withoutExt.replace(/^[\d]+\s*-\s*/, "").trim() || file.voice;
@@ -104,7 +105,8 @@ export function MusicReader({
   }
 
   const langs = Object.keys(byLang).sort();
-  const [activeLang, setActiveLang] = useState(langs[0] || "");
+  const [userLang, setUserLang] = useState<string>("");
+  const activeLang = langs.length > 0 && langs.includes(userLang) ? userLang : (langs[0] || "");
 
   const visibleFiles = activeLang ? byLang[activeLang] || [] : [];
   const groups = groupTracks(visibleFiles);
@@ -263,7 +265,7 @@ export function MusicReader({
                 <button
                   key={l}
                   onClick={() => {
-                    setActiveLang(l);
+                    setUserLang(l);
                     if (audioRef.current) {
                       audioRef.current.pause();
                     }

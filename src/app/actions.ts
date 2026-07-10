@@ -148,9 +148,26 @@ export async function importMusicAction(songId: string, configJson?: string, art
     .map((l) => ({ lang: l.lang, name: l.album! }));
   let albumId: string | undefined;
 
+  // Resolve artist — create YAML file if doesn't exist yet
+  let artistId = "unknown";
+  if (artist?.trim()) {
+    artistId = slugify(artist.trim());
+    const { getArtist, saveArtist } = await import("@/lib/content");
+    try {
+      await getArtist(artistId);
+    } catch {
+      await saveArtist({
+        id: artistId,
+        name: artist.trim(),
+        bio: "",
+        tags: [],
+      });
+    }
+  }
+
   if (albumEntries.length > 0) {
     const primaryName = stripNumberPrefix(albumEntries[0].name);
-    const { listAlbums, getAlbum, saveAlbum } = await import("@/lib/content");
+    const { listAlbums, saveAlbum } = await import("@/lib/content");
     const albums = await listAlbums();
     const existing = albums.find(
       (a) => a.id === slugify(primaryName) || a.title.toLowerCase() === primaryName.toLowerCase()
@@ -177,7 +194,7 @@ export async function importMusicAction(songId: string, configJson?: string, art
         id: cleanId,
         title: primaryName,
         titles: Object.keys(langTitles).length > 1 ? langTitles : undefined,
-        artist: artist?.trim() || "unknown",
+        artist: artistId,
         tags: [],
         songs: [],
       });
