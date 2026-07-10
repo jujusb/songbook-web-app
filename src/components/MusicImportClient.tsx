@@ -16,6 +16,7 @@ interface LanguageGroup {
   lang: string;
   isOriginal: boolean;
   album?: string;
+  title?: string;
   voices: VoiceGroup[];
   guidePaths?: string[];
 }
@@ -345,19 +346,20 @@ export function MusicImportClient() {
         ? [...nameCounts.entries()].sort((a, b) => b[1] - a[1])[0][0]
         : key;
       const sorted = [...albumItems].sort((x, y) => {
-        const xn = extractNumber2(x.songId);
-        const yn = extractNumber2(y.songId);
+        const xn = extractSongNumber(x.songId);
+        const yn = extractSongNumber(y.songId);
         if (xn !== null && yn !== null) {
-          const diff = parseInt(xn, 10) - parseInt(yn, 10);
+          const diff = xn - yn;
           if (diff !== 0) return diff;
-        }
+        } else if (xn !== null) return -1;
+        else if (yn !== null) return 1;
         return x.title.localeCompare(y.title);
       });
       groups.push({
         albumName,
         albumNumber,
         songs: sorted.map((s) => ({
-          songNumber: extractNumber2(s.songId),
+          songNumber: extractSongNumber(s.songId)?.toString() ?? null,
           songId: s.songId,
           title: s.title,
           existing: s.existing,
@@ -379,6 +381,12 @@ export function MusicImportClient() {
   function extractNumber2(name: string): string | null {
     const m = name.match(/^(\d+)/);
     return m ? m[1] : null;
+  }
+
+  function extractSongNumber(songId: string): number | null {
+    const m = songId.match(/^\d+-(\d+)$/);
+    if (m) return parseInt(m[1], 10);
+    return null;
   }
 
   /* ---- Loading state ---- */
@@ -667,7 +675,7 @@ export function MusicImportClient() {
                         <div key={song.songId} className="border border-neutral-200 dark:border-neutral-800 rounded-lg p-4">
                           <div className="flex items-start justify-between gap-4">
                             <div className="min-w-0">
-                              <div className="font-semibold">{song.title}</div>
+                              <div className="font-semibold">{song.languages.find((l) => l.isOriginal && l.title)?.title ?? song.title}</div>
                               <div className="text-xs text-neutral-500 mt-0.5 flex items-center gap-2">
                                 <code className="text-xs">{song.songId}</code>
                                 {song.existing && (
@@ -688,7 +696,7 @@ export function MusicImportClient() {
                             </button>
                           </div>
                           <div className="flex flex-wrap gap-4 mt-3 border-t border-neutral-100 dark:border-neutral-800 pt-3">
-                            {song.languages.map((ln) => (
+                            {[...song.languages].sort((a, b) => (a.isOriginal === b.isOriginal ? 0 : a.isOriginal ? -1 : 1)).map((ln) => (
                               <div key={ln.lang}>
                                 <span className="text-xs font-medium text-neutral-500 uppercase tracking-wider block mb-1">
                                   {ln.lang}
@@ -696,6 +704,11 @@ export function MusicImportClient() {
                                     <span className="text-amber-500 ml-1 text-[10px]">original</span>
                                   )}
                                 </span>
+                                {ln.title && (
+                                  <span className="text-xs text-neutral-700 dark:text-neutral-300 block mb-1">
+                                    {ln.title}
+                                  </span>
+                                )}
                                 {ln.album && ln.album !== group.albumName && (
                                   <span className="text-[10px] text-neutral-400 block -mt-0.5 mb-1 italic">
                                     {ln.album}

@@ -17,6 +17,7 @@ export interface MusicLanguageGroup {
   lang: string;
   isOriginal: boolean;
   album?: string;
+  title?: string;
   voices: MusicVoiceGroup[];
   lyricPath?: string;
   guidePaths?: string[];
@@ -376,7 +377,7 @@ export async function scanMusicDir(
                 if (!matched) results.set(slug, song);
 
                 let lg = song.languages.find((l) => l.lang === lang);
-                if (!lg) { lg = { lang, isOriginal, album: albumName, voices: [] }; song.languages.push(lg); }
+                if (!lg) { lg = { lang, isOriginal, album: albumName, title: trackTitle, voices: [] }; song.languages.push(lg); }
 
                 // Associate matching lyric/txt file
                 const stem = path.basename(item.name, path.extname(item.name));
@@ -437,7 +438,7 @@ export async function scanMusicDir(
                 if (!matched) results.set(slug, item);
 
                 let lg = item.languages.find((l) => l.lang === lang);
-                if (!lg) { lg = { lang, isOriginal, album: albumName, voices: [] }; item.languages.push(lg); }
+                if (!lg) { lg = { lang, isOriginal, album: albumName, title: songTitle, voices: [] }; item.languages.push(lg); }
                 if (lyricPath && !lg.lyricPath) lg.lyricPath = lyricPath;
                 if (guides.length > 0) lg.guidePaths = [...(lg.guidePaths ?? []), ...guides];
                 let vg = lg.voices.find((v) => v.voice === voiceName);
@@ -490,7 +491,7 @@ export async function scanMusicDir(
             if (!results.has(slug)) results.set(slug, item);
 
             let lg = item.languages.find((l) => l.lang === lang);
-            if (!lg) { lg = { lang, isOriginal, album: meta.album || albumName, voices: [] }; item.languages.push(lg); }
+            if (!lg) { lg = { lang, isOriginal, album: meta.album || albumName, title: trackTitle, voices: [] }; item.languages.push(lg); }
             if (albumLyricPath && !lg.lyricPath) lg.lyricPath = albumLyricPath;
             let vg = lg.voices.find((v) => v.voice === "full");
             if (!vg) { vg = { voice: "full", files: [] }; lg.voices.push(vg); }
@@ -532,7 +533,7 @@ export async function scanMusicDir(
         let existing = candidate.languages.find((l) => l.lang === lg.lang);
         if (!existing) {
           // Create a new language group on the candidate
-          existing = { lang: lg.lang, isOriginal: lg.isOriginal, album: lg.album, voices: [], lyricPath: lg.lyricPath, guidePaths: lg.guidePaths };
+          existing = { lang: lg.lang, isOriginal: lg.isOriginal, album: lg.album, title: lg.title, voices: [], lyricPath: lg.lyricPath, guidePaths: lg.guidePaths };
           candidate.languages.push(existing);
         } else {
           // Merge voices into existing language group
@@ -550,6 +551,16 @@ export async function scanMusicDir(
       }
       results.delete(item.songId);
       break;
+    }
+  }
+
+  // Ensure every song has at least one language marked as original
+  for (const item of results.values()) {
+    const hasOriginal = item.languages.some((l) => l.isOriginal);
+    if (!hasOriginal && item.languages.length > 0) {
+      // Prefer the first non-instrumental language, otherwise the first language
+      const preferred = item.languages.find((l) => l.lang !== "instrumental");
+      (preferred ?? item.languages[0]).isOriginal = true;
     }
   }
 
