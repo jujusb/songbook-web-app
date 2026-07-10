@@ -4,6 +4,7 @@ import {
   getSong,
   getSongTranslation,
   getSongTranslations,
+  getSongTitle,
   getAlbumsForSong,
   getArtistForSong,
   getSiteConfig,
@@ -12,6 +13,7 @@ import { getSession, canEdit, canAdmin } from "@/lib/auth";
 import { ChordSheet } from "@/components/ChordSheet";
 import { LanguageSwitcher } from "@/components/LanguageSwitcher";
 import { ReferencePanel } from "@/components/ReferencePanel";
+import { MusicReader } from "@/components/MusicReader";
 import { DeleteButton } from "@/components/DeleteButton";
 import { T } from "@/components/Translate";
 
@@ -46,6 +48,7 @@ export default async function SongPage({
     langParam && translations.includes(langParam) ? langParam : translations[0];
 
   const { body } = await getSongTranslation(songId, lang);
+  const localizedTitle = await getSongTitle(songId, lang);
   const albums = await getAlbumsForSong(songId);
   const artist = await getArtistForSong(songId);
 
@@ -63,7 +66,7 @@ export default async function SongPage({
     <div className="max-w-6xl mx-auto px-4 py-8">
       <div className="flex items-start justify-between mb-6">
         <div>
-          <h1 className="text-2xl font-bold">{meta.title}</h1>
+          <h1 className="text-2xl font-bold">{localizedTitle}</h1>
           <div className="flex items-center gap-3 mt-1 flex-wrap">
             {artist && enableArtistPages && (
               <Link
@@ -123,6 +126,14 @@ export default async function SongPage({
           >
             <T k="song.compare" />
           </Link>
+          {meta.audioFiles && meta.audioFiles.length > 0 && (
+            <Link
+              href={`/music/${songId}?lang=${lang}`}
+              className="px-3 py-1.5 border border-neutral-300 dark:border-neutral-700 rounded-md hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors"
+            >
+              <T k="song.listen" />
+            </Link>
+          )}
           {showDeleteActions && (
             <DeleteButton
               apiEndpoint="/api/songs"
@@ -139,6 +150,12 @@ export default async function SongPage({
         languages={translations}
         currentLang={lang}
       />
+
+      {meta.audioFiles && meta.audioFiles.length > 0 && (
+        <div className="mt-6">
+          <MusicReader audioFiles={meta.audioFiles} songTitle={localizedTitle} />
+        </div>
+      )}
 
       <div className="mt-6 flex gap-8">
         <div className="flex-1 min-w-0">

@@ -1,7 +1,8 @@
 "use server";
 
-import { saveSongTranslation, saveSongMeta, createSong, getSong, getSongTranslation } from "@/lib/content";
-import { SongTranslationFrontmatterSchema, type Reference } from "@/lib/content/schemas";
+import { saveSongTranslation, saveSongMeta, createSong, getSong, getSongTranslation, listArtists } from "@/lib/content";
+import { SongTranslationFrontmatterSchema, type Reference, type AudioFile } from "@/lib/content/schemas";
+import { scanMusicDir, getMusicDir, slugify, stripNumberPrefix } from "@/lib/music-importer";
 import { revalidatePath } from "next/cache";
 import matter from "gray-matter";
 
@@ -57,4 +58,201 @@ export async function saveSongReferencesAction(songId: string, references: Refer
   await saveSongMeta(songId, meta);
   revalidatePath(`/songs/${songId}`);
   revalidatePath(`/edit/${songId}/[lang]`);
+}
+
+/* ------------------------------------------------------------------ */
+/*  Music import                                                      */
+/* ------------------------------------------------------------------ */
+
+export type { MusicScanItem, MusicScanResult, MusicLanguageGroup, MusicVoiceGroup, MusicVoiceFile } from "@/lib/music-importer";
+
+export async function listArtistsAction() {
+  try {
+    return await listArtists();
+  } catch {
+    return [];
+  }
+}
+
+export async function browseMusicDirAction(subPath?: string) {
+  const { readdir } = await import("fs/promises");
+  const { existsSync } = await import("fs");
+  const pathMod = await import("path");
+  const root = getMusicDir();
+  if (!existsSync(root)) return null;
+
+  const dirPath = subPath ? pathMod.join(root, subPath) : root;
+
+  // Prevent path traversal
+  const normalized = pathMod.resolve(dirPath);
+  if (!normalized.startsWith(pathMod.resolve(root))) return null;
+
+  try {
+    const entries = await readdir(normalized, { withFileTypes: true });
+    const dirs: string[] = [];
+    const hasSubdirs: string[] = [];
+    for (const entry of entries) {
+      if (!entry.isDirectory()) continue;
+      dirs.push(entry.name);
+      const sub = await readdir(pathMod.join(normalized, entry.name), { withFileTypes: true });
+      if (sub.some((s) => s.isDirectory())) hasSubdirs.push(entry.name);
+    }
+    dirs.sort();
+    return { dirs, hasSubdirs };
+  } catch {
+    return null;
+  }
+}
+
+export async function scanMusicDirectoryAction(
+  configJson: string,
+  songId?: string,
+) {
+  try {
+    const config = JSON.parse(configJson) as import("@/lib/music-importer").ScanConfig;
+    return await scanMusicDir(songId, config);
+  } catch (err) {
+    console.error("Music scan failed:", err);
+    return [];
+  }
+}
+
+export async function importMusicAction(songId: string, configJson?: string, artist?: string) {
+  // Scan for this specific song to get its audio files
+  if (!configJson) throw new Error("Scan config is required");
+  const config = JSON.parse(configJson) as import("@/lib/music-importer").ScanConfig;
+  const items = await scanMusicDir(songId, config);
+  const item = items.find((i) => i.songId === songId);
+  if (!item) throw new Error(`No music files found for song: ${songId}`);
+
+  const audioFiles: AudioFile[] = [];
+
+  for (const lang of item.languages) {
+    for (const vg of lang.voices) {
+      for (const f of vg.files) {
+        const urlPath = f.path.split("/").map(encodeURIComponent).join("/");
+        audioFiles.push({
+          lang: lang.lang,
+          voice: f.voice,
+          path: `/api/music/${urlPath}`,
+        });
+      }
+    }
+  }
+
+  if (audioFiles.length === 0) throw new Error("No audio files found");
+
+  // Resolve album: collect all language-specific album names and create/update the album
+  const albumEntries = item.languages
+    .filter((l) => l.album)
+    .map((l) => ({ lang: l.lang, name: l.album! }));
+  let albumId: string | undefined;
+
+  if (albumEntries.length > 0) {
+    const primaryName = stripNumberPrefix(albumEntries[0].name);
+    const { listAlbums, getAlbum, saveAlbum } = await import("@/lib/content");
+    const albums = await listAlbums();
+    const existing = albums.find(
+      (a) => a.id === slugify(primaryName) || a.title.toLowerCase() === primaryName.toLowerCase()
+    );
+
+    // Collect all language-specific titles
+    const langTitles: Record<string, string> = {};
+    for (const ae of albumEntries) {
+      langTitles[ae.lang] = stripNumberPrefix(ae.name);
+    }
+
+    if (existing) {
+      albumId = existing.id;
+      // Update titles if new language variants appeared
+      const updatedTitles = { ...(existing.titles ?? {}), ...langTitles };
+      // Keep the primary title matching the first language
+      if (Object.keys(updatedTitles).length > (existing.titles ? Object.keys(existing.titles).length : 0)) {
+        await saveAlbum({ ...existing, titles: updatedTitles });
+      }
+    } else {
+      const cleanId = slugify(primaryName);
+      albumId = cleanId;
+      await saveAlbum({
+        id: cleanId,
+        title: primaryName,
+        titles: Object.keys(langTitles).length > 1 ? langTitles : undefined,
+        artist: artist?.trim() || "unknown",
+        tags: [],
+        songs: [],
+      });
+    }
+  } else {
+    // No album name from scan — use first existing album
+    const { listAlbums } = await import("@/lib/content");
+    const albums = await listAlbums();
+    if (albums.length > 0) {
+      albumId = albums[0].id;
+    }
+  }
+
+  // Update or create song
+  let meta;
+  try {
+    meta = await getSong(songId);
+    meta.audioFiles = audioFiles;
+  } catch {
+    meta = {
+      id: songId,
+      title: item.title,
+      tags: [],
+      references: [],
+      audioFiles,
+    };
+  }
+
+  await saveSongMeta(songId, meta, albumId);
+
+  // Ensure at least one translation exists per language found
+  const languages = [...new Set(audioFiles.map((a) => a.lang))];
+  for (const lang of languages) {
+    try {
+      await getSongTranslation(songId, lang);
+    } catch {
+      let body = `{title: ${item.title}}\n`;
+      // Use lyric file if available
+      const lg = item.languages.find((l) => l.lang === lang);
+      if (lg?.lyricPath) {
+        const { readFile } = await import("fs/promises");
+        const pathMod = await import("path");
+        const { getMusicDir } = await import("@/lib/music-importer");
+        const root = getMusicDir();
+        const lyricFullPath = pathMod.join(root, lg.lyricPath);
+        try {
+          const content = await readFile(lyricFullPath, "utf-8");
+          if (content.trim()) body = content;
+        } catch (e) {
+          console.warn(`Failed to read lyric file: ${lyricFullPath}`, e);
+        }
+      }
+
+      const frontmatter = {
+        language: lang,
+        translator: null,
+        status: "draft" as const,
+        published: false,
+      };
+      await saveSongTranslation(songId, lang, frontmatter, body, albumId);
+    }
+  }
+
+  // Add song to album's song list
+  const { getAlbum, saveAlbum } = await import("@/lib/content");
+  try {
+    const album = await getAlbum(albumId!);
+    if (!album.songs.includes(songId)) {
+      album.songs.push(songId);
+      await saveAlbum(album);
+    }
+  } catch {}
+
+  revalidatePath("/songs");
+  revalidatePath(`/songs/${songId}`);
+  revalidatePath("/import/music");
+  return { songId, title: item.title, audioFiles: audioFiles.length };
 }

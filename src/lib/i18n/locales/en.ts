@@ -6,6 +6,7 @@ const en = {
     setlists: 'Setlists',
     artists: 'Artists',
     newSong: '+ New Song',
+    import: 'Import',
   },
   common: {
     save: 'Save',
@@ -32,6 +33,7 @@ const en = {
   song: {
     present: 'Present',
     compare: 'Compare',
+    listen: 'Listen',
     noTranslations: 'No translations available.',
     references: 'References',
     edit: 'Edit',
@@ -125,6 +127,13 @@ const en = {
   compare: {
     title: 'Compare',
     translations: 'Translations',
+  },
+  audio: {
+    parts: 'Audio Parts',
+    playing: 'Playing',
+    paused: 'Paused',
+    noAudio: 'No audio files available.',
+    original: 'original',
   },
   errors: {
     notFound: 'Not found',

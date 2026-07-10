@@ -293,10 +293,10 @@ body {
 }
 
 .vce-chord-row {
-  min-height: 1.25rem;
-  line-height: 1.25rem;
+  min-height: 1.75rem;
+  line-height: 1.75rem;
   white-space: pre;
-  font-size: 0.875rem;
+  font-size: 1.125rem;
 }
 
 .vce-chord-space {
@@ -307,7 +307,6 @@ body {
   color: #2563eb;
   font-weight: 700;
   cursor: pointer;
-  padding: 0 1px;
   border-radius: 2px;
   transition: background 0.1s, box-shadow 0.1s;
   display: inline;
@@ -341,6 +340,7 @@ body {
 
 .vce-lyrics-row {
   position: relative;
+  font-size: 1.125rem;
 }
 
 .vce-lyrics-text {

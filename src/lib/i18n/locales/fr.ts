@@ -8,6 +8,7 @@ const fr: Translations = {
     setlists: 'Listes',
     artists: 'Artistes',
     newSong: '+ Nouvelle Chanson',
+    import: 'Importer',
   },
   common: {
     save: 'Enregistrer',
@@ -34,10 +35,11 @@ const fr: Translations = {
   song: {
     present: 'Présenter',
     compare: 'Comparer',
+    listen: 'Écouter',
     noTranslations: 'Aucune traduction disponible.',
     references: 'Références',
     edit: 'Modifier',
-    editReferences: 'Modifier les Références',
+    editReferences: 'Modifier les références',
     editing: 'Modification',
     status: 'Statut',
     meta: 'Métadonnées',
@@ -127,6 +129,13 @@ const fr: Translations = {
   compare: {
     title: 'Comparer',
     translations: 'Traductions',
+  },
+  audio: {
+    parts: 'Parties Audio',
+    playing: 'Lecture',
+    paused: 'En pause',
+    noAudio: 'Aucun fichier audio disponible.',
+    original: 'original',
   },
   errors: {
     notFound: 'Page non trouvée',

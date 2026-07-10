@@ -1,5 +1,5 @@
 import { notFound, redirect } from "next/navigation";
-import { getSong, getSongTranslation, getSongTranslations, getLanguagesConfig } from "@/lib/content";
+import { getSong, getSongTitle, getSongTranslation, getSongTranslations, getLanguagesConfig } from "@/lib/content";
 import { getSession, canEdit } from "@/lib/auth";
 import { EditPageClient } from "@/components/EditPageClient";
 
@@ -36,6 +36,8 @@ export default async function EditPage({
   // Use all configured languages + any song-specific languages
   const languages = Array.from(new Set([...allLanguages, ...translations]));
 
+  const localizedTitle = await getSongTitle(songId, lang);
+
   return (
     <EditPageClient
       songId={songId}
@@ -43,7 +45,7 @@ export default async function EditPage({
       initialContent={translation.body}
       references={meta.references}
       languages={languages}
-      title={meta.title}
+      title={localizedTitle}
       status={translation.meta.status}
       initialShowReferences={showRefs === '1'}
     />

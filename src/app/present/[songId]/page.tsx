@@ -1,5 +1,5 @@
 import { notFound } from "next/navigation";
-import { getSong, getSongTranslation, getSongTranslations } from "@/lib/content";
+import { getSong, getSongTranslation, getSongTranslations, getSongTitle } from "@/lib/content";
 import { PresentationView } from "@/components/PresentationView";
 
 export default async function PresentPage({
@@ -25,11 +25,12 @@ export default async function PresentPage({
   if (!lang) notFound();
 
   const { body } = await getSongTranslation(songId, lang);
+  const localizedTitle = await getSongTitle(songId, lang);
 
   return (
     <PresentationView
       songId={songId}
-      title={meta.title}
+      title={localizedTitle}
       source={body}
       isAudience={display === "audience"}
     />

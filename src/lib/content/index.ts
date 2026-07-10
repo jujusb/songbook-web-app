@@ -113,6 +113,38 @@ export async function listSongs(): Promise<SongMeta[]> {
   return songs;
 }
 
+/**
+ * Get the localized title for a song in a given language.
+ * Falls back to the song's default title if no translation-specific title is set.
+ */
+export async function getSongTitle(songId: string, lang: string): Promise<string> {
+  try {
+    const meta = await getSong(songId);
+    try {
+      const { meta: transMeta } = await getSongTranslation(songId, lang);
+      if (transMeta.title) return transMeta.title;
+    } catch {
+      // no translation available
+    }
+    return meta.title;
+  } catch {
+    return songId;
+  }
+}
+
+/**
+ * Get the localized title for an album in a given language.
+ * Falls back to the album's default title if no translation exists.
+ */
+export async function getAlbumTitle(albumId: string, lang: string): Promise<string> {
+  try {
+    const album = await getAlbum(albumId);
+    return album.titles?.[lang] || album.title;
+  } catch {
+    return albumId;
+  }
+}
+
 // --- Setlists ---
 // Setlists live at: content/setlists/<setlist-id>.yaml
 
@@ -270,6 +302,7 @@ export async function createSong(
     title,
     tags: [],
     references: [],
+    audioFiles: [],
   };
   await saveSongMeta(id, meta, albumId);
 
@@ -284,15 +317,60 @@ export async function createSong(
 }
 
 export async function getLanguagesConfig(): Promise<LanguagesConfig> {
+  const envLanguages = process.env.LANGUAGES;
+  if (envLanguages) {
+    const codes = envLanguages.split(',').map(s => s.trim()).filter(Boolean);
+    const languages = codes.map(code => ({
+      code,
+      label: code.toUpperCase(),
+      rtl: false,
+    }));
+    return LanguagesConfigSchema.parse({
+      languages,
+      default: process.env.LANGUAGES_DEFAULT || codes[0] || 'en',
+    });
+  }
+
   const filePath = path.join(getContentDir(), 'config', 'languages.yaml');
-  const raw = await readFile(filePath, 'utf-8');
+  let raw: string;
+  try {
+    raw = await readFile(filePath, 'utf-8');
+  } catch (err: unknown) {
+    if ((err as NodeJS.ErrnoException).code !== 'ENOENT') throw err;
+    const defaults: LanguagesConfig = {
+      languages: [
+        { code: 'en', label: 'English', rtl: false },
+        { code: 'es', label: 'Español', rtl: false },
+        { code: 'fr', label: 'Français', rtl: false },
+        { code: 'instrumental', label: 'Instrumental', rtl: false },
+      ],
+      default: 'en',
+    };
+    await mkdir(path.dirname(filePath), { recursive: true });
+    await writeFile(filePath, yaml.dump(defaults), 'utf-8');
+    raw = await readFile(filePath, 'utf-8');
+  }
   const parsed = yaml.load(raw);
   return LanguagesConfigSchema.parse(parsed);
 }
 
 export async function getSiteConfig(): Promise<SiteConfig> {
   const filePath = path.join(getContentDir(), 'config', 'site.yaml');
-  const raw = await readFile(filePath, 'utf-8');
+  let raw: string;
+  try {
+    raw = await readFile(filePath, 'utf-8');
+  } catch (err: unknown) {
+    if ((err as NodeJS.ErrnoException).code !== 'ENOENT') throw err;
+    const defaults: Record<string, unknown> = {
+      title: 'Songbook',
+      defaultLanguage: 'en',
+      pdfPageSize: 'A4',
+      enableArtistPages: true,
+    };
+    await mkdir(path.dirname(filePath), { recursive: true });
+    await writeFile(filePath, yaml.dump(defaults), 'utf-8');
+    raw = await readFile(filePath, 'utf-8');
+  }
   const parsed = yaml.load(raw) as Record<string, unknown>;
 
   // Build / override OIDC config from env vars.

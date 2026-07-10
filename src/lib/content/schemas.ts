@@ -24,6 +24,14 @@ export const ReferenceSchema = z.object({
   locations: z.array(ReferenceLocationSchema).optional(), // multiple anchors in the song
 });
 
+export const AudioFileSchema = z.object({
+  lang: z.string(),
+  voice: z.string(),                 // e.g. "masculine-alto", "masculine-bajo", "feminine-alto", "feminine-bajo"
+  path: z.string(),                  // relative URL path, e.g. "/music/amazing-grace/fr/masculine-alto.mp3"
+});
+
+export type AudioFile = z.infer<typeof AudioFileSchema>;
+
 export const SongMetaSchema = z.object({
   id: z.string(),
   title: z.string(),
@@ -33,6 +41,7 @@ export const SongMetaSchema = z.object({
   ccli: z.string().optional(),
   created: z.union([z.string(), z.date()]).optional(),
   references: z.array(ReferenceSchema).default([]),
+  audioFiles: z.array(AudioFileSchema).default([]),
 });
 
 export type SongMeta = z.infer<typeof SongMetaSchema>;
@@ -46,6 +55,7 @@ export const AlbumSchema = z.object({
   description: z.string().optional(),
   tags: z.array(z.string()).default([]),
   songs: z.array(z.string()).default([]),
+  titles: z.record(z.string(), z.string()).optional(),
   created: z.union([z.string(), z.date()]).optional(),
 });
 
@@ -64,6 +74,7 @@ export type Artist = z.infer<typeof ArtistSchema>;
 
 export const SongTranslationFrontmatterSchema = z.object({
   language: z.string(),
+  title: z.string().optional(),
   translator: z.string().nullable().optional(),
   status: z.enum(['draft', 'review', 'final']).default('draft'),
   published: z.boolean().default(false),

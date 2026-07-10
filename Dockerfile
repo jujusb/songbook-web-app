@@ -42,6 +42,9 @@ COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
 # Content directory will be mounted as a volume
 RUN mkdir -p /app/content && chown nextjs:nodejs /app/content
 
+# Music directory will be mounted as a volume
+RUN mkdir -p /app/music && chown nextjs:nodejs /app/music
+
 USER nextjs
 
 EXPOSE 3000

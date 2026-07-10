@@ -1,15 +1,18 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { getAlbum, getArtist, getSong, getSongTranslations } from "@/lib/content";
+import { getAlbum, getAlbumTitle, getArtist, getSong, getSongTitle, getSongTranslations } from "@/lib/content";
 import { getSession, canEdit, canAdmin } from "@/lib/auth";
 import { DeleteButton } from "@/components/DeleteButton";
 
 export default async function AlbumPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ albumId: string }>;
+  searchParams: Promise<{ lang?: string }>;
 }) {
   const { albumId } = await params;
+  const { lang } = await searchParams;
 
   let album;
   try {
@@ -24,7 +27,8 @@ export default async function AlbumPage({
       try {
         const meta = await getSong(songId);
         const translations = await getSongTranslations(songId);
-        return { ...meta, translations };
+        const localizedTitle = lang ? await getSongTitle(songId, lang) : meta.title;
+        return { ...meta, title: localizedTitle, translations };
       } catch {
         return null;
       }
@@ -32,6 +36,8 @@ export default async function AlbumPage({
   );
 
   const validSongs = songs.filter(Boolean);
+
+  const localizedAlbumTitle = lang ? await getAlbumTitle(albumId, lang) : album.title;
 
   let artistName = album.artist;
   try {
@@ -53,7 +59,7 @@ export default async function AlbumPage({
         >
           &larr; All Albums
         </Link>
-        <h1 className="text-3xl font-bold">{album.title}</h1>
+        <h1 className="text-3xl font-bold">{localizedAlbumTitle}</h1>
         <div className="flex items-center gap-3 mt-1 text-sm text-neutral-500">
           <Link
             href={`/artists/${album.artist}`}

@@ -95,6 +95,14 @@ export default async function RootLayout({
                   <T k="nav.newSong" />
                 </Link>
               )}
+              {showEditActions && (
+                <Link
+                  href="/import/music"
+                  className="text-sm text-neutral-600 dark:text-neutral-400 hover:text-foreground transition-colors"
+                >
+                  <T k="nav.import" />
+                </Link>
+              )}
               <LocaleSwitcher />
               <UserMenu />
             </div>

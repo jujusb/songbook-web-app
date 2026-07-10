@@ -3,6 +3,7 @@ import Link from "next/link";
 import { getSetlist, listSongs, getSong, getSongTranslations } from "@/lib/content";
 import { getSession, canEdit, canAdmin } from "@/lib/auth";
 import { SetlistEditor } from "@/components/SetlistEditor";
+import { SetlistVoiceLinks } from "@/components/SetlistVoiceLinks";
 import { DeleteButton } from "@/components/DeleteButton";
 
 export default async function SetlistPage({
@@ -109,21 +110,24 @@ export default async function SetlistPage({
           <ol className="divide-y divide-neutral-200 dark:divide-neutral-800">
             {songDetails.map((song, index) => (
               <li key={`${song.songId}-${index}`}>
-                <Link
-                  href={`/songs/${song.songId}`}
-                  className="flex items-center gap-4 px-4 py-3 hover:bg-neutral-50 dark:hover:bg-neutral-900 transition-colors"
-                >
+                <div className="flex items-center gap-4 px-4 py-3 hover:bg-neutral-50 dark:hover:bg-neutral-900 transition-colors">
                   <span className="text-sm text-neutral-400 w-8 text-right font-mono">
                     {index + 1}
                   </span>
-                  <span className="flex-1 font-medium">{song.title}</span>
+                  <Link
+                    href={`/songs/${song.songId}`}
+                    className="flex-1 font-medium hover:underline"
+                  >
+                    {song.title}
+                  </Link>
                   {song.key && (
                     <span className="text-xs text-neutral-400">{song.key}</span>
                   )}
                   <span className="text-xs px-1.5 py-0.5 bg-neutral-100 dark:bg-neutral-800 rounded text-neutral-500">
                     {song.lang.toUpperCase()}
                   </span>
-                </Link>
+                  <SetlistVoiceLinks songId={song.songId} lang={song.lang} />
+                </div>
               </li>
             ))}
           </ol>
