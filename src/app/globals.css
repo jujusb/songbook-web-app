@@ -47,6 +47,7 @@ body {
   font-size: 0.875rem;
   line-height: 1.25rem;
   min-height: 1.25rem;
+  padding: 0 0.25rem;
   white-space: pre;
 }
 
@@ -54,6 +55,7 @@ body {
 .chord-sheet .chord-sheet-lyric {
   font-size: 1.125rem;
   line-height: 1.75rem;
+  min-height: 1.75rem;
   white-space: pre-wrap;
 }
 
@@ -77,6 +79,28 @@ body {
     background: #1f2937;
     border-color: #374151;
   }
+
+  .chord-sheet .paragraph.chorus h3.label,
+  .chord-sheet .paragraph.chorus .label {
+    font-weight: 800;
+  }
+
+  .chord-sheet .paragraph.instrumental h3.label,
+  .chord-sheet .paragraph.instrumental .label {
+    font-style: italic;
+    text-decoration: underline;
+  }
+}
+
+.chord-sheet .paragraph.chorus h3.label,
+.chord-sheet .paragraph.chorus .label {
+  font-weight: 800;
+}
+
+.chord-sheet .paragraph.instrumental h3.label,
+.chord-sheet .paragraph.instrumental .label {
+  font-style: italic;
+  text-decoration: underline;
 }
 
 /* Footnote reference markers (1), (2) etc. */

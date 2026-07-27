@@ -32,18 +32,18 @@ function isChordLine(line: string): boolean {
 const SECTION_HEADER =
   /^\s*(?:\[?\s*|--?\s*)(verse|chorus|bridge|pre[- ]?chorus|intro|outro|interlude|tag|coda|instrumental)(?:\s*(\d+))?\s*(?:\]?\s*|--?\s*)[:.\-]*\s*$/i;
 
-type SectionType = "verse" | "chorus" | "bridge";
-
-function detectSectionType(label: string): SectionType {
-  const lower = label.toLowerCase();
-  if (lower.includes("chorus")) return "chorus";
-  if (lower.includes("bridge")) return "bridge";
-  return "verse";
+function sectionDirective(name: string): string {
+  const lower = name.toLowerCase();
+  if (lower === "verse") return "verse";
+  if (lower === "chorus") return "chorus";
+  if (lower === "bridge") return "bridge";
+  return lower; // intro, outro, interlude, coda, instrumental, etc.
 }
 
 /**
  * Merge a chord line with the lyric line below it, inserting [Chord] markers
- * at the correct character positions.
+ * at the correct character positions. When chord positions overshoot the
+ * lyric length (e.g. from Word tab stops), distributes chords proportionally.
  */
 function mergeChordAndLyricLine(
   chordLine: string,
@@ -59,32 +59,94 @@ function mergeChordAndLyricLine(
 
   if (chords.length === 0) return lyricLine;
 
-  // Walk through the lyric line, inserting [chord] at each position
-  // We need to pad the lyric line if chords extend beyond it
-  const padded = lyricLine.padEnd(
-    Math.max(lyricLine.length, chords[chords.length - 1].col + 1)
-  );
+  const lyricLen = lyricLine.length;
+  const lastChord = chords[chords.length - 1];
+  const chordSpan = lastChord.col + lastChord.chord.length;
+
+  // Preserve leading indent of the lyric line for alignment
+  const leadingSpace = lyricLine.match(/^\s*/)?.[0].length ?? 0;
+
+  if (chordSpan <= lyricLen) {
+    // Chord positions fit within lyric — use exact column mapping
+    // but snap each chord to the nearest word start so Word tab-stop
+    // imports land on syllable boundaries instead of mid-word.
+    const wordStarts: number[] = [];
+    const wordRe = /\S+/g;
+    let wm;
+    while ((wm = wordRe.exec(lyricLine)) !== null) {
+      wordStarts.push(wm.index);
+    }
+
+    let result = "";
+    let lastIdx = 0;
+
+    for (const { col, chord } of chords) {
+      // Snap to nearest word start (handles Word's irregular spacing)
+      const snapPos = snapToWordStart(col, wordStarts, lyricLen);
+      if (snapPos > lastIdx) {
+        result += lyricLine.slice(lastIdx, snapPos);
+      }
+      result += `[${chord}]`;
+      lastIdx = snapPos;
+    }
+
+    if (lastIdx < lyricLen) {
+      result += lyricLine.slice(lastIdx);
+    }
+    return result.trimEnd();
+  }
+
+  // Chord positions overshoot lyric length (Word tab stops) —
+  // distribute chords proportionally across the lyric line,
+  // aligning each chord to the nearest word start.
+  const wordStarts: number[] = [];
+  const wordRe = /\S+/g;
+  let wm;
+  while ((wm = wordRe.exec(lyricLine)) !== null) {
+    wordStarts.push(wm.index);
+  }
 
   let result = "";
   let lastIdx = 0;
 
-  for (const { col, chord } of chords) {
-    // Add lyric text before this chord position
-    if (col > lastIdx) {
-      result += padded.slice(lastIdx, col);
-    } else if (col < lastIdx) {
-      // Chord overlaps — just append it
+  for (let ci = 0; ci < chords.length; ci++) {
+    const { col, chord } = chords[ci];
+
+    // Proportional position in the lyric line
+    const ratio = chordSpan > 0 ? col / chordSpan : ci / chords.length;
+    let targetPos = Math.round(ratio * lyricLen);
+    targetPos = Math.max(leadingSpace, Math.min(targetPos, lyricLen));
+
+    // Snap to nearest word start
+    if (wordStarts.length > 0) {
+      targetPos = snapToWordStart(targetPos, wordStarts, lyricLen);
+    }
+
+    if (targetPos > lastIdx) {
+      result += lyricLine.slice(lastIdx, targetPos);
     }
     result += `[${chord}]`;
-    lastIdx = Math.max(lastIdx, col);
+    lastIdx = targetPos;
   }
 
-  // Add remaining lyric text
-  if (lastIdx < padded.length) {
-    result += padded.slice(lastIdx);
+  if (lastIdx < lyricLen) {
+    result += lyricLine.slice(lastIdx);
   }
-
   return result.trimEnd();
+}
+
+function snapToWordStart(pos: number, wordStarts: number[], lyricLen: number): number {
+  if (wordStarts.length === 0) return pos;
+  let nearest = wordStarts[0];
+  let minDist = Math.abs(pos - nearest);
+  for (let i = 1; i < wordStarts.length; i++) {
+    const dist = Math.abs(pos - wordStarts[i]);
+    if (dist < minDist) {
+      minDist = dist;
+      nearest = wordStarts[i];
+    }
+  }
+  return nearest;
 }
 
 /**
@@ -92,7 +154,11 @@ function mergeChordAndLyricLine(
  */
 function hasInlineChords(text: string): boolean {
   // Look for patterns like [Am], [G7], [C#m] within lines that also have lyrics
-  return /\[[A-Ga-g][b#]?[^[\]]*\]/.test(text);
+  if (/\[[A-Ga-g][b#]?[^[\]]*\]/.test(text)) return true;
+  // Also detect ChordPro section directives so {start_of_verse} / {end_of_verse}
+  // enter the alreadyInline branch instead of being treated as plain lyrics
+  if (/\{(?:start_of|s|end_of|e)_\w+/i.test(text)) return true;
+  return false;
 }
 
 /**
@@ -132,7 +198,7 @@ export function txtToChordPro(input: string): {
 } {
   const lines = input.replace(/\r\n/g, "\n").split("\n");
   const output: string[] = [];
-  let currentSection: SectionType | null = null;
+  let currentSection: string | null = null;
   let sectionOpen = false;
   let detectedKey: string | null = null;
   let title: string | null = null;
@@ -178,33 +244,57 @@ export function txtToChordPro(input: string): {
     if (sectionMatch) {
       // Close previous section
       if (sectionOpen) {
-        const endTag =
-          currentSection === "chorus"
-            ? "end_of_chorus"
-            : currentSection === "bridge"
-            ? "end_of_bridge"
-            : "end_of_verse";
-        output.push(`{${endTag}}`);
+        output.push(`{end_of_${sectionDirective(currentSection!)}}`);
         output.push("");
       }
 
       const sectionName = sectionMatch[1];
       const sectionNum = sectionMatch[2] || "";
-      currentSection = detectSectionType(sectionName);
+      currentSection = sectionName.toLowerCase();
 
-      const startTag =
-        currentSection === "chorus"
-          ? "start_of_chorus"
-          : currentSection === "bridge"
-          ? "start_of_bridge"
-          : "start_of_verse";
-
-      const label =
+      output.push(`{start_of_${sectionDirective(sectionName)}: ${
         sectionName.charAt(0).toUpperCase() +
         sectionName.slice(1).toLowerCase() +
-        (sectionNum ? ` ${sectionNum}` : "");
+        (sectionNum ? ` ${sectionNum}` : "")
+      }}`);
+      sectionOpen = true;
+      i++;
+      continue;
+    }
 
-      output.push(`{${startTag}: ${label}}`);
+    // Check for section header with content on the same line
+    // e.g. "🎸INTRO: A  E  D  F#m" or "Instrumental: Am  C  G"
+    const sectionContentMatch = trimmed
+      .replace(/^[^\w\s]+/, "")
+      .trim()
+      .match(
+        /^(verse|chorus|bridge|pre[- ]?chorus|intro|outro|interlude|tag|coda|instrumental)(?:\s*(\d+))?\s*:\s*(.+)$/i
+      );
+    if (sectionContentMatch) {
+      if (sectionOpen) {
+        output.push(`{end_of_${sectionDirective(currentSection!)}}`);
+        output.push("");
+      }
+
+      const sectionName = sectionContentMatch[1];
+      const sectionNum = sectionContentMatch[2] || "";
+      currentSection = sectionName.toLowerCase();
+
+      output.push(`{start_of_${sectionDirective(sectionName)}: ${
+        sectionName.charAt(0).toUpperCase() +
+        sectionName.slice(1).toLowerCase() +
+        (sectionNum ? ` ${sectionNum}` : "")
+      }}`);
+
+      const content = sectionContentMatch[3].trim();
+      if (alreadyInline || hasInlineChords(content)) {
+        output.push(content);
+      } else if (isChordLine(content)) {
+        const chords = content.split(/\s+/);
+        output.push(chords.map((c, i) => i < chords.length - 1 ? `[${c}][ - ]` : `[${c}]`).join(" "));
+      } else {
+        output.push(content);
+      }
       sectionOpen = true;
       i++;
       continue;
@@ -214,13 +304,7 @@ export function txtToChordPro(input: string): {
     if (!trimmed) {
       // If no explicit section headers are used, close/open sections on blank lines
       if (sectionOpen) {
-        const endTag =
-          currentSection === "chorus"
-            ? "end_of_chorus"
-            : currentSection === "bridge"
-            ? "end_of_bridge"
-            : "end_of_verse";
-        output.push(`{${endTag}}`);
+        output.push(`{end_of_${sectionDirective(currentSection!)}}`);
         output.push("");
         sectionOpen = false;
         currentSection = null;
@@ -232,8 +316,81 @@ export function txtToChordPro(input: string): {
     }
 
     if (alreadyInline) {
-      // Already has inline chords — pass through, just auto-open a section if needed
-      if (!sectionOpen) {
+      // ChordPro section directive
+      const sectionStart = trimmed.match(/^\{(start_of|s)_(\w+)(?::\s*(.+))?\}$/i);
+      const sectionEnd = trimmed.match(/^\{(end_of|e)_(\w+)\}$/i);
+
+      if (sectionStart) {
+        if (sectionOpen) {
+          output.push(`{end_of_${sectionDirective(currentSection!)}}`);
+          output.push("");
+        }
+        currentSection = sectionStart[2].toLowerCase();
+        output.push(trimmed);
+        sectionOpen = true;
+        i++;
+        continue;
+      }
+
+      if (sectionEnd) {
+        output.push(trimmed);
+        sectionOpen = false;
+        currentSection = null;
+        i++;
+        continue;
+      }
+
+      // "🎸INTRO: A  E  D  F#m" — section header with chords on the same line
+      const headerMatch = trimmed
+        .replace(/^[^\w\s]+/, "")
+        .trim()
+        .match(
+          /^(verse|chorus|bridge|pre[- ]?chorus|intro|outro|interlude|tag|coda|instrumental)(?:\s*(\d+))?\s*:\s*(.+)$/i
+        );
+      if (headerMatch) {
+        if (sectionOpen) {
+          output.push(`{end_of_${sectionDirective(currentSection!)}}`);
+          output.push("");
+        }
+        const sName = headerMatch[1].toLowerCase();
+        currentSection = sName;
+        output.push(`{start_of_${sectionDirective(sName)}: ${
+          sName.charAt(0).toUpperCase() + sName.slice(1).toLowerCase()
+        }}`);
+        const content = headerMatch[3].trim();
+        if (isChordLine(content)) {
+          const chords = content.split(/\s+/);
+          output.push(chords.map((c, i) => i < chords.length - 1 ? `[${c}][ - ]` : `[${c}]`).join(" "));
+        } else {
+          output.push(content);
+        }
+        sectionOpen = true;
+        i++;
+        continue;
+      }
+
+      // Chord-above-lyrics line even in mixed mode
+      if (isChordLine(trimmed)) {
+        if (!sectionOpen) {
+          output.push("{start_of_verse}");
+          sectionOpen = true;
+          currentSection = "verse";
+        }
+        const nextLine = i + 1 < lines.length ? lines[i + 1] : "";
+        const nextTrimmed = nextLine.trim();
+        if (nextTrimmed && !isChordLine(nextTrimmed) && !nextTrimmed.startsWith("{")) {
+          output.push(mergeChordAndLyricLine(line, nextLine));
+          i += 2;
+          continue;
+        }
+        const chords = trimmed.split(/\s+/);
+        output.push(chords.map((c) => `[${c}]`).join(" "));
+        i++;
+        continue;
+      }
+
+      // Regular line — auto-open section if needed, then pass through
+      if (!sectionOpen && trimmed) {
         output.push("{start_of_verse}");
         sectionOpen = true;
         currentSection = "verse";
@@ -288,13 +445,7 @@ export function txtToChordPro(input: string): {
 
   // Close any remaining open section
   if (sectionOpen) {
-    const endTag =
-      currentSection === "chorus"
-        ? "end_of_chorus"
-        : currentSection === "bridge"
-        ? "end_of_bridge"
-        : "end_of_verse";
-    output.push(`{${endTag}}`);
+    output.push(`{end_of_${sectionDirective(currentSection!)}}`);
   }
 
   return {

@@ -4,6 +4,7 @@ import path from 'path';
 import matter from 'gray-matter';
 import * as yaml from 'js-yaml';
 import { saveRevision } from './revisions';
+import { syncSongToMusicDir } from '@/lib/lyrics-sync';
 import {
   SongMetaSchema,
   SongTranslationFrontmatterSchema,
@@ -261,6 +262,11 @@ export async function saveSongTranslation(
   const filePath = path.join(songPath, `${lang}.cho`);
   const content = matter.stringify(body, updatedFrontmatter as Record<string, unknown>);
   await writeFile(filePath, content, 'utf-8');
+
+  // Sync .cho and lyrics-only .txt to music directory
+  await syncSongToMusicDir(id, lang, body).catch((err) => {
+    console.warn(`Failed to sync song to music dir: ${id}/${lang}`, err);
+  });
 }
 
 export async function saveSongMeta(id: string, meta: SongMeta, albumId?: string): Promise<void> {
