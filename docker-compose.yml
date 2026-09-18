@@ -9,11 +9,11 @@ services:
       - ${SONGBOOK_MUSIC_DIR:-/music}:/app/music
       - ${SONGBOOK_CONTENT_DIR:-./content}:/app/content
     environment:
-      - NODE_ENV=production
+      - NODE_ENV=development
       - HOSTNAME=0.0.0.0
       - PORT=3000
       - MUSIC_DIR=/app/music
-      - ADMIN_PASSWORD_HASH=${SONGBOOK_ADMIN_PASSWORD:-admin}
+      - ADMIN_PASSWORD_HASH=${ADMIN_PASSWORD_HASH:-}
       # --- Languages (optional — set LANGUAGES to configure without content files) ---
       - LANGUAGES=${SONGBOOK_LANGUAGES:-en,es,fr}
       - LANGUAGES_DEFAULT=${SONGBOOK_LANGUAGES_DEFAULT:-es}
