@@ -17,7 +17,7 @@ Self-hosted, file-based songbook. No database — all data lives as YAML + Chord
 
 ## Dev environment
 
-Runs in Docker via `docker-compose.yml` (dev) or `Dockerfile` (prod). The dev compose bind-mounts the source and uses a named volume for `node_modules` — do not run `npm install` on the host if targeting the container.
+Runs in Docker via `docker-compose.yml`, which builds the multi-stage `Dockerfile` (`npm run build`) and runs the production server. `content/` and `music/` are bind-mounted as volumes. Do not run `npm install` on the host — dependencies are installed inside the build.
 
 Production Dockerfile installs Chromium + Noto fonts for Puppeteer PDF generation. Env vars `PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true` and `PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium` are set in the image.
 

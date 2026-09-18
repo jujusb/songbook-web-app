@@ -45,7 +45,10 @@ RUN mkdir -p /app/content && chown nextjs:nodejs /app/content
 # Music directory will be mounted as a volume
 RUN mkdir -p /app/music && chown nextjs:nodejs /app/music
 
-USER nextjs
+COPY docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
+RUN chmod +x /usr/local/bin/docker-entrypoint.sh
+
+ENTRYPOINT ["docker-entrypoint.sh"]
 
 EXPOSE 3000
 ENV PORT=3000

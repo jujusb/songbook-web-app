@@ -1,24 +1,22 @@
 services:
   songbook:
-    image: node:20-slim
+    build: .
+    image: songbook-web-app:latest
     container_name: songbook
-    working_dir: /app
-    command: sh -c "npm install && npm run dev"
     ports:
       - "3000:3000"
     volumes:
-      - .:/app
-      - songbook_node_modules:/app/node_modules
-      - ${MUSIC_DIR:-/music}:/app/music
-      - ${CONTENT_DIR:-./content}:/app/content
+      - ${SONGBOOK_MUSIC_DIR:-/music}:/app/music
+      - ${SONGBOOK_CONTENT_DIR:-./content}:/app/content
     environment:
-      - NODE_ENV=development
-      - WATCHPACK_POLLING=true
+      - NODE_ENV=production
+      - HOSTNAME=0.0.0.0
+      - PORT=3000
       - MUSIC_DIR=/app/music
-      - ADMIN_PASSWORD_HASH=${ADMIN_PASSWORD:-admin}
+      - ADMIN_PASSWORD_HASH=${SONGBOOK_ADMIN_PASSWORD:-admin}
       # --- Languages (optional — set LANGUAGES to configure without content files) ---
-      - LANGUAGES=en,es,fr
-      - LANGUAGES_DEFAULT=es
+      - LANGUAGES=${SONGBOOK_LANGUAGES:-en,es,fr}
+      - LANGUAGES_DEFAULT=${SONGBOOK_LANGUAGES_DEFAULT:-es}
       # --- OIDC / SSO (all optional — set OIDC_ISSUER to enable) ---
       # - OIDC_ISSUER=https://auth.example.com/realms/main
       # - OIDC_CLIENT_ID=songbook
@@ -32,6 +30,3 @@ services:
       # - OIDC_AUTO_REDIRECT=false
       # - OIDC_LOGOUT_URL=https://auth.example.com/realms/main/protocol/openid-connect/logout
     restart: unless-stopped
-
-volumes:
-  songbook_node_modules:
