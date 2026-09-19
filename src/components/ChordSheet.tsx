@@ -456,7 +456,7 @@ export function ChordSheet({
               const prefix = idPrefix ? `${idPrefix}-` : "";
               const indicesStr = group.entries.map((e) => e.index).join(", ");
               const groupText = getReferenceText(group.reference, lang);
-              const groupHl = getHighlight(group.reference, lang);
+              const groupHl = group.entries[0].highlight ?? getHighlight(group.reference, lang);
               const hasInlineHighlights =
                 group.entries.length > 1 &&
                 group.entries.some((e) => e.highlight);
