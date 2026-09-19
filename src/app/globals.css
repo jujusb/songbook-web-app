@@ -104,8 +104,8 @@ body {
 }
 
 /* Footnote reference markers (1), (2) etc. */
-.chord-sheet .ref-marker,
-.chord-sheet a.ref-marker {
+.ref-marker,
+a.ref-marker {
   color: #d97706;
   font-weight: 700;
   font-size: 0.75rem;
@@ -113,68 +113,76 @@ body {
   text-decoration: none;
   margin-left: 2px;
 }
-.chord-sheet a.ref-marker:hover {
+a.ref-marker:hover {
   text-decoration: underline;
   color: #b45309;
 }
 
 /* Presentation view styles */
-.presentation-content .paragraph {
-  text-align: center;
+.presentation-content {
+  font-family: var(--font-geist-mono), "Courier New", monospace;
+  user-select: none;
 }
 
-.presentation-content .row {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: center;
-  gap: 0 0.5rem;
+.presentation-content .vce-lines {
+  padding: 0;
 }
 
-.presentation-content .column {
-  display: inline-flex;
-  flex-direction: column;
-  align-items: center;
+.presentation-content .vce-line {
+  display: table;
+  margin: 0 auto 1.5rem auto;
+  text-align: left;
 }
 
-.presentation-content .chord {
+.presentation-content .vce-chord-row {
+  min-height: 2rem;
+  line-height: 2rem;
+  font-size: 1.5rem;
+  white-space: pre;
+}
+
+.presentation-content .vce-chord {
   color: #60a5fa;
   font-weight: 700;
   font-size: 1.5rem;
   line-height: 2rem;
-  min-height: 2rem;
+  cursor: default;
 }
 
-.presentation-content .lyrics {
+.presentation-content .vce-chord:hover {
+  background: transparent;
+}
+
+.presentation-content .vce-lyrics-row {
+  font-size: 2.5rem;
+  line-height: 3.5rem;
+}
+
+.presentation-content .vce-lyrics-text {
   font-size: 2.5rem;
   line-height: 3.5rem;
   font-weight: 300;
+  white-space: pre-wrap;
+  cursor: default;
+  padding: 0;
+  border-bottom: none;
 }
 
-.presentation-content .comment {
-  color: #6b7280;
-  font-size: 0.875rem;
-  text-transform: uppercase;
-  letter-spacing: 0.1em;
-  margin-bottom: 0.5rem;
+.presentation-content .vce-lyrics-text:hover {
+  border-bottom-color: transparent;
 }
 
-.presentation-content.hide-chords .chord {
+.presentation-content .vce-empty-line {
+  height: 3.5rem;
+}
+
+.presentation-content .vce-chord-placeholder,
+.presentation-content .vce-section-label {
   display: none;
 }
 
-.presentation-content.hide-chords .row {
-  display: block;
-  text-align: center;
-  gap: 0;
-}
-
-.presentation-content.hide-chords .column {
-  display: inline;
-  align-items: baseline;
-}
-
-.presentation-content.hide-chords .lyrics {
-  display: inline;
+.presentation-content.hide-chords .vce-chord-row {
+  display: none;
 }
 
 /* Visual Chord Editor */
@@ -419,6 +427,29 @@ body {
     border-color: #60a5fa;
     color: #60a5fa;
   }
+}
+
+/* Read-only visual chord sheet (preview, song page, print) */
+.visual-chord-sheet {
+  user-select: text;
+}
+
+.visual-chord-sheet .vce-chord {
+  cursor: default;
+}
+
+.visual-chord-sheet .vce-chord:hover {
+  background: transparent;
+}
+
+.visual-chord-sheet .vce-lyrics-text {
+  cursor: default;
+  border-bottom: none;
+  user-select: text;
+}
+
+.visual-chord-sheet .vce-lyrics-text:hover {
+  border-bottom-color: transparent;
 }
 
 /* Print styles */

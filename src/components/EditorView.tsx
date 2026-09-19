@@ -7,26 +7,15 @@ import { defaultKeymap, history, historyKeymap } from "@codemirror/commands";
 import { markdown } from "@codemirror/lang-markdown";
 import { syntaxHighlighting, defaultHighlightStyle } from "@codemirror/language";
 import { searchKeymap } from "@codemirror/search";
-import ChordSheetJS from "chordsheetjs";
 import { saveSongAction, saveSongReferencesAction } from "@/app/actions";
 import { VisualChordEditor } from "@/components/VisualChordEditor";
+import { renderVisualChordSheet } from "@/lib/chordpro/visual-render";
 import { useTranslation } from "@/lib/i18n";
 import { txtToChordPro } from "@/lib/chordpro/txt-import";
 import { parseReferences, type ParsedReference } from "@/lib/chordpro/reference-import";
 import type { Reference } from "@/lib/content/schemas";
 
 type ImportTab = "text" | "pdf" | "word";
-
-function renderChordPro(source: string, t: (key: string) => string): string {
-  try {
-    const parser = new ChordSheetJS.ChordProParser();
-    const song = parser.parse(source);
-    const formatter = new ChordSheetJS.HtmlDivFormatter({ expandChorusDirective: true });
-    return formatter.format(song);
-  } catch {
-    return `<p class='text-red-500'>${t('editor.parseError')}</p>`;
-  }
-}
 
 type EditorMode = "code" | "visual";
 
@@ -55,7 +44,7 @@ export function EditorView({
   const [importFileName, setImportFileName] = useState<string | null>(null);
   const [importing, setImporting] = useState(false);
 
-  const preview = renderChordPro(content, t);
+  const preview = renderVisualChordSheet(content);
 
   // Initialize CodeMirror when switching to code mode
   useEffect(() => {
@@ -247,7 +236,7 @@ export function EditorView({
         </div>
         <div className="flex-1 overflow-auto p-4">
           <div
-            className="chord-sheet"
+            className="visual-chord-editor visual-chord-sheet"
             dangerouslySetInnerHTML={{ __html: preview }}
           />
         </div>

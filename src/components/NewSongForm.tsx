@@ -2,18 +2,11 @@
 
 import { useState, useCallback, useRef } from "react";
 import { useRouter } from "next/navigation";
-import ChordSheetJS from "chordsheetjs";
+import { renderVisualChordSheet } from "@/lib/chordpro/visual-render";
 import { txtToChordPro } from "@/lib/chordpro/txt-import";
 
 function renderPreview(source: string): string {
-  try {
-    const parser = new ChordSheetJS.ChordProParser();
-    const song = parser.parse(source);
-    const formatter = new ChordSheetJS.HtmlDivFormatter({ expandChorusDirective: true });
-    return formatter.format(song);
-  } catch {
-    return "<p class='text-red-500'>Unable to parse — check the format</p>";
-  }
+  return renderVisualChordSheet(source);
 }
 
 export function NewSongForm({
@@ -366,7 +359,7 @@ export function NewSongForm({
           <div className="border border-neutral-200 dark:border-neutral-800 rounded-md p-4 min-h-[400px] bg-white dark:bg-neutral-950">
             {preview ? (
               <div
-                className="chord-sheet"
+                className="visual-chord-editor visual-chord-sheet"
                 dangerouslySetInnerHTML={{ __html: preview }}
               />
             ) : (

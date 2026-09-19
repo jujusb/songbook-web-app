@@ -2,6 +2,7 @@
 
 import { useState, useMemo } from "react";
 import ChordSheetJS from "chordsheetjs";
+import { renderVisualChordSheet } from "@/lib/chordpro/visual-render";
 import { getReferenceText, getHighlight } from "@/lib/content/references";
 import { useTranslation } from "@/lib/i18n";
 
@@ -35,10 +36,7 @@ interface Footnote {
 }
 
 function renderSource(source: string): string {
-  const parser = new ChordSheetJS.ChordProParser();
-  const song = parser.parse(source);
-  const formatter = new ChordSheetJS.HtmlDivFormatter({ expandChorusDirective: true });
-  return formatter.format(song);
+  return renderVisualChordSheet(source);
 }
 
 function transposeSource(source: string, semitones: number): string {
@@ -443,7 +441,7 @@ export function ChordSheet({
 
       {/* Chord sheet */}
       <div
-        className="chord-sheet"
+        className="visual-chord-editor visual-chord-sheet"
         dangerouslySetInnerHTML={{ __html: html }}
       />
 

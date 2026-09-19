@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { useRouter } from "next/navigation";
-import ChordSheetJS from "chordsheetjs";
+import { renderVisualChordSheet } from "@/lib/chordpro/visual-render";
 import { useTranslation } from "@/lib/i18n";
 
 interface Section {
@@ -23,13 +23,14 @@ function parseSections(source: string): Section[] {
 
   function flushSection() {
     if (!currentLabel || currentLines.length === 0) return;
-    const sectionSource = currentLines.join("\n");
-    // Render this section independently through the formatter
-    const parser = new ChordSheetJS.ChordProParser();
-    const song = parser.parse(sectionSource);
-    const formatter = new ChordSheetJS.HtmlDivFormatter({ expandChorusDirective: true });
-    const html = formatter.format(song);
-    sections.push({ label: currentLabel, rawHtml: html });
+    // The leading start_of_* directive renders a section label, but the
+    // presentation already shows it in the top bar — drop it from the block.
+    const content = currentLines.filter(
+      (l, i) =>
+        !(i === 0 && /^\{(?:start_of_|s)(verse|chorus|bridge)/i.test(l.trim()))
+    );
+    const sectionSource = content.join("\n");
+    sections.push({ label: currentLabel, rawHtml: renderVisualChordSheet(sectionSource) });
   }
 
   for (const line of lines) {
@@ -78,10 +79,7 @@ function parseSections(source: string): Section[] {
 
   // Fallback: no sections found
   if (sections.length === 0) {
-    const parser = new ChordSheetJS.ChordProParser();
-    const song = parser.parse(source);
-    const formatter = new ChordSheetJS.HtmlDivFormatter({ expandChorusDirective: true });
-    sections.push({ label: "Song", rawHtml: formatter.format(song) });
+    sections.push({ label: "Song", rawHtml: renderVisualChordSheet(source) });
   }
 
   return sections;

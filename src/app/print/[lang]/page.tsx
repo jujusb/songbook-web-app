@@ -223,7 +223,7 @@ export default async function PrintPage({
               </div>
             </div>
             <div
-              className="chord-sheet"
+              className="visual-chord-editor visual-chord-sheet"
               dangerouslySetInnerHTML={{ __html: song.html }}
             />
             {song.refsHtml && (

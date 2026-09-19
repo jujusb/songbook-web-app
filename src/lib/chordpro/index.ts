@@ -1,4 +1,5 @@
 import ChordSheetJS from 'chordsheetjs';
+import { renderVisualChordSheet } from './visual-render';
 import { getReferenceText, getHighlight } from '@/lib/content/references';
 
 /**
@@ -10,12 +11,11 @@ export function parseChordPro(source: string) {
 }
 
 /**
- * Render a ChordPro source string to HTML using HtmlDivFormatter.
+ * Render a ChordPro source string to HTML using the same
+ * character-aligned layout as the visual editor.
  */
 export function renderToHtml(source: string): string {
-  const song = parseChordPro(source);
-  const formatter = new ChordSheetJS.HtmlDivFormatter({ expandChorusDirective: true });
-  return formatter.format(song);
+  return renderVisualChordSheet(source);
 }
 
 /**
