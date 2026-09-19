@@ -175,7 +175,9 @@ export function EditorView({
   return (
     <div className="flex-1 flex overflow-hidden">
       {/* Editor pane */}
-      <div className="w-1/2 flex flex-col border-r border-neutral-200 dark:border-neutral-800">
+      <div
+        className={`flex flex-col ${mode === "code" ? "w-1/2 border-r border-neutral-200 dark:border-neutral-800" : "flex-1"}`}
+      >
         <div className="px-3 py-1.5 border-b border-neutral-200 dark:border-neutral-800 flex items-center justify-between bg-neutral-50 dark:bg-neutral-900">
           <div className="flex items-center gap-1">
             <button
@@ -229,18 +231,20 @@ export function EditorView({
         )}
       </div>
 
-      {/* Preview pane */}
-      <div className="w-1/2 flex flex-col">
-        <div className="px-3 py-1.5 border-b border-neutral-200 dark:border-neutral-800 bg-neutral-50 dark:bg-neutral-900">
-          <span className="text-xs text-neutral-500 font-medium">{t('editor.preview')}</span>
+      {/* Preview pane (code mode only — visual mode is itself the view) */}
+      {mode === "code" && (
+        <div className="w-1/2 flex flex-col">
+          <div className="px-3 py-1.5 border-b border-neutral-200 dark:border-neutral-800 bg-neutral-50 dark:bg-neutral-900">
+            <span className="text-xs text-neutral-500 font-medium">{t('editor.preview')}</span>
+          </div>
+          <div className="flex-1 overflow-auto p-4">
+            <div
+              className="visual-chord-editor visual-chord-sheet"
+              dangerouslySetInnerHTML={{ __html: preview }}
+            />
+          </div>
         </div>
-        <div className="flex-1 overflow-auto p-4">
-          <div
-            className="visual-chord-editor visual-chord-sheet"
-            dangerouslySetInnerHTML={{ __html: preview }}
-          />
-        </div>
-      </div>
+      )}
 
       {/* Import paste modal */}
       {showImport && (
