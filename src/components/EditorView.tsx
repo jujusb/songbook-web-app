@@ -44,7 +44,7 @@ export function EditorView({
   const [importFileName, setImportFileName] = useState<string | null>(null);
   const [importing, setImporting] = useState(false);
 
-  const preview = renderVisualChordSheet(content);
+  const preview = renderVisualChordSheet(content, { repeatChorus: true });
 
   // Initialize CodeMirror when switching to code mode
   useEffect(() => {

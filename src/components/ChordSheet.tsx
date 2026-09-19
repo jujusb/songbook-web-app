@@ -36,7 +36,7 @@ interface Footnote {
 }
 
 function renderSource(source: string): string {
-  return renderVisualChordSheet(source);
+  return renderVisualChordSheet(source, { repeatChorus: true });
 }
 
 function transposeSource(source: string, semitones: number): string {

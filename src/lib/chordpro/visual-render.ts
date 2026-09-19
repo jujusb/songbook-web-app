@@ -19,6 +19,8 @@ export interface VisualRenderOptions {
   dataContentLine?: boolean;
   /** Wrap the given lyric substring in a `<mark class="vce-ref-select">`. */
   highlightRange?: { line: number; start: number; end: number };
+  /** Replay the last chorus section where a `{chorus}` directive appears (read-only sheets). */
+  repeatChorus?: boolean;
 }
 
 function renderMetadataDirective(raw: string): string | null {
@@ -55,25 +57,68 @@ export function renderVisualChordSheet(
     renderDirectives = false,
     dataContentLine = false,
     highlightRange,
+    repeatChorus = false,
   } = options;
   const lines = parseChordProSource(source);
   const out: string[] = ['<div class="vce-lines">'];
   let contentLine = 0;
 
+  // `{chorus}` repeat support: capture the HTML emitted for each chorus
+  // section so a `{chorus}` directive can replay the last one. Content-line
+  // indexing is unaffected — a repeat is presentational only.
+  let lastChorusHtml: string | null = null;
+  let capturingChorus = false;
+  let chorusLines: string[] = [];
+
+  const emit = (html: string) => {
+    out.push(html);
+    if (capturingChorus) chorusLines.push(html);
+  };
+
+  const finalizeChorus = () => {
+    if (capturingChorus) {
+      capturingChorus = false;
+      lastChorusHtml = chorusLines.join("\n");
+      chorusLines = [];
+    }
+  };
+
   for (const line of lines) {
     if (line.type === "directive") {
-      const label = directiveLabel(line.raw);
-      if (label) {
-        out.push(`  <div class="vce-section-label">${escapeHtml(label)}</div>`);
+      const raw = line.raw.trim();
+      const sectionLabel = directiveLabel(line.raw);
+      const isChorusRepeat = /^\{chorus\}$/i.test(raw);
+      const isStartOfChorus = /^\{(?:start_of_|s)chorus(?:\s*:\s*(?:.+?))?\}$/i.test(raw);
+      const isEndOfSection = /^\{(?:end_of_|e)(verse|chorus|bridge)\}$/i.test(raw);
+
+      if (isChorusRepeat) {
+        finalizeChorus();
+        if (repeatChorus && lastChorusHtml) {
+          out.push(`  ${lastChorusHtml}`);
+        }
+        continue;
+      }
+
+      if (repeatChorus) {
+        if (isStartOfChorus) {
+          finalizeChorus();
+          capturingChorus = true;
+        } else if (isEndOfSection || sectionLabel) {
+          finalizeChorus();
+        }
+      }
+
+      if (sectionLabel) {
+        emit(`  <div class="vce-section-label">${escapeHtml(sectionLabel)}</div>`);
       } else if (renderDirectives) {
         const metadata = renderMetadataDirective(line.raw);
-        if (metadata) out.push(`  ${metadata}`);
+        if (metadata) emit(`  ${metadata}`);
       }
       continue;
     }
 
     if (!isContentLine(line) && line.chords.length === 0) {
-      out.push("  <div class=\"vce-empty-line\"></div>");
+      emit('  <div class="vce-empty-line"></div>');
       continue;
     }
 
@@ -108,7 +153,7 @@ export function renderVisualChordSheet(
       }
     }
     const lineAttr = dataContentLine ? ` data-content-line="${contentLine}"` : "";
-    out.push(
+    emit(
       `  <div class="vce-line"${lineAttr}>` +
         `    <div class="vce-chord-row">${chordParts.join("")}</div>` +
         `    <div class="vce-lyrics-row"><div class="vce-lyrics-text">${lyricsHtml}</div></div>` +
@@ -116,6 +161,8 @@ export function renderVisualChordSheet(
     );
     if (isContentLine(line)) contentLine++;
   }
+
+  finalizeChorus();
 
   out.push("</div>");
   return out.join("\n");

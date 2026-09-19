@@ -15,7 +15,7 @@ export function parseChordPro(source: string) {
  * character-aligned layout as the visual editor.
  */
 export function renderToHtml(source: string): string {
-  return renderVisualChordSheet(source);
+  return renderVisualChordSheet(source, { repeatChorus: true });
 }
 
 /**

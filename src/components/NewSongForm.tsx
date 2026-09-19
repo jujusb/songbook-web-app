@@ -6,7 +6,7 @@ import { renderVisualChordSheet } from "@/lib/chordpro/visual-render";
 import { txtToChordPro } from "@/lib/chordpro/txt-import";
 
 function renderPreview(source: string): string {
-  return renderVisualChordSheet(source);
+  return renderVisualChordSheet(source, { repeatChorus: true });
 }
 
 export function NewSongForm({
