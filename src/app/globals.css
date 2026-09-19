@@ -452,6 +452,45 @@ a.ref-marker:hover {
   border-bottom-color: transparent;
 }
 
+/* Highlighted lyric span in the reference visual picker */
+.vce-ref-select {
+  background: #fde68a;
+  color: #92400e;
+  border-radius: 2px;
+  padding: 0 1px;
+}
+
+@media (prefers-color-scheme: dark) {
+  .vce-ref-select {
+    background: #78350f;
+    color: #fde68a;
+  }
+}
+
+/* Reference visual picker — clickable lines */
+.ref-picker .vce-line {
+  cursor: pointer;
+  border-radius: 4px;
+  padding: 2px 4px;
+  margin-left: -4px;
+  margin-right: -4px;
+}
+
+.ref-picker .vce-line:hover {
+  background: #eff6ff;
+}
+
+.ref-picker .vce-chord-row,
+.ref-picker .vce-lyrics-row {
+  user-select: text;
+}
+
+@media (prefers-color-scheme: dark) {
+  .ref-picker .vce-line:hover {
+    background: #1e3a5f;
+  }
+}
+
 /* Print styles */
 @media print {
   .no-print {

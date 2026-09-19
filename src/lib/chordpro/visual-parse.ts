@@ -73,3 +73,76 @@ export function lineToChordPro(parsed: ParsedLine): string {
 export function linesToChordPro(lines: ParsedLine[]): string {
   return lines.map(lineToChordPro).join("\n");
 }
+
+/**
+ * Whether a parsed line counts as a song content line. Directives and
+ * whitespace-only lines are not content; lyric lines and chord-only lines are.
+ * This matches the content-line indexing used by ChordSheet (parseSectionMap),
+ * so reference `line` numbers stay consistent.
+ */
+export function isContentLine(pl: ParsedLine): boolean {
+  return pl.type === "content" && (pl.lyrics.trim() !== "" || pl.chords.length > 0);
+}
+
+export interface SectionSpan {
+  type: string;
+  label: string;
+  startLine: number; // first content-line index in the section
+  endLine: number; // last content-line index in the section
+}
+
+/**
+ * Map each verse/chorus/bridge section to the content-line span it covers.
+ * Content lines are indexed the same way as ChordSheet's parseSectionMap.
+ */
+export function buildSectionSpans(source: string): SectionSpan[] {
+  const spans: SectionSpan[] = [];
+  const stack: { type: string; label: string; startLine: number }[] = [];
+  let contentLine = 0;
+
+  const popSection = (endLine: number) => {
+    const cur = stack.pop();
+    if (cur) {
+      spans.push({ ...cur, endLine: Math.max(cur.startLine, endLine) });
+    }
+  };
+
+  for (const pl of parseChordProSource(source)) {
+    if (pl.type === "directive") {
+      const raw = pl.raw.trim();
+      const start = raw.match(
+        /^\{(?:start_of_|s)(verse|chorus|bridge)(?:\s*:\s*(.+?))?\}$/i
+      );
+      const end = raw.match(/^\{(?:end_of_|e)(verse|chorus|bridge)\}$/i);
+      if (start) {
+        const type = start[1].toLowerCase();
+        const label = start[2] || type.charAt(0).toUpperCase() + type.slice(1);
+        stack.push({ type, label, startLine: contentLine });
+      } else if (end && stack.length > 0) {
+        popSection(contentLine - 1);
+      }
+      continue;
+    }
+    if (isContentLine(pl)) contentLine++;
+  }
+
+  while (stack.length > 0) popSection(contentLine - 1);
+  return spans;
+}
+
+/**
+ * Find the section that contains a given content-line index.
+ * Returns the outermost matching section, or null if the line is
+ * outside every section (preamble/trailing lines).
+ */
+export function sectionForLine(
+  spans: SectionSpan[],
+  line: number
+): { type: string; label: string } | null {
+  for (const s of spans) {
+    if (line >= s.startLine && line <= Math.max(s.startLine, s.endLine)) {
+      return { type: s.type, label: s.label };
+    }
+  }
+  return null;
+}

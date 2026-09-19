@@ -54,6 +54,8 @@ export function EditPageClient({
           references={references}
           songId={songId}
           languages={languages}
+          content={initialContent}
+          lang={lang}
           onClose={() => setShowReferences(false)}
         />
       )}

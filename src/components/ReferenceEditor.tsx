@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { useTranslation } from '@/lib/i18n';
 import { saveSongReferencesAction } from '@/app/actions';
+import { ReferenceVisualPicker } from '@/components/ReferenceVisualPicker';
 
 interface ReferenceLocation {
   line?: number;
@@ -30,17 +31,22 @@ export function ReferenceEditor({
   references: initial,
   songId,
   languages,
+  content,
+  lang,
   onClose,
 }: {
   references: Reference[];
   songId: string;
   languages: string[];
+  content: string;
+  lang: string;
   onClose: () => void;
 }) {
   const { t } = useTranslation();
   const [refs, setRefs] = useState<Reference[]>(initial);
   const [saving, setSaving] = useState(false);
   const [dirty, setDirty] = useState(false);
+  const [mode, setMode] = useState<'form' | 'visual'>('form');
 
   const updateRef = (index: number, field: keyof Reference, value: unknown) => {
     setRefs((prev) => {
@@ -169,6 +175,32 @@ export function ReferenceEditor({
     setDirty(true);
   };
 
+  /**
+   * Attach a visually-picked location to an existing reference, migrating any
+   * legacy flat verse/chorus/line fields into the locations array.
+   */
+  const addLocationToRef = (refIndex: number, loc: ReferenceLocation) => {
+    setRefs((prev) => {
+      const next = [...prev];
+      const ref = { ...next[refIndex] };
+      const locations = [...(ref.locations || [])];
+      locations.push(loc);
+      const cleaned: Reference = { ...ref, locations };
+      delete cleaned.line;
+      delete cleaned.verse;
+      delete cleaned.chorus;
+      next[refIndex] = cleaned;
+      return next;
+    });
+    setDirty(true);
+  };
+
+  /** Append a new reference created from the visual picker. */
+  const addNewRef = (ref: Reference) => {
+    setRefs((prev) => [...prev, ref]);
+    setDirty(true);
+  };
+
   const handleSave = async () => {
     setSaving(true);
     try {
@@ -183,11 +215,33 @@ export function ReferenceEditor({
 
   return (
     <div className="fixed inset-0 z-[60] flex items-start justify-center pt-16 bg-black/50">
-      <div className="bg-white dark:bg-neutral-900 rounded-lg shadow-xl border border-neutral-200 dark:border-neutral-800 w-full max-w-2xl max-h-[85vh] flex flex-col">
+      <div className={`bg-white dark:bg-neutral-900 rounded-lg shadow-xl border border-neutral-200 dark:border-neutral-800 w-full ${mode === 'visual' ? 'max-w-4xl' : 'max-w-2xl'} max-h-[85vh] flex flex-col`}>
         {/* Header */}
-        <div className="px-5 py-3 border-b border-neutral-200 dark:border-neutral-800 flex items-center justify-between shrink-0">
+        <div className="px-5 py-3 border-b border-neutral-200 dark:border-neutral-800 flex items-center justify-between shrink-0 gap-3">
           <h2 className="font-semibold text-lg">{t('song.referencesEditor')}</h2>
           <div className="flex items-center gap-2">
+            <div className="flex gap-1 mr-2">
+              <button
+                onClick={() => setMode('form')}
+                className={`text-xs px-2 py-0.5 rounded transition-colors ${
+                  mode === 'form'
+                    ? 'bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300 font-semibold'
+                    : 'text-neutral-500 hover:text-neutral-700 dark:hover:text-neutral-300'
+                }`}
+              >
+                Form
+              </button>
+              <button
+                onClick={() => setMode('visual')}
+                className={`text-xs px-2 py-0.5 rounded transition-colors ${
+                  mode === 'visual'
+                    ? 'bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300 font-semibold'
+                    : 'text-neutral-500 hover:text-neutral-700 dark:hover:text-neutral-300'
+                }`}
+              >
+                {t('editor.visual')}
+              </button>
+            </div>
             {dirty && (
               <button
                 onClick={handleSave}
@@ -207,6 +261,16 @@ export function ReferenceEditor({
         </div>
 
         {/* Body */}
+        {mode === 'visual' ? (
+          <ReferenceVisualPicker
+            source={content}
+            refs={refs}
+            lang={lang}
+            languages={languages}
+            onAddLocationToRef={addLocationToRef}
+            onAddNewRef={addNewRef}
+          />
+        ) : (
         <div className="flex-1 overflow-y-auto p-5 space-y-4">
           {refs.map((ref, ri) => (
             <div
@@ -416,6 +480,7 @@ export function ReferenceEditor({
             + Add Reference
           </button>
         </div>
+        )}
       </div>
     </div>
   );
