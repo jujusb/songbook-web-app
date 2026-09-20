@@ -115,15 +115,35 @@ export async function listSongs(): Promise<SongMeta[]> {
 }
 
 /**
+ * Resolve the localized title for a song meta in a given language.
+ * Falls back to the song's default title when no language-specific title exists.
+ */
+export function resolveLocalizedTitle(meta: SongMeta, lang: string): string {
+  return meta.titles?.[lang] || meta.title;
+}
+
+/**
+ * Extract the {title: ...} directive value from a ChordPro body, if present.
+ */
+export function extractBodyTitle(body: string): string | null {
+  const match = body.match(/\{title:\s*([^}\n\r]+)\}/i);
+  return match ? match[1].trim() : null;
+}
+
+/**
  * Get the localized title for a song in a given language.
- * Falls back to the song's default title if no translation-specific title is set.
+ * Resolution order: meta.titles[lang] → translation frontmatter title →
+ * {title: ...} directive in the .cho body → song's default title.
  */
 export async function getSongTitle(songId: string, lang: string): Promise<string> {
   try {
     const meta = await getSong(songId);
+    if (meta.titles?.[lang]) return meta.titles[lang];
     try {
-      const { meta: transMeta } = await getSongTranslation(songId, lang);
+      const { meta: transMeta, body } = await getSongTranslation(songId, lang);
       if (transMeta.title) return transMeta.title;
+      const bodyTitle = extractBodyTitle(body);
+      if (bodyTitle) return bodyTitle;
     } catch {
       // no translation available
     }
@@ -306,6 +326,7 @@ export async function createSong(
   const meta: SongMeta = {
     id,
     title,
+    titles: { [lang]: title },
     tags: [],
     references: [],
     audioFiles: [],

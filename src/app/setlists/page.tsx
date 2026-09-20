@@ -6,7 +6,7 @@ import { T } from "@/components/Translate";
 export default async function SetlistsPage() {
   const setlists = await listSetlists();
   const songs = await listSongs();
-  const songMap = new Map(songs.map((s) => [s.id, s.title]));
+  const songMap = new Map(songs.map((s) => [s.id, s]));
   const session = await getSession();
   const showEditActions = canEdit(session?.role ?? null);
 
@@ -55,7 +55,11 @@ export default async function SetlistsPage() {
                 <div className="mt-2 text-xs text-neutral-400">
                   {setlist.songs
                     .slice(0, 5)
-                    .map((s) => songMap.get(s.songId) || s.songId)
+                    .map((s) => {
+                      const song = songMap.get(s.songId);
+                      if (!song) return s.songId;
+                      return song.titles?.[s.lang] || song.title;
+                    })
                     .join(" \u2022 ")}
                   {setlist.songs.length > 5 && ` \u2026 +${setlist.songs.length - 5} more`}
                 </div>

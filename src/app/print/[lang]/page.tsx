@@ -95,7 +95,7 @@ export default async function PrintPage({
           : "";
         printSongs.push({
           id: song.id,
-          title: song.title,
+          title: song.titles?.[lang] || song.title,
           key: song.key,
           lang,
           html,

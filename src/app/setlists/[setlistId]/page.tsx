@@ -38,7 +38,7 @@ export default async function SetlistPage({
     setlist.songs.map(async (item) => {
       try {
         const meta = await getSong(item.songId);
-        return { ...item, title: meta.title, key: meta.key };
+        return { ...item, title: meta.titles?.[item.lang] || meta.title, key: meta.key };
       } catch {
         return { ...item, title: item.songId, key: undefined };
       }

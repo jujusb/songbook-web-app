@@ -7,21 +7,24 @@ import { useTranslation } from "@/lib/i18n";
 interface Song {
   id: string;
   title: string;
+  titles?: Record<string, string>;
   key?: string;
   tags: string[];
 }
 
 export function SongListFilter({ songs }: { songs: Song[] }) {
-  const { t } = useTranslation();
+  const { t, locale } = useTranslation();
   const [query, setQuery] = useState("");
 
   const filtered = songs.filter((song) => {
     const q = query.toLowerCase();
-    return (
-      song.title.toLowerCase().includes(q) ||
-      song.tags.some((t) => t.toLowerCase().includes(q)) ||
-      song.id.toLowerCase().includes(q)
-    );
+    const searchable = [
+      song.title,
+      song.id,
+      ...song.tags,
+      ...(song.titles ? Object.values(song.titles) : []),
+    ];
+    return searchable.some((s) => s.toLowerCase().includes(q));
   });
 
   return (
@@ -40,7 +43,7 @@ export function SongListFilter({ songs }: { songs: Song[] }) {
             href={`/songs/${song.id}`}
             className="block p-4 border border-neutral-200 dark:border-neutral-800 rounded-lg hover:border-blue-500 dark:hover:border-blue-500 transition-colors"
           >
-            <h2 className="font-semibold mb-1">{song.title}</h2>
+            <h2 className="font-semibold mb-1">{song.titles?.[locale] || song.title}</h2>
             {song.key && (
               <span className="text-sm text-neutral-500 mr-3">
                 {t('common.key')}: {song.key}

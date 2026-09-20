@@ -44,6 +44,7 @@ export default async function BrowsePage() {
             return {
               id: song.id,
               title: song.title,
+              titles: song.titles,
               key: song.key,
               translations: song.translations,
             };
@@ -51,6 +52,7 @@ export default async function BrowsePage() {
           .filter(Boolean) as {
           id: string;
           title: string;
+          titles?: Record<string, string>;
           key?: string;
           translations: string[];
         }[];

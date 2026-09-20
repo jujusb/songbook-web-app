@@ -1,6 +1,8 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { getAlbum, getAlbumTitle, getArtist, getSong, getSongTitle, getSongTranslations } from "@/lib/content";
+import { cookies } from "next/headers";
+import { getAlbum, getAlbumTitle, getArtist, getSong, getSongTranslations, resolveLocalizedTitle } from "@/lib/content";
+import { getLocale } from "@/lib/i18n/server";
 import { getSession, canEdit, canAdmin } from "@/lib/auth";
 import { DeleteButton } from "@/components/DeleteButton";
 
@@ -13,6 +15,8 @@ export default async function AlbumPage({
 }) {
   const { albumId } = await params;
   const { lang } = await searchParams;
+  const uiLocale = getLocale(await cookies());
+  const displayLang = lang || uiLocale;
 
   let album;
   try {
@@ -27,7 +31,7 @@ export default async function AlbumPage({
       try {
         const meta = await getSong(songId);
         const translations = await getSongTranslations(songId);
-        const localizedTitle = lang ? await getSongTitle(songId, lang) : meta.title;
+        const localizedTitle = displayLang ? resolveLocalizedTitle(meta, displayLang) : meta.title;
         return { ...meta, title: localizedTitle, translations };
       } catch {
         return null;
@@ -37,7 +41,7 @@ export default async function AlbumPage({
 
   const validSongs = songs.filter(Boolean);
 
-  const localizedAlbumTitle = lang ? await getAlbumTitle(albumId, lang) : album.title;
+  const localizedAlbumTitle = displayLang ? await getAlbumTitle(albumId, displayLang) : album.title;
 
   let artistName = album.artist;
   try {

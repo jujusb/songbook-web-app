@@ -40,6 +40,7 @@ const es: Translations = {
     references: 'Referencias',
     edit: 'Editar',
     editReferences: 'Editar Referencias',
+    title: 'Título de la canción',
     editing: 'Editando',
     status: 'Estado',
     meta: 'Metadatos',

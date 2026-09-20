@@ -35,6 +35,7 @@ export type AudioFile = z.infer<typeof AudioFileSchema>;
 export const SongMetaSchema = z.object({
   id: z.string(),
   title: z.string(),
+  titles: z.record(z.string(), z.string()).optional(),
   tags: z.array(z.string()).default([]),
   key: z.string().optional(),
   tempo: z.number().optional(),

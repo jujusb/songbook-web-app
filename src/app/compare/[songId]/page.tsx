@@ -1,5 +1,5 @@
 import { notFound } from "next/navigation";
-import { getSong, getSongTranslation, getSongTranslations } from "@/lib/content";
+import { getSong, getSongTranslation, getSongTranslations, getSongTitle } from "@/lib/content";
 import { ChordSheet } from "@/components/ChordSheet";
 
 export default async function ComparePage({
@@ -40,10 +40,12 @@ export default async function ComparePage({
     })
   );
 
+  const headerTitle = await getSongTitle(songId, requestedLangs[0]);
+
   return (
     <div className="max-w-full mx-auto px-4 py-8">
       <div className="mb-6">
-        <h1 className="text-2xl font-bold">{meta.title}</h1>
+        <h1 className="text-2xl font-bold">{headerTitle}</h1>
         <p className="text-sm text-neutral-500">
           Comparing {requestedLangs.length} translations
         </p>

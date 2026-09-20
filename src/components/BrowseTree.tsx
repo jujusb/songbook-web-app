@@ -8,6 +8,7 @@ import { useTranslation } from "@/lib/i18n";
 interface TreeSong {
   id: string;
   title: string;
+  titles?: Record<string, string>;
   key?: string;
   translations: string[];
 }
@@ -128,7 +129,7 @@ function SongNode({
         href={`/songs/${song.id}`}
         className="text-sm hover:text-blue-600 dark:hover:text-blue-400 transition-colors flex-1 min-w-0"
       >
-        {song.title}
+        {song.titles?.[displayLang] || song.title}
       </Link>
       {song.key && (
         <span className="text-xs text-neutral-400 shrink-0">{song.key}</span>

@@ -1,10 +1,68 @@
 "use server";
 
-import { saveSongTranslation, saveSongMeta, createSong, getSong, getSongTranslation, listArtists } from "@/lib/content";
+import { saveSongTranslation, saveSongMeta, createSong, getSong, getSongTranslation, getSiteConfig, listArtists, extractBodyTitle } from "@/lib/content";
 import { SongTranslationFrontmatterSchema, type Reference, type AudioFile } from "@/lib/content/schemas";
 import { scanMusicDir, getMusicDir, slugify, stripNumberPrefix } from "@/lib/music-importer";
 import { revalidatePath } from "next/cache";
 import matter from "gray-matter";
+
+/**
+ * Keep the song's localized title (meta.yaml `titles` map) in sync with a
+ * given language title value. Empty title removes the override.
+ */
+async function syncSongTitle(songId: string, lang: string, title: string) {
+  const meta = await getSong(songId);
+  const titles = { ...(meta.titles ?? {}) };
+  if (title.trim()) {
+    titles[lang] = title.trim();
+  } else {
+    delete titles[lang];
+  }
+
+  const titlesChanged = JSON.stringify(titles) !== JSON.stringify(meta.titles ?? {});
+  const siteConfig = await getSiteConfig().catch(() => null);
+  const isDefaultLang = !!siteConfig && siteConfig.defaultLanguage === lang;
+  const titleChanged =
+    isDefaultLang && !!title.trim() && meta.title !== title.trim();
+
+  if (titlesChanged || titleChanged) {
+    await saveSongMeta(songId, {
+      ...meta,
+      titles,
+      ...(titleChanged ? { title: title.trim() } : {}),
+    });
+  }
+}
+
+/** Rewrite the {title: ...} directive in a ChordPro body. */
+function setBodyTitle(body: string, title: string): string {
+  if (/\{title:\s*[^}]*\}/i.test(body)) {
+    return body.replace(/\{title:\s*[^}]*\}/i, `{title: ${title}}`);
+  }
+  return `{title: ${title}}\n${body.trimStart()}`;
+}
+
+export async function setSongTitleAction(songId: string, lang: string, title: string) {
+  const titleValue = title.trim();
+  await syncSongTitle(songId, lang, titleValue);
+
+  if (titleValue) {
+    try {
+      const { meta: frontmatter, body } = await getSongTranslation(songId, lang);
+      const updatedBody = setBodyTitle(body, titleValue);
+      if (updatedBody !== body) {
+        await saveSongTranslation(songId, lang, frontmatter, updatedBody);
+      }
+    } catch (err) {
+      console.warn(`Failed to sync title directive for ${songId}/${lang}`, err);
+    }
+  }
+
+  revalidatePath(`/songs/${songId}`);
+  revalidatePath(`/edit/${songId}/${lang}`);
+  revalidatePath("/songs");
+  revalidatePath("/browse");
+}
 
 export async function saveSongAction(songId: string, lang: string, content: string) {
   // Parse the content - it may be just the ChordPro body (no frontmatter)
@@ -29,6 +87,13 @@ export async function saveSongAction(songId: string, lang: string, content: stri
   }
 
   await saveSongTranslation(songId, lang, frontmatter, body);
+
+  // Keep the meta.yaml `titles` map in sync with the {title: ...} directive
+  const bodyTitle = extractBodyTitle(body);
+  if (bodyTitle) {
+    await syncSongTitle(songId, lang, bodyTitle);
+  }
+
   revalidatePath(`/songs/${songId}`);
   revalidatePath(`/edit/${songId}/${lang}`);
 }
@@ -221,6 +286,15 @@ export async function importMusicAction(songId: string, configJson?: string, art
       references: [],
       audioFiles,
     };
+  }
+
+  // Collect per-language titles from the scan
+  const langTitles: Record<string, string> = {};
+  for (const lg of item.languages) {
+    if (lg.title) langTitles[lg.lang] = lg.title;
+  }
+  if (Object.keys(langTitles).length > 0) {
+    meta.titles = { ...(meta.titles ?? {}), ...langTitles };
   }
 
   await saveSongMeta(songId, meta, albumId);

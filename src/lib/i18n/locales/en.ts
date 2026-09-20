@@ -38,6 +38,7 @@ const en = {
     references: 'References',
     edit: 'Edit',
     editReferences: 'Edit References',
+    title: 'Song title',
     editing: 'Editing',
     status: 'Status',
     meta: 'Metadata',
