@@ -13,3 +13,5 @@ references:
   - type: song
     label: "Related: Amazing Grace"
     target: amazing-grace
+titles:
+  en: How Great Thou Art

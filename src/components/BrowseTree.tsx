@@ -16,6 +16,7 @@ interface TreeSong {
 interface TreeAlbum {
   id: string;
   title: string;
+  titles?: Record<string, string>;
   year?: number;
   songs: TreeSong[];
 }
@@ -173,7 +174,7 @@ function AlbumNode({
   onRefresh: () => void;
   canEdit: boolean;
 }) {
-  const { t } = useTranslation();
+  const { t, locale } = useTranslation();
   const [open, setOpen] = useState(false);
 
   const handleDelete = useCallback(async () => {
@@ -204,7 +205,7 @@ function AlbumNode({
             />
           </svg>
           <span className="text-sm font-medium flex-1 min-w-0 truncate">
-            {album.title}
+            {album.titles?.[locale] || album.title}
           </span>
           {album.year && (
             <span className="text-xs text-neutral-400 shrink-0">

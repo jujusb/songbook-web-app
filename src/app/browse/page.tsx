@@ -60,6 +60,7 @@ export default async function BrowsePage() {
         return {
           id: album.id,
           title: album.title,
+          titles: album.titles,
           year: album.year,
           songs: albumSongs,
         };

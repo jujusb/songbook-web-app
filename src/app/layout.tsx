@@ -1,7 +1,9 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
+import { cookies } from "next/headers";
 import Link from "next/link";
 import { getSiteConfig } from "@/lib/content";
+import { getLocale } from "@/lib/i18n/server";
 import { getSession, canEdit } from "@/lib/auth";
 import { UserMenu } from "@/components/UserMenu";
 import { LocaleSwitcher } from "@/components/LocaleSwitcher";
@@ -31,6 +33,7 @@ export default async function RootLayout({
 }>) {
   let enableArtistPages = false;
   let showEditActions = false;
+  const uiLocale = getLocale(await cookies());
   try {
     const config = await getSiteConfig();
     enableArtistPages = config.enableArtistPages;
@@ -43,7 +46,7 @@ export default async function RootLayout({
   } catch {}
 
   return (
-    <RootClientLayout>
+    <RootClientLayout initialLocale={uiLocale}>
     <html
       lang="en"
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}

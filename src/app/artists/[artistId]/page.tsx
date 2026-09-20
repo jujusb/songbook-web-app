@@ -1,12 +1,15 @@
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
+import { cookies } from "next/headers";
 import {
   getArtist,
   getAlbumsForArtist,
   getSiteConfig,
   getSong,
   getSongTranslations,
+  resolveLocalizedTitle,
 } from "@/lib/content";
+import { getLocale } from "@/lib/i18n/server";
 import { getSession, canAdmin } from "@/lib/auth";
 import { DeleteButton } from "@/components/DeleteButton";
 
@@ -21,6 +24,7 @@ export default async function ArtistPage({
   }
 
   const { artistId } = await params;
+  const uiLang = getLocale(await cookies());
 
   let artist;
   try {
@@ -39,7 +43,8 @@ export default async function ArtistPage({
           try {
             const song = await getSong(songId);
             const translations = await getSongTranslations(songId);
-            return { ...song, translations };
+            const localizedTitle = resolveLocalizedTitle(song, uiLang);
+            return { ...song, translations, title: localizedTitle };
           } catch {
             return null;
           }
@@ -47,6 +52,7 @@ export default async function ArtistPage({
       );
       return {
         ...album,
+        title: album.titles?.[uiLang] || album.title,
         songDetails: songs.filter(Boolean),
       };
     })
