@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { cookies } from "next/headers";
-import { getAlbum, getAlbumTitle, getArtist, getSong, getSongTranslations, resolveLocalizedTitle } from "@/lib/content";
+import { getAlbum, getAlbumTitle, getArtist, getSong, getSongTranslations, getLanguagesConfig, resolveLocalizedTitle, shouldShowSongInLanguage } from "@/lib/content";
 import { getLocale } from "@/lib/i18n/server";
 import { getSession, canEdit, canAdmin } from "@/lib/auth";
 import { DeleteButton } from "@/components/DeleteButton";
@@ -15,7 +15,9 @@ export default async function AlbumPage({
 }) {
   const { albumId } = await params;
   const { lang } = await searchParams;
-  const uiLocale = getLocale(await cookies());
+  const cookieStore = await cookies();
+  const langConfig = await getLanguagesConfig();
+  const uiLocale = getLocale(cookieStore, langConfig.default);
   const displayLang = lang || uiLocale;
 
   let album;
@@ -31,6 +33,9 @@ export default async function AlbumPage({
       try {
         const meta = await getSong(songId);
         const translations = await getSongTranslations(songId);
+        if (!shouldShowSongInLanguage(translations, displayLang, langConfig.default)) {
+          return null;
+        }
         const localizedTitle = displayLang ? resolveLocalizedTitle(meta, displayLang) : meta.title;
         return { ...meta, title: localizedTitle, translations };
       } catch {

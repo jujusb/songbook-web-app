@@ -129,6 +129,7 @@ const en = {
     stats: '{artists} artists \u00b7 {albums} albums \u00b7 {songs} songs',
     noResults: 'No results matching your filter.',
     noContent: 'No content yet. Create an artist to get started.',
+    noSongs: 'No songs in this language yet.',
     addSong: '+ song',
     addSongTitle: 'Add song to this album',
     editSongTitle: 'Edit song',

@@ -1,12 +1,18 @@
 import Link from "next/link";
-import { listSetlists, listSongs } from "@/lib/content";
+import { cookies } from "next/headers";
+import { listSetlists, listSongs, getLanguagesConfig } from "@/lib/content";
+import { getLocale } from "@/lib/i18n/server";
 import { getSession, canEdit } from "@/lib/auth";
 import { T } from "@/components/Translate";
 
 export default async function SetlistsPage() {
-  const setlists = await listSetlists();
-  const songs = await listSongs();
+  const [setlists, songs, langConfig] = await Promise.all([
+    listSetlists(),
+    listSongs(),
+    getLanguagesConfig(),
+  ]);
   const songMap = new Map(songs.map((s) => [s.id, s]));
+  const selectedLang = getLocale(await cookies(), langConfig.default);
   const session = await getSession();
   const showEditActions = canEdit(session?.role ?? null);
 
@@ -28,44 +34,51 @@ export default async function SetlistsPage() {
         <p className="text-neutral-500"><T k="setlist.noSetlists" /></p>
       ) : (
         <div className="space-y-3">
-          {setlists.map((setlist) => (
-            <Link
-              key={setlist.id}
-              href={`/setlists/${setlist.id}`}
-              className="block p-4 border border-neutral-200 dark:border-neutral-800 rounded-lg hover:border-blue-500 dark:hover:border-blue-500 transition-colors"
-            >
-              <div className="flex items-center justify-between">
-                <div>
-                  <h2 className="font-semibold">{setlist.title}</h2>
-                  {setlist.description && (
-                    <p className="text-sm text-neutral-500 mt-0.5">
-                      {setlist.description}
-                    </p>
-                  )}
+          {setlists.map((setlist) => {
+            const visibleSongs = setlist.songs.filter((s) => {
+              if (selectedLang === langConfig.default) return true;
+              const song = songMap.get(s.songId);
+              return song ? song.translations.includes(selectedLang) : false;
+            });
+            return (
+              <Link
+                key={setlist.id}
+                href={`/setlists/${setlist.id}`}
+                className="block p-4 border border-neutral-200 dark:border-neutral-800 rounded-lg hover:border-blue-500 dark:hover:border-blue-500 transition-colors"
+              >
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h2 className="font-semibold">{setlist.title}</h2>
+                    {setlist.description && (
+                      <p className="text-sm text-neutral-500 mt-0.5">
+                        {setlist.description}
+                      </p>
+                    )}
+                  </div>
+                  <div className="flex items-center gap-3 text-xs text-neutral-400 shrink-0 ml-4">
+                    {setlist.date && <span>{setlist.date}</span>}
+                    <span>
+                      {visibleSongs.length} song
+                      {visibleSongs.length !== 1 ? "s" : ""}
+                    </span>
+                  </div>
                 </div>
-                <div className="flex items-center gap-3 text-xs text-neutral-400 shrink-0 ml-4">
-                  {setlist.date && <span>{setlist.date}</span>}
-                  <span>
-                    {setlist.songs.length} song
-                    {setlist.songs.length !== 1 ? "s" : ""}
-                  </span>
-                </div>
-              </div>
-              {setlist.songs.length > 0 && (
-                <div className="mt-2 text-xs text-neutral-400">
-                  {setlist.songs
-                    .slice(0, 5)
-                    .map((s) => {
-                      const song = songMap.get(s.songId);
-                      if (!song) return s.songId;
-                      return song.titles?.[s.lang] || song.title;
-                    })
-                    .join(" \u2022 ")}
-                  {setlist.songs.length > 5 && ` \u2026 +${setlist.songs.length - 5} more`}
-                </div>
-              )}
-            </Link>
-          ))}
+                {visibleSongs.length > 0 && (
+                  <div className="mt-2 text-xs text-neutral-400">
+                    {visibleSongs
+                      .slice(0, 5)
+                      .map((s) => {
+                        const song = songMap.get(s.songId);
+                        if (!song) return s.songId;
+                        return song.titles?.[s.lang] || song.title;
+                      })
+                      .join(" \u2022 ")}
+                    {visibleSongs.length > 5 && ` \u2026 +${visibleSongs.length - 5} more`}
+                  </div>
+                )}
+              </Link>
+            );
+          })}
         </div>
       )}
     </div>

@@ -1,10 +1,10 @@
 import Link from "next/link";
-import { listSongs } from "@/lib/content";
+import { listSongs, getLanguagesConfig } from "@/lib/content";
 import { SongListFilter } from "@/components/SongListFilter";
 import { T } from "@/components/Translate";
 
 export default async function SongsPage() {
-  const songs = await listSongs();
+  const [songs, langConfig] = await Promise.all([listSongs(), getLanguagesConfig()]);
 
   return (
     <div className="max-w-6xl mx-auto px-4 py-8">
@@ -17,7 +17,7 @@ export default async function SongsPage() {
           <T k="print.printSongbook" />
         </Link>
       </div>
-      <SongListFilter songs={songs} />
+      <SongListFilter songs={songs} defaultLang={langConfig.default} />
     </div>
   );
 }

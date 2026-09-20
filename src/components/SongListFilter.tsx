@@ -10,13 +10,27 @@ interface Song {
   titles?: Record<string, string>;
   key?: string;
   tags: string[];
+  translations: string[];
 }
 
-export function SongListFilter({ songs }: { songs: Song[] }) {
+export function SongListFilter({
+  songs,
+  defaultLang,
+}: {
+  songs: Song[];
+  defaultLang: string;
+}) {
   const { t, locale } = useTranslation();
   const [query, setQuery] = useState("");
 
-  const filtered = songs.filter((song) => {
+  const activeLang = locale;
+
+  const langFiltered = songs.filter(
+    (song) =>
+      activeLang === defaultLang || song.translations.includes(activeLang)
+  );
+
+  const filtered = langFiltered.filter((song) => {
     const q = query.toLowerCase();
     const searchable = [
       song.title,
@@ -43,7 +57,7 @@ export function SongListFilter({ songs }: { songs: Song[] }) {
             href={`/songs/${song.id}`}
             className="block p-4 border border-neutral-200 dark:border-neutral-800 rounded-lg hover:border-blue-500 dark:hover:border-blue-500 transition-colors"
           >
-            <h2 className="font-semibold mb-1">{song.titles?.[locale] || song.title}</h2>
+            <h2 className="font-semibold mb-1">{song.titles?.[activeLang] || song.title}</h2>
             {song.key && (
               <span className="text-sm text-neutral-500 mr-3">
                 {t('common.key')}: {song.key}

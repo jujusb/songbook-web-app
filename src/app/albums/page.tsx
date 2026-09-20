@@ -1,16 +1,41 @@
 import Link from "next/link";
 import { cookies } from "next/headers";
-import { listAlbums, listArtists } from "@/lib/content";
+import { listAlbums, listArtists, listSongs, getLanguagesConfig, shouldShowSongInLanguage } from "@/lib/content";
 import { getLocale } from "@/lib/i18n/server";
 import { getSession, canEdit } from "@/lib/auth";
 import { T } from "@/components/Translate";
 
 export default async function AlbumsPage() {
-  const [albums, artists] = await Promise.all([listAlbums(), listArtists()]);
-  const uiLang = getLocale(await cookies());
+  const [albums, artists, songs, langConfig] = await Promise.all([
+    listAlbums(),
+    listArtists(),
+    listSongs(),
+    getLanguagesConfig(),
+  ]);
+  const uiLang = getLocale(await cookies(), langConfig.default);
+  const songLangMap = new Map(songs.map((s) => [s.id, s.translations]));
   const artistMap = new Map(artists.map((a) => [a.id, a.name]));
   const session = await getSession();
   const showEditActions = canEdit(session?.role ?? null);
+
+  const visibleAlbums = albums
+    .map((album) => {
+      const songCount =
+        uiLang === langConfig.default
+          ? album.songs.length
+          : album.songs.filter((songId) =>
+              shouldShowSongInLanguage(
+                songLangMap.get(songId) ?? [],
+                uiLang,
+                langConfig.default
+              )
+            ).length;
+      if (songCount === 0) return null;
+      return { ...album, songCount };
+    })
+    .filter(
+      (a): a is NonNullable<typeof a> => a !== null
+    );
 
   return (
     <div className="max-w-6xl mx-auto px-4 py-8">
@@ -26,11 +51,11 @@ export default async function AlbumsPage() {
         )}
       </div>
 
-      {albums.length === 0 ? (
+      {visibleAlbums.length === 0 ? (
         <p className="text-neutral-500"><T k="album.noAlbums" /></p>
       ) : (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {albums.map((album) => (
+          {visibleAlbums.map((album) => (
             <Link
               key={album.id}
               href={`/albums/${album.id}`}
@@ -45,8 +70,8 @@ export default async function AlbumsPage() {
               <div className="flex items-center gap-3 text-xs text-neutral-400">
                 {album.year && <span>{album.year}</span>}
                 <span>
-                  {album.songs.length} song
-                  {album.songs.length !== 1 ? "s" : ""}
+                  {album.songCount} song
+                  {album.songCount !== 1 ? "s" : ""}
                 </span>
               </div>
               {album.tags.length > 0 && (

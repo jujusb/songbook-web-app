@@ -7,11 +7,14 @@ import {
   getSiteConfig,
   getSong,
   getSongTranslations,
+  getLanguagesConfig,
   resolveLocalizedTitle,
+  shouldShowSongInLanguage,
 } from "@/lib/content";
 import { getLocale } from "@/lib/i18n/server";
 import { getSession, canAdmin } from "@/lib/auth";
 import { DeleteButton } from "@/components/DeleteButton";
+import { T } from "@/components/Translate";
 
 export default async function ArtistPage({
   params,
@@ -24,7 +27,9 @@ export default async function ArtistPage({
   }
 
   const { artistId } = await params;
-  const uiLang = getLocale(await cookies());
+  const cookieStore = await cookies();
+  const langConfig = await getLanguagesConfig();
+  const uiLang = getLocale(cookieStore, langConfig.default);
 
   let artist;
   try {
@@ -43,6 +48,15 @@ export default async function ArtistPage({
           try {
             const song = await getSong(songId);
             const translations = await getSongTranslations(songId);
+            if (
+              !shouldShowSongInLanguage(
+                translations,
+                uiLang,
+                langConfig.default
+              )
+            ) {
+              return null;
+            }
             const localizedTitle = resolveLocalizedTitle(song, uiLang);
             return { ...song, translations, title: localizedTitle };
           } catch {
@@ -50,16 +64,24 @@ export default async function ArtistPage({
           }
         })
       );
+      const songDetails = songs.filter(
+        (s): s is NonNullable<typeof s> => s !== null
+      );
+      if (songDetails.length === 0) return null;
       return {
         ...album,
         title: album.titles?.[uiLang] || album.title,
-        songDetails: songs.filter(Boolean),
+        songDetails,
       };
     })
   );
 
-  const totalSongs = albumsWithSongs.reduce(
-    (sum, a) => sum + a.songDetails.length,
+  const visibleAlbums = albumsWithSongs.filter(
+    (a): a is NonNullable<typeof a> => a !== null
+  );
+
+  const totalSongs = visibleAlbums.reduce(
+    (sum, album) => sum + album.songDetails.length,
     0
   );
 
@@ -94,7 +116,7 @@ export default async function ArtistPage({
             </a>
           )}
           <span>
-            {albums.length} album{albums.length !== 1 ? "s" : ""} &middot;{" "}
+            {visibleAlbums.length} album{visibleAlbums.length !== 1 ? "s" : ""} &middot;{" "}
             {totalSongs} song{totalSongs !== 1 ? "s" : ""}
           </span>
         </div>
@@ -124,10 +146,10 @@ export default async function ArtistPage({
 
       {/* Albums with songs */}
       <div className="space-y-8">
-        {albumsWithSongs.length === 0 ? (
-          <p className="text-sm text-neutral-500">No albums by this artist.</p>
+        {visibleAlbums.length === 0 ? (
+          <p className="text-sm text-neutral-500"><T k="browse.noSongs" /></p>
         ) : (
-          albumsWithSongs.map((album) => (
+          visibleAlbums.map((album) => (
             <div
               key={album.id}
               className="border border-neutral-200 dark:border-neutral-800 rounded-lg overflow-hidden"

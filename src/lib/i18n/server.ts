@@ -44,10 +44,10 @@ export function plural(template: string, n: number): string {
 
 export function getLocale(cookieStore?: {
   get: (name: string) => { value: string } | undefined;
-}): string {
+}, fallback = 'en'): string {
   if (cookieStore) {
     const cookie = cookieStore.get(LOCALE_STORAGE_KEY);
     if (cookie && locales[cookie.value]) return cookie.value;
   }
-  return 'en';
+  return fallback;
 }

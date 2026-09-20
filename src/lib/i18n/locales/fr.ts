@@ -131,6 +131,7 @@ const fr: Translations = {
     stats: '{artists} artistes \u00b7 {albums} albums \u00b7 {songs} chansons',
     noResults: 'Aucun résultat correspondant à votre filtre.',
     noContent: 'Pas de contenu pour l\'instant. Créez un artiste pour commencer.',
+    noSongs: 'Pas encore de chansons dans cette langue.',
     addSong: '+ chanson',
     addSongTitle: 'Ajouter une chanson à cet album',
     editSongTitle: 'Modifier la chanson',

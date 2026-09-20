@@ -1,6 +1,8 @@
 import { notFound, redirect } from "next/navigation";
 import Link from "next/link";
-import { getSetlist, listSongs, getSong, getSongTranslations } from "@/lib/content";
+import { cookies } from "next/headers";
+import { getSetlist, listSongs, getSong, getSongTranslations, getLanguagesConfig, shouldShowSongInLanguage } from "@/lib/content";
+import { getLocale } from "@/lib/i18n/server";
 import { getSession, canEdit, canAdmin } from "@/lib/auth";
 import { SetlistEditor } from "@/components/SetlistEditor";
 import { SetlistVoiceLinks } from "@/components/SetlistVoiceLinks";
@@ -24,6 +26,9 @@ export default async function SetlistPage({
   const showEditActions = canEdit(session?.role ?? null);
   const showDeleteActions = canAdmin(session?.role ?? null);
 
+  const langConfig = await getLanguagesConfig();
+  const selectedLang = getLocale(await cookies(), langConfig.default);
+
   // Load available songs for editor
   const songs = await listSongs();
   const songsWithLangs = await Promise.all(
@@ -38,12 +43,18 @@ export default async function SetlistPage({
     setlist.songs.map(async (item) => {
       try {
         const meta = await getSong(item.songId);
-        return { ...item, title: meta.titles?.[item.lang] || meta.title, key: meta.key };
+        const translations = await getSongTranslations(item.songId);
+        return { ...item, title: meta.titles?.[item.lang] || meta.title, key: meta.key, translations };
       } catch {
-        return { ...item, title: item.songId, key: undefined };
+        return { ...item, title: item.songId, key: undefined, translations: [] as string[] };
       }
     })
   );
+
+  const visibleSongDetails = songDetails.filter((song) =>
+    shouldShowSongInLanguage(song.translations, selectedLang, langConfig.default)
+  );
+  const displayCount = showEditActions ? setlist.songs.length : visibleSongDetails.length;
 
   return (
     <div className="max-w-4xl mx-auto px-4 py-8">
@@ -60,7 +71,7 @@ export default async function SetlistPage({
           <div className="flex items-center gap-3 mt-1 text-sm text-neutral-500">
             {setlist.date && <span>{setlist.date}</span>}
             <span>
-              {setlist.songs.length} song{setlist.songs.length !== 1 ? "s" : ""}
+              {displayCount} song{displayCount !== 1 ? "s" : ""}
             </span>
           </div>
           {setlist.description && (
@@ -108,7 +119,7 @@ export default async function SetlistPage({
             </span>
           </div>
           <ol className="divide-y divide-neutral-200 dark:divide-neutral-800">
-            {songDetails.map((song, index) => (
+            {visibleSongDetails.map((song, index) => (
               <li key={`${song.songId}-${index}`}>
                 <div className="flex items-center gap-4 px-4 py-3 hover:bg-neutral-50 dark:hover:bg-neutral-900 transition-colors">
                   <span className="text-sm text-neutral-400 w-8 text-right font-mono">

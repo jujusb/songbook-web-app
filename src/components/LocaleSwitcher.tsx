@@ -1,11 +1,13 @@
 'use client';
 
+import { useRouter } from 'next/navigation';
 import { useTranslation } from '@/lib/i18n';
 
 const LOCALE_STORAGE_KEY = 'songbook-ui-locale';
 
 export function LocaleSwitcher() {
   const { locale, setLocale, availableLocales } = useTranslation();
+  const router = useRouter();
 
   const handleChange = (value: string) => {
     setLocale(value);
@@ -16,6 +18,8 @@ export function LocaleSwitcher() {
     } catch {
       // cookies unavailable
     }
+    // Re-render server components so list pages filter songs by the new language
+    router.refresh();
   };
 
   return (

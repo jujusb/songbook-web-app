@@ -83,9 +83,9 @@ async function findSongAlbumId(songId: string): Promise<string | null> {
 // --- Songs ---
 // Songs live at: content/library/<album-id>/<song-id>/
 
-export async function listSongs(): Promise<SongMeta[]> {
+export async function listSongs(): Promise<Array<SongMeta & { translations: string[] }>> {
   const libDir = getLibraryDir();
-  const songs: SongMeta[] = [];
+  const songs: Array<SongMeta & { translations: string[] }> = [];
 
   try {
     const albumDirs = await readdir(libDir, { withFileTypes: true });
@@ -97,11 +97,21 @@ export async function listSongs(): Promise<SongMeta[]> {
       for (const entry of entries) {
         if (!entry.isDirectory()) continue;
         try {
-          const metaPath = path.join(albumPath, entry.name, 'meta.yaml');
+          const songPath = path.join(albumPath, entry.name);
+          const metaPath = path.join(songPath, 'meta.yaml');
           const raw = await readFile(metaPath, 'utf-8');
           const parsed = yaml.load(raw);
           const meta = SongMetaSchema.parse(parsed);
-          songs.push(meta);
+          let translations: string[] = [];
+          try {
+            const files = await readdir(songPath);
+            translations = files
+              .filter((f) => f.endsWith('.cho'))
+              .map((f) => path.basename(f, '.cho'));
+          } catch {
+            // no .cho files readable
+          }
+          songs.push({ ...meta, translations });
         } catch {
           // skip invalid
         }
@@ -120,6 +130,20 @@ export async function listSongs(): Promise<SongMeta[]> {
  */
 export function resolveLocalizedTitle(meta: SongMeta, lang: string): string {
   return meta.titles?.[lang] || meta.title;
+}
+
+/**
+ * Decide whether a song should appear in a list for the selected language.
+ * When the selected language is the site's default language, every song is
+ * shown; otherwise only songs that actually have that translation.
+ */
+export function shouldShowSongInLanguage(
+  translations: string[],
+  selectedLang: string,
+  defaultLang: string
+): boolean {
+  if (!selectedLang || selectedLang === defaultLang) return true;
+  return translations.includes(selectedLang);
 }
 
 /**
