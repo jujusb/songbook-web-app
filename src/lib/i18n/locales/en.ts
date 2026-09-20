@@ -44,6 +44,11 @@ const en = {
     view: 'View song',
     meta: 'Metadata',
     referencesEditor: 'References',
+    addTranslation: 'Add translation',
+    removeTranslation: 'Remove translation',
+    selectLanguage: 'Select language',
+    keepOneTranslation: 'A song must keep at least one translation.',
+    translationExists: 'This language already exists.',
   },
   album: {
     title: 'Albums',
@@ -159,6 +164,7 @@ const en = {
   errors: {
     notFound: 'Not found',
     pageNotFound: 'The page you are looking for does not exist.',
+    generic: 'Something went wrong.',
   },
 };
 

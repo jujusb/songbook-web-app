@@ -342,6 +342,52 @@ export async function saveSongTranslation(
   });
 }
 
+export async function addSongTranslation(
+  id: string,
+  lang: string,
+  albumId?: string
+): Promise<void> {
+  let songPath = await findSongPath(id);
+  if (!songPath && albumId) {
+    songPath = path.join(getLibraryDir(), albumId, id);
+    await mkdir(songPath, { recursive: true });
+  }
+  if (!songPath) throw new Error(`Song not found: ${id}`);
+
+  if (existsSync(path.join(songPath, `${lang}.cho`))) {
+    throw new Error('TRANSLATION_EXISTS');
+  }
+
+  const meta = await getSong(id);
+  const title = meta.titles?.[lang] || meta.title;
+  const frontmatter: SongTranslationFrontmatter = {
+    language: lang,
+    translator: null,
+    status: 'draft',
+    published: false,
+  };
+  const body = `{title: ${title}}\n`;
+  await saveSongTranslation(id, lang, frontmatter, body, albumId);
+}
+
+export async function deleteSongTranslation(id: string, lang: string): Promise<string[]> {
+  const songPath = await findSongPath(id);
+  if (!songPath) throw new Error(`Song not found: ${id}`);
+
+  const current = await getSongTranslations(id);
+  const remaining = current.filter((l) => l !== lang);
+  if (remaining.length === 0) throw new Error('LAST_TRANSLATION');
+  if (remaining.length === current.length) {
+    // Translation doesn't exist — nothing to remove
+    return remaining;
+  }
+
+  const filePath = path.join(songPath, `${lang}.cho`);
+  await saveRevision(songPath, lang);
+  await rm(filePath);
+  return remaining;
+}
+
 export async function saveSongMeta(id: string, meta: SongMeta, albumId?: string): Promise<void> {
   const validated = SongMetaSchema.parse(meta);
 

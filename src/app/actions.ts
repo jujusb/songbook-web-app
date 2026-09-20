@@ -1,6 +1,6 @@
 "use server";
 
-import { saveSongTranslation, saveSongMeta, createSong, getSong, getSongTranslation, getSiteConfig, listArtists, extractBodyTitle } from "@/lib/content";
+import { saveSongTranslation, saveSongMeta, createSong, getSong, getSongTranslation, getSiteConfig, listArtists, extractBodyTitle, addSongTranslation, deleteSongTranslation } from "@/lib/content";
 import { SongTranslationFrontmatterSchema, type Reference, type AudioFile } from "@/lib/content/schemas";
 import { scanMusicDir, getMusicDir, slugify, stripNumberPrefix } from "@/lib/music-importer";
 import { revalidatePath } from "next/cache";
@@ -122,7 +122,47 @@ export async function saveSongReferencesAction(songId: string, references: Refer
   meta.references = references;
   await saveSongMeta(songId, meta);
   revalidatePath(`/songs/${songId}`);
-  revalidatePath(`/edit/${songId}/[lang]`);
+  revalidatePath(`/edit/${songId}/[lang]`, "page");
+}
+
+export async function addSongTranslationAction(songId: string, lang: string) {
+  try {
+    await addSongTranslation(songId, lang);
+    revalidatePath(`/edit/${songId}/${lang}`, "page");
+    revalidatePath(`/edit/${songId}/[lang]`, "page");
+    revalidatePath(`/songs/${songId}`);
+    revalidatePath("/songs");
+    revalidatePath("/browse");
+    return { ok: true as const, songId, lang };
+  } catch (err) {
+    return {
+      ok: false as const,
+      error: err instanceof Error ? err.message : 'FAILED',
+    };
+  }
+}
+
+export async function removeSongTranslationAction(songId: string, lang: string, currentLang: string) {
+  try {
+    const remaining = await deleteSongTranslation(songId, lang);
+    revalidatePath(`/edit/${songId}/[lang]`, "page");
+    revalidatePath(`/songs/${songId}`);
+    revalidatePath("/songs");
+    revalidatePath("/browse");
+    const nextLang = remaining.includes(currentLang) ? currentLang : remaining[0] ?? '';
+    return {
+      ok: true as const,
+      songId,
+      lang,
+      remaining,
+      nextLang,
+    };
+  } catch (err) {
+    return {
+      ok: false as const,
+      error: err instanceof Error ? err.message : 'FAILED',
+    };
+  }
 }
 
 /* ------------------------------------------------------------------ */

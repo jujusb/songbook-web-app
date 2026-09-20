@@ -46,6 +46,11 @@ const fr: Translations = {
     view: 'Voir la chanson',
     meta: 'Métadonnées',
     referencesEditor: 'Références',
+    addTranslation: 'Ajouter une traduction',
+    removeTranslation: 'Supprimer la traduction',
+    selectLanguage: 'Choisir la langue',
+    keepOneTranslation: 'Une chanson doit conserver au moins une traduction.',
+    translationExists: 'Cette langue existe déjà.',
   },
   album: {
     title: 'Albums',
@@ -161,6 +166,7 @@ const fr: Translations = {
   errors: {
     notFound: 'Page non trouvée',
     pageNotFound: 'La page que vous cherchez n\'existe pas.',
+    generic: 'Une erreur est survenue.',
   },
 };
 

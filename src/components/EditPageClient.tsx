@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useTranslation } from '@/lib/i18n';
-import { setSongTitleAction } from '@/app/actions';
+import { setSongTitleAction, addSongTranslationAction, removeSongTranslationAction } from '@/app/actions';
 import { EditorView } from '@/components/EditorView';
 import { ReferenceEditor } from '@/components/ReferenceEditor';
 import { LanguageSwitcher } from '@/components/LanguageSwitcher';
@@ -37,6 +37,13 @@ export function EditPageClient({
   const [titleInput, setTitleInput] = useState(title);
   const [savingTitle, setSavingTitle] = useState(false);
   const [titleSaved, setTitleSaved] = useState(true);
+  const [translationBusy, setTranslationBusy] = useState<string | null>(null);
+  const [translationError, setTranslationError] = useState<string | null>(null);
+  const [translationLangs, setTranslationLangs] = useState<string[]>(translations);
+
+  useEffect(() => {
+    setTranslationLangs(translations);
+  }, [translations]);
 
   useEffect(() => {
     setTitleInput(title);
@@ -57,6 +64,42 @@ export function EditPageClient({
       setSavingTitle(false);
     }
   };
+
+  const handleRemoveTranslation = async (langToRemove: string) => {
+    setTranslationBusy(langToRemove);
+    setTranslationError(null);
+    const res = await removeSongTranslationAction(songId, langToRemove, lang);
+    if (res.ok) {
+      setTranslationBusy(null);
+      setTranslationLangs(res.remaining);
+      if (res.nextLang === lang) {
+        router.refresh();
+      } else {
+        router.push(`/edit/${songId}/${res.nextLang}`);
+        router.refresh();
+      }
+    } else {
+      setTranslationBusy(null);
+      setTranslationError(
+        res.error === 'LAST_TRANSLATION' ? t('song.keepOneTranslation') : t('errors.generic')
+      );
+    }
+  };
+
+  const handleAddTranslation = async (langToAdd: string) => {
+    setTranslationBusy(langToAdd);
+    setTranslationError(null);
+    const res = await addSongTranslationAction(songId, langToAdd);
+    if (res.ok) {
+      router.push(`/edit/${songId}/${langToAdd}`);
+      router.refresh();
+    } else {
+      setTranslationBusy(null);
+      setTranslationError(res.error === 'TRANSLATION_EXISTS' ? t('song.translationExists') : t('errors.generic'));
+    }
+  };
+
+  const availableToAdd = languages.filter((l) => !translationLangs.includes(l));
 
   return (
     <div className="h-[calc(100vh-3.5rem)] flex flex-col">
@@ -99,12 +142,21 @@ export function EditPageClient({
           </button>
         </div>
       </div>
-      <LanguageSwitcher
+<LanguageSwitcher
         songId={songId}
-        languages={translations}
+        languages={translationLangs}
         currentLang={lang}
         linkFor={(l) => `/edit/${songId}/${l}`}
+        onRemove={translationLangs.length > 1 ? handleRemoveTranslation : undefined}
+        onAdd={handleAddTranslation}
+        availableToAdd={availableToAdd}
+        busy={translationBusy}
       />
+      {translationError && (
+        <div className="px-4 py-2 text-sm text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-950/30 border-b border-red-200 dark:border-red-900">
+          {translationError}
+        </div>
+      )}
       <EditorView
         songId={songId}
         lang={lang}
@@ -114,7 +166,7 @@ export function EditPageClient({
         <ReferenceEditor
           references={references}
           songId={songId}
-          languages={languages}
+languages={translations}
           content={initialContent}
           lang={lang}
           onClose={() => setShowReferences(false)}
