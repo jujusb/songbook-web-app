@@ -6,10 +6,12 @@ export function LanguageSwitcher({
   songId,
   languages,
   currentLang,
+  linkFor,
 }: {
   songId: string;
   languages: string[];
   currentLang: string;
+  linkFor?: (lang: string) => string;
 }) {
   const router = useRouter();
   const pathname = usePathname();
@@ -19,7 +21,9 @@ export function LanguageSwitcher({
       {languages.map((lang) => (
         <button
           key={lang}
-          onClick={() => router.push(`${pathname}?lang=${lang}`)}
+          onClick={() =>
+            router.push(linkFor ? linkFor(lang) : `${pathname}?lang=${lang}`)
+          }
           className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
             lang === currentLang
               ? "border-blue-500 text-blue-600 dark:text-blue-400"

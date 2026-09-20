@@ -43,6 +43,7 @@ const es: Translations = {
     title: 'Título de la canción',
     editing: 'Editando',
     status: 'Estado',
+    view: 'Ver canción',
     meta: 'Metadatos',
     referencesEditor: 'Referencias',
   },

@@ -41,6 +41,7 @@ const en = {
     title: 'Song title',
     editing: 'Editing',
     status: 'Status',
+    view: 'View song',
     meta: 'Metadata',
     referencesEditor: 'References',
   },

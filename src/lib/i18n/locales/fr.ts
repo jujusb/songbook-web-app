@@ -43,6 +43,7 @@ const fr: Translations = {
     title: 'Titre de la chanson',
     editing: 'Modification',
     status: 'Statut',
+    view: 'Voir la chanson',
     meta: 'Métadonnées',
     referencesEditor: 'Références',
   },
