@@ -33,7 +33,11 @@ export function EditorView({
   const cmViewRef = useRef<CMEditorView | null>(null);
   const [content, setContent] = useState(initialContent);
   const [saving, setSaving] = useState(false);
-  const [saved, setSaved] = useState(false);
+  const [saved, setSaved] = useState(true);
+  const [autoSave, setAutoSave] = useState(true);
+  const contentRef = useRef(content);
+  const savingRef = useRef(false);
+  const lastSavedRef = useRef(content);
   const [mode, setMode] = useState<EditorMode>("visual");
   const [showImport, setShowImport] = useState(false);
   const [importTab, setImportTab] = useState<ImportTab>("text");
@@ -45,6 +49,11 @@ export function EditorView({
   const [importing, setImporting] = useState(false);
 
   const preview = renderVisualChordSheet(content, { repeatChorus: true });
+
+  // Keep refs in sync with the latest content
+  useEffect(() => {
+    contentRef.current = content;
+  }, [content]);
 
   // Initialize CodeMirror when switching to code mode
   useEffect(() => {
@@ -107,17 +116,66 @@ export function EditorView({
     }
   }, [content]);
 
-  const handleSave = useCallback(async () => {
-    setSaving(true);
-    try {
-      await saveSongAction(songId, lang, content);
-      setSaved(true);
-    } catch (err) {
-      console.error("Save failed:", err);
-    } finally {
-      setSaving(false);
+  const doSave = useCallback(
+    async (contentToSave: string) => {
+      if (savingRef.current) return;
+      savingRef.current = true;
+      setSaving(true);
+      try {
+        await saveSongAction(songId, lang, contentToSave);
+        lastSavedRef.current = contentToSave;
+        if (contentRef.current === contentToSave) {
+          setSaved(true);
+        }
+      } catch (err) {
+        console.error("Save failed:", err);
+      } finally {
+        savingRef.current = false;
+        setSaving(false);
+      }
+    },
+    [songId, lang],
+  );
+
+  const handleSave = useCallback(() => {
+    doSave(contentRef.current);
+  }, [doSave]);
+
+  // Debounced autosave when content diverges from what's on disk
+  useEffect(() => {
+    if (!autoSave) return;
+    if (savingRef.current) return;
+    if (contentRef.current === lastSavedRef.current) return;
+
+    const timer = setTimeout(() => {
+      doSave(contentRef.current);
+    }, 2000);
+
+    return () => clearTimeout(timer);
+  }, [content, autoSave, doSave, saved]);
+
+  const handleToggleAutoSave = useCallback(() => {
+    if (autoSave) {
+      // Turning off: flush any pending changes before disabling
+      if (contentRef.current !== lastSavedRef.current && !savingRef.current) {
+        doSave(contentRef.current);
+      }
+      setAutoSave(false);
+    } else {
+      setAutoSave(true);
     }
-  }, [songId, lang, content]);
+  }, [autoSave, doSave]);
+
+  // Warn when leaving with unsaved changes while autosave is off
+  useEffect(() => {
+    const handler = (e: BeforeUnloadEvent) => {
+      if (!autoSave && !saved && contentRef.current !== lastSavedRef.current) {
+        e.preventDefault();
+      }
+    };
+    window.addEventListener("beforeunload", handler);
+    return () => window.removeEventListener("beforeunload", handler);
+  }, [autoSave, saved]);
 
   const handleVisualChange = useCallback((newSource: string) => {
     setContent(newSource);
@@ -202,6 +260,17 @@ export function EditorView({
             </button>
           </div>
           <div className="flex items-center gap-2">
+            <button
+              onClick={handleToggleAutoSave}
+              className={`text-xs px-2 py-1 rounded border transition-colors ${
+                autoSave
+                  ? "border-green-300 dark:border-green-700 text-green-700 dark:text-green-400 bg-green-50 dark:bg-green-900/30 hover:bg-green-100 dark:hover:bg-green-900/50"
+                  : "border-neutral-300 dark:border-neutral-700 text-neutral-500 hover:text-neutral-700 dark:hover:text-neutral-300"
+              }`}
+              title={t('editor.autosaveToggleHint')}
+            >
+              {autoSave ? t('editor.autosaveOn') : t('editor.autosaveOff')}
+            </button>
             <button
               onClick={() => setShowImport(true)}
               className="text-xs px-2 py-1 border border-neutral-300 dark:border-neutral-700 rounded hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors"

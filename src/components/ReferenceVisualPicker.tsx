@@ -61,6 +61,7 @@ export function ReferenceVisualPicker({
     text: "",
   });
   const [applied, setApplied] = useState("");
+  const [action, setAction] = useState<"add" | "create">("add");
 
   const spans = useMemo(() => buildSectionSpans(source), [source]);
 
@@ -166,9 +167,19 @@ export function ReferenceVisualPicker({
   const handleAddLocation = () => {
     if (!pick || targetIdx < 0) return;
     const loc = buildLocation(pick);
+    const target = refs[targetIdx];
+    const already =
+      target?.label ||
+      `ref #${targetIdx + 1}`;
+    const exists = (target?.locations || []).some((l) => l.line === loc.line);
+    if (exists) {
+      setApplied(`Already in \u00bb ${already} \u2014 same line`);
+      setTargetIdx(-1);
+      return;
+    }
     onAddLocationToRef(targetIdx, loc);
-    const label = refs[targetIdx]?.label || `ref #${targetIdx + 1}`;
-    setApplied(`Added to \u00bb ${label}`);
+    setApplied(`Added to \u00bb ${already} \u2022 remember to Save`);
+    setTargetIdx(-1);
   };
 
   const handleCreate = () => {
@@ -190,6 +201,8 @@ export function ReferenceVisualPicker({
     setApplied(
       `Created \u00bb ${draft.label || draft.type} \u2022 remember to Save`
     );
+    setCloneIdx(-1);
+    setDraft({ type: "link", label: "", target: "", text: "" });
   };
 
   const inputCls =
@@ -268,49 +281,42 @@ export function ReferenceVisualPicker({
           )}
         </div>
 
-        {/* Add to existing */}
-        <div className="border border-neutral-200 dark:border-neutral-800 rounded-lg p-3 space-y-2">
-          <div className="text-xs font-semibold text-neutral-500 uppercase tracking-wide">
-            Add to existing reference
-          </div>
-          <select
-            value={targetIdx}
-            onChange={(e) =>
-              setTargetIdx(e.target.value ? Number(e.target.value) : -1)
-            }
-            className={selectCls}
-          >
-            {targetIdx === -1 && (
-              <option value={-1}>{"Select a reference\u2026"}</option>
-            )}
-            {refs.map((r, i) => (
-              <option key={i} value={i}>
-                {`${r.type} \u2014 ${r.label || "(no label)"}`}
-                {langBadge(r)}
-              </option>
-            ))}
-          </select>
+        {/* Action selector */}
+        <div className="grid grid-cols-2 gap-1 p-1 border border-neutral-200 dark:border-neutral-800 rounded-lg">
           <button
             type="button"
-            disabled={!pick || targetIdx < 0}
-            onClick={handleAddLocation}
-            className="w-full text-xs px-3 py-1.5 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-40 transition-colors"
+            onClick={() => setAction("add")}
+            className={`text-xs px-2 py-1.5 rounded transition-colors ${
+              action === "add"
+                ? "bg-blue-600 text-white font-semibold"
+                : "text-neutral-500 hover:text-neutral-700 dark:hover:text-neutral-300"
+            }`}
           >
-            + Add location
+            Add to existing
+          </button>
+          <button
+            type="button"
+            onClick={() => setAction("create")}
+            className={`text-xs px-2 py-1.5 rounded transition-colors ${
+              action === "create"
+                ? "bg-blue-600 text-white font-semibold"
+                : "text-neutral-500 hover:text-neutral-700 dark:hover:text-neutral-300"
+            }`}
+          >
+            Create new
           </button>
         </div>
 
-        {/* Create new */}
-        <div className="border border-neutral-200 dark:border-neutral-800 rounded-lg p-3 space-y-2">
-          <div className="text-xs font-semibold text-neutral-500 uppercase tracking-wide">
-            Create new reference
-          </div>
-          <div>
-            <label className={labelCls}>Copy from</label>
+        {/* Add to existing */}
+        {action === "add" && (
+          <div className="border border-neutral-200 dark:border-neutral-800 rounded-lg p-3 space-y-2">
+            <div className="text-xs font-semibold text-neutral-500 uppercase tracking-wide">
+              Add to existing reference
+            </div>
             <select
-              value={cloneIdx}
+              value={targetIdx}
               onChange={(e) =>
-                handlePickClone(e.target.value ? Number(e.target.value) : -1)
+                setTargetIdx(e.target.value ? Number(e.target.value) : -1)
               }
               className={selectCls}
             >
@@ -318,10 +324,44 @@ export function ReferenceVisualPicker({
               {refs.map((r, i) => (
                 <option key={i} value={i}>
                   {`${r.type} \u2014 ${r.label || "(no label)"}`}
+                  {langBadge(r)}
                 </option>
               ))}
             </select>
+            <button
+              type="button"
+              disabled={!pick || targetIdx < 0}
+              onClick={handleAddLocation}
+              className="w-full text-xs px-3 py-1.5 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-40 transition-colors"
+            >
+              + Add location
+            </button>
           </div>
+        )}
+
+        {/* Create new */}
+        {action === "create" && (
+          <div className="border border-neutral-200 dark:border-neutral-800 rounded-lg p-3 space-y-2">
+            <div className="text-xs font-semibold text-neutral-500 uppercase tracking-wide">
+              Create new reference
+            </div>
+            <div>
+              <label className={labelCls}>Copy from</label>
+              <select
+                value={cloneIdx}
+                onChange={(e) =>
+                  handlePickClone(e.target.value ? Number(e.target.value) : -1)
+                }
+                className={selectCls}
+              >
+                <option value={-1}>&mdash; blank &mdash;</option>
+                {refs.map((r, i) => (
+                  <option key={i} value={i}>
+                    {`${r.type} \u2014 ${r.label || "(no label)"}`}
+                  </option>
+                ))}
+              </select>
+            </div>
           <div className="grid grid-cols-2 gap-2">
             <div>
               <label className={labelCls}>Type</label>
@@ -374,6 +414,7 @@ export function ReferenceVisualPicker({
             Create reference
           </button>
         </div>
+        )}
       </div>
     </div>
   );

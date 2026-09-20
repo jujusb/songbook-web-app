@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback, useRef } from "react";
+import { useState, useCallback, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { renderVisualChordSheet } from "@/lib/chordpro/visual-render";
 import { txtToChordPro } from "@/lib/chordpro/txt-import";
@@ -8,6 +8,8 @@ import { txtToChordPro } from "@/lib/chordpro/txt-import";
 function renderPreview(source: string): string {
   return renderVisualChordSheet(source, { repeatChorus: true });
 }
+
+const DRAFT_KEY = "songbook-new-song-draft";
 
 export function NewSongForm({
   albums,
@@ -29,8 +31,58 @@ export function NewSongForm({
   const [fileName, setFileName] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [autoSave, setAutoSave] = useState(true);
+  const [draftRestored, setDraftRestored] = useState(false);
 
   const preview = chordpro ? renderPreview(chordpro) : "";
+
+  const saveDraft = useCallback(() => {
+    try {
+      localStorage.setItem(
+        DRAFT_KEY,
+        JSON.stringify({ title, lang, key, albumId, chordpro, rawImport, importMode }),
+      );
+    } catch {
+      // localStorage not available
+    }
+  }, [title, lang, key, albumId, chordpro, rawImport, importMode]);
+
+  // Restore a previously autosaved draft on mount
+  /* eslint-disable react-hooks/set-state-in-effect -- legitimately reading external draft data from localStorage */
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem(DRAFT_KEY);
+      if (!raw) return;
+      const draft = JSON.parse(raw);
+      if (typeof draft.title === "string") setTitle(draft.title);
+      if (typeof draft.lang === "string") setLang(draft.lang);
+      if (typeof draft.key === "string") setKey(draft.key);
+      if (typeof draft.albumId === "string") setAlbumId(draft.albumId);
+      if (typeof draft.chordpro === "string") setChordpro(draft.chordpro);
+      if (typeof draft.rawImport === "string") setRawImport(draft.rawImport);
+      if (typeof draft.importMode === "string") setImportMode(draft.importMode);
+      if (draft.title || draft.chordpro || draft.rawImport) setDraftRestored(true);
+    } catch {
+      // ignore corrupted draft
+    }
+  }, []);
+  /* eslint-enable react-hooks/set-state-in-effect */
+
+  // Debounced autosave of the form to localStorage
+  useEffect(() => {
+    if (!autoSave) return;
+    const timer = setTimeout(saveDraft, 800);
+    return () => clearTimeout(timer);
+  }, [autoSave, saveDraft]);
+
+  const handleToggleAutoSave = useCallback(() => {
+    if (autoSave) {
+      saveDraft();
+      setAutoSave(false);
+    } else {
+      setAutoSave(true);
+    }
+  }, [autoSave, saveDraft]);
 
   const handleFileUpload = useCallback(
     (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -120,6 +172,11 @@ export function NewSongForm({
 
       router.push(`/songs/${id}?lang=${lang}`);
       router.refresh();
+      try {
+        localStorage.removeItem(DRAFT_KEY);
+      } catch {
+        // ignore
+      }
     } catch (err: any) {
       setError(err.message || "Failed to save");
     } finally {
@@ -129,7 +186,27 @@ export function NewSongForm({
 
   return (
     <div className="max-w-6xl mx-auto px-4 py-8">
-      <h1 className="text-2xl font-bold mb-6">New Song</h1>
+      <div className="flex items-center justify-between mb-6">
+        <h1 className="text-2xl font-bold">New Song</h1>
+        <div className="flex items-center gap-3">
+          {draftRestored && (
+            <span className="text-xs text-amber-600 dark:text-amber-400">
+              Draft restored from autosave
+            </span>
+          )}
+          <button
+            type="button"
+            onClick={handleToggleAutoSave}
+            className={`text-xs px-3 py-1.5 rounded-md border transition-colors ${
+              autoSave
+                ? "border-green-300 dark:border-green-700 text-green-700 dark:text-green-400 bg-green-50 dark:bg-green-900/30 hover:bg-green-100 dark:hover:bg-green-900/50"
+                : "border-neutral-300 dark:border-neutral-700 text-neutral-500 hover:text-neutral-700 dark:hover:text-neutral-300"
+            }`}
+          >
+            {autoSave ? "Autosave: On" : "Autosave: Off"}
+          </button>
+        </div>
+      </div>
 
       {error && (
         <div className="mb-4 px-4 py-2 bg-red-50 dark:bg-red-950 border border-red-200 dark:border-red-800 rounded-md text-red-700 dark:text-red-300 text-sm">

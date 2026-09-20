@@ -1,12 +1,53 @@
 "use client";
 
-import { useState, useCallback, useRef, useEffect, useMemo } from "react";
+import { useState, useCallback, useRef, useEffect, useLayoutEffect, useMemo } from "react";
 import {
   parseChordProSource,
   directiveLabel,
   linesToChordPro,
   type ParsedLine,
 } from "@/lib/chordpro/visual-parse";
+
+type ChordRef = { chord: string; position: number };
+
+// Re-map chord positions when lyrics change: keep chords aligned to the text
+// they were attached to. Uses a common-prefix/suffix diff to locate the edit.
+function shiftChordPositions(
+  chords: ChordRef[],
+  oldLyrics: string,
+  newLyrics: string,
+): ChordRef[] {
+  let prefix = 0;
+  while (
+    prefix < oldLyrics.length &&
+    prefix < newLyrics.length &&
+    oldLyrics[prefix] === newLyrics[prefix]
+  ) {
+    prefix++;
+  }
+
+  let suffix = 0;
+  while (
+    suffix < oldLyrics.length - prefix &&
+    suffix < newLyrics.length - prefix &&
+    oldLyrics[oldLyrics.length - 1 - suffix] ===
+      newLyrics[newLyrics.length - 1 - suffix]
+  ) {
+    suffix++;
+  }
+
+  const oldEnd = oldLyrics.length - suffix;
+  const newEnd = newLyrics.length - suffix;
+  const delta = newEnd - oldEnd;
+
+  return chords.map((c) => {
+    if (c.position < prefix) return c;
+    if (c.position >= oldEnd) {
+      return { ...c, position: Math.min(c.position + delta, newLyrics.length) };
+    }
+    return { ...c, position: Math.min(prefix, newLyrics.length) };
+  });
+}
 
 /* ─── Component ─── */
 
@@ -25,12 +66,20 @@ export function VisualChordEditor({
   const [addingChord, setAddingChord] = useState<number | null>(null); // lineIdx
   const [newChordName, setNewChordName] = useState("");
   const containerRef = useRef<HTMLDivElement>(null);
+  const linesRef = useRef(lines);
+
+  // Keep a mutable mirror of lines so rapid edits never read stale state
+  useEffect(() => {
+    linesRef.current = lines;
+  }, [lines]);
 
   // Keep lines in sync when source changes externally
   const prevSourceRef = useRef(source);
   useEffect(() => {
     if (source !== prevSourceRef.current) {
-      setLines(parseChordProSource(source));
+      const parsed = parseChordProSource(source);
+      linesRef.current = parsed;
+      setLines(parsed);
       prevSourceRef.current = source;
     }
   }, [source]);
@@ -38,6 +87,7 @@ export function VisualChordEditor({
   // Emit changes
   const emitChange = useCallback(
     (newLines: ParsedLine[]) => {
+      linesRef.current = newLines;
       setLines(newLines);
       const newSource = linesToChordPro(newLines);
       prevSourceRef.current = newSource;
@@ -111,21 +161,21 @@ export function VisualChordEditor({
     [lines, emitChange]
   );
 
-  // Edit lyrics text
+  // Edit lyrics text — chords follow the edited text on the line
   const updateLyrics = useCallback(
     (lineIdx: number, newLyrics: string) => {
-      const newLines = lines.map((l, i) => {
+      const newLines = linesRef.current.map((l, i) => {
         if (i !== lineIdx) return l;
-        // Clamp chord positions to new lyrics length
-        const newChords = l.chords.map((c) => ({
-          ...c,
-          position: Math.min(c.position, newLyrics.length),
-        }));
+        const newChords = shiftChordPositions(
+          l.chords,
+          l.lyrics,
+          newLyrics,
+        );
         return { ...l, lyrics: newLyrics, chords: newChords };
       });
       emitChange(newLines);
     },
-    [lines, emitChange]
+    [emitChange]
   );
 
   // Keyboard handler
@@ -288,7 +338,46 @@ function ContentLine({
   setAddingChord: (v: number | null) => void;
 }) {
   const lyricsRef = useRef<HTMLDivElement>(null);
+  const userEditingRef = useRef(false);
   const [addPos, setAddPos] = useState(0);
+
+  // Push text into the contentEditable only for external changes (mount,
+  // imports, code-mode edits). While the user is typing, the DOM is already
+  // up to date and rewriting it would move the caret.
+  useLayoutEffect(() => {
+    const el = lyricsRef.current;
+    if (!el) return;
+    if (userEditingRef.current) return;
+    const current = el.textContent || "";
+    if (current !== line.lyrics) {
+      el.textContent = line.lyrics;
+    }
+  }, [line.lyrics]);
+
+  // Live lyric editing: commit on every keystroke so chord positions track
+  // the text immediately, without blurring.
+  const handleLyricsInput = useCallback(
+    (e: React.FormEvent<HTMLDivElement>) => {
+      const el = e.currentTarget;
+      const newText = el.textContent || "";
+      userEditingRef.current = true;
+      if (newText !== line.lyrics) {
+        onUpdateLyrics(newText);
+      }
+    },
+    [line.lyrics, onUpdateLyrics]
+  );
+
+  const handleLyricsBlur = useCallback(
+    (e: React.FocusEvent<HTMLDivElement>) => {
+      userEditingRef.current = false;
+      const newText = e.currentTarget.textContent || "";
+      if (newText !== line.lyrics) {
+        onUpdateLyrics(newText);
+      }
+    },
+    [line.lyrics, onUpdateLyrics]
+  );
 
   // Build the chord row: position chords by character index
   // Using a monospace approach: each char = fixed width, chords float above
@@ -395,17 +484,14 @@ function ContentLine({
       </div>
 
       {/* Lyrics row */}
-      <div className="vce-lyrics-row" ref={lyricsRef}>
+      <div className="vce-lyrics-row">
         <div
+          ref={lyricsRef}
           className="vce-lyrics-text"
           contentEditable
           suppressContentEditableWarning
-          onBlur={(e) => {
-            const newText = e.currentTarget.textContent || "";
-            if (newText !== line.lyrics) {
-              onUpdateLyrics(newText);
-            }
-          }}
+          onInput={handleLyricsInput}
+          onBlur={handleLyricsBlur}
           onDoubleClick={handleLyricsDoubleClick}
           onKeyDown={(e) => {
             if (e.key === "Enter") {
@@ -413,9 +499,7 @@ function ContentLine({
               (e.target as HTMLElement).blur();
             }
           }}
-        >
-          {line.lyrics || "\u00A0"}
-        </div>
+        />
 
         {/* Add chord popup */}
         {addingChord && (
