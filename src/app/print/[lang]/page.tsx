@@ -64,7 +64,7 @@ export default async function PrintPage({
   if (albumId) {
     try {
       const album = await getAlbum(albumId);
-      scopeTitle = album.title;
+      scopeTitle = album.titles?.[primaryLang] || album.title;
       songIds = album.songs;
     } catch {
       // album not found, fall through to full songbook
@@ -95,7 +95,7 @@ export default async function PrintPage({
           : "";
         printSongs.push({
           id: song.id,
-          title: song.titles?.[lang] || song.title,
+          title: song.titles?.[lang] || song.choTitles?.[lang] || song.title,
           key: song.key,
           lang,
           html,

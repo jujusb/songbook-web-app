@@ -1,7 +1,7 @@
 import { notFound, redirect } from "next/navigation";
 import Link from "next/link";
 import { cookies } from "next/headers";
-import { getSetlist, listSongs, getSong, getSongTranslations, getLanguagesConfig, shouldShowSongInLanguage } from "@/lib/content";
+import { getSetlist, listSongs, getSong, getSongTranslations, getSongTitle, getLanguagesConfig, shouldShowSongInLanguage } from "@/lib/content";
 import { getLocale } from "@/lib/i18n/server";
 import { getSession, canEdit, canAdmin } from "@/lib/auth";
 import { SetlistEditor } from "@/components/SetlistEditor";
@@ -44,7 +44,7 @@ export default async function SetlistPage({
       try {
         const meta = await getSong(item.songId);
         const translations = await getSongTranslations(item.songId);
-        return { ...item, title: meta.titles?.[item.lang] || meta.title, key: meta.key, translations };
+        return { ...item, title: await getSongTitle(item.songId, item.lang), key: meta.key, translations };
       } catch {
         return { ...item, title: item.songId, key: undefined, translations: [] as string[] };
       }

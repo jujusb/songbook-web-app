@@ -90,7 +90,7 @@ export default async function SongPage({
                     href={`/albums/${album.id}`}
                     className="text-xs px-2 py-0.5 bg-blue-50 dark:bg-blue-950 text-blue-600 dark:text-blue-400 rounded-full hover:bg-blue-100 dark:hover:bg-blue-900 transition-colors"
                   >
-                    {album.title}
+                    {album.titles?.[lang] || album.title}
                   </Link>
                 ))}
               </div>

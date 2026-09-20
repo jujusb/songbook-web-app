@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { cookies } from "next/headers";
-import { getAlbum, getAlbumTitle, getArtist, getSong, getSongTranslations, getLanguagesConfig, resolveLocalizedTitle, shouldShowSongInLanguage } from "@/lib/content";
+import { getAlbum, getAlbumTitle, getArtist, getSong, getSongTranslations, getSongTitle, getLanguagesConfig, shouldShowSongInLanguage } from "@/lib/content";
 import { getLocale } from "@/lib/i18n/server";
 import { getSession, canEdit, canAdmin } from "@/lib/auth";
 import { DeleteButton } from "@/components/DeleteButton";
@@ -31,13 +31,13 @@ export default async function AlbumPage({
   const songs = await Promise.all(
     album.songs.map(async (songId) => {
       try {
-        const meta = await getSong(songId);
+        const song = await getSong(songId);
         const translations = await getSongTranslations(songId);
         if (!shouldShowSongInLanguage(translations, displayLang, langConfig.default)) {
           return null;
         }
-        const localizedTitle = displayLang ? resolveLocalizedTitle(meta, displayLang) : meta.title;
-        return { ...meta, title: localizedTitle, translations };
+        const localizedTitle = displayLang ? await getSongTitle(songId, displayLang) : song.title;
+        return { ...song, title: localizedTitle, translations };
       } catch {
         return null;
       }

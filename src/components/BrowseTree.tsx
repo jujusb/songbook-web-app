@@ -9,6 +9,7 @@ interface TreeSong {
   id: string;
   title: string;
   titles?: Record<string, string>;
+  choTitles?: Record<string, string>;
   key?: string;
   translations: string[];
 }
@@ -106,6 +107,10 @@ function SongNode({
 }) {
   const { t, locale } = useTranslation();
   const displayLang = song.translations.includes(locale) ? locale : (song.translations[0] || "en");
+  const displayTitle =
+    song.titles?.[displayLang] ||
+    song.choTitles?.[displayLang] ||
+    song.title;
   const handleDelete = useCallback(async () => {
     await fetch(`/api/songs?id=${song.id}`, { method: "DELETE" });
     onRefresh();
@@ -130,7 +135,7 @@ function SongNode({
         href={`/songs/${song.id}`}
         className="text-sm hover:text-blue-600 dark:hover:text-blue-400 transition-colors flex-1 min-w-0"
       >
-        {song.titles?.[displayLang] || song.title}
+        {displayTitle}
       </Link>
       {song.key && (
         <span className="text-xs text-neutral-400 shrink-0">{song.key}</span>

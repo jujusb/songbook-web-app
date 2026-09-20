@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { cookies } from "next/headers";
-import { listSetlists, listSongs, getLanguagesConfig } from "@/lib/content";
+import { listSetlists, listSongs, getLanguagesConfig, resolveSongListTitle } from "@/lib/content";
 import { getLocale } from "@/lib/i18n/server";
 import { getSession, canEdit } from "@/lib/auth";
 import { T } from "@/components/Translate";
@@ -70,7 +70,7 @@ export default async function SetlistsPage() {
                       .map((s) => {
                         const song = songMap.get(s.songId);
                         if (!song) return s.songId;
-                        return song.titles?.[s.lang] || song.title;
+                        return resolveSongListTitle(song, s.lang);
                       })
                       .join(" \u2022 ")}
                     {visibleSongs.length > 5 && ` \u2026 +${visibleSongs.length - 5} more`}

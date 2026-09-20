@@ -5,6 +5,7 @@ import matter from 'gray-matter';
 import * as yaml from 'js-yaml';
 import { saveRevision } from './revisions';
 import { syncSongToMusicDir } from '@/lib/lyrics-sync';
+export { resolveSongListTitle } from '../song-titles';
 import {
   SongMetaSchema,
   SongTranslationFrontmatterSchema,
@@ -83,9 +84,21 @@ async function findSongAlbumId(songId: string): Promise<string | null> {
 // --- Songs ---
 // Songs live at: content/library/<album-id>/<song-id>/
 
-export async function listSongs(): Promise<Array<SongMeta & { translations: string[] }>> {
+export type SongListItem = SongMeta & {
+  translations: string[];
+  /**
+   * Per-language titles extracted from the .cho files, used as a fallback
+   * when the meta.yaml `titles` map has no entry for a language. The default
+   * language is excluded — its yaml `title` is authoritative.
+   */
+  choTitles: Record<string, string>;
+};
+
+export async function listSongs(): Promise<SongListItem[]> {
   const libDir = getLibraryDir();
-  const songs: Array<SongMeta & { translations: string[] }> = [];
+  const songs: SongListItem[] = [];
+  const langConfig = await getLanguagesConfig().catch(() => null);
+  const defaultLang = langConfig?.default ?? 'en';
 
   try {
     const albumDirs = await readdir(libDir, { withFileTypes: true });
@@ -111,7 +124,23 @@ export async function listSongs(): Promise<Array<SongMeta & { translations: stri
           } catch {
             // no .cho files readable
           }
-          songs.push({ ...meta, translations });
+          const choTitles: Record<string, string> = {};
+          for (const lang of translations) {
+            if (lang === defaultLang) continue;
+            if (meta.titles?.[lang]) continue;
+            try {
+              const choRaw = await readFile(path.join(songPath, `${lang}.cho`), 'utf-8');
+              const { data, content } = matter(choRaw);
+              const fmTitle =
+                typeof data.title === 'string' ? data.title.trim() : '';
+              const bodyTitle = extractBodyTitle(content);
+              const resolved = fmTitle || bodyTitle;
+              if (resolved) choTitles[lang] = resolved;
+            } catch {
+              // skip unreadable translation file
+            }
+          }
+          songs.push({ ...meta, translations, choTitles });
         } catch {
           // skip invalid
         }

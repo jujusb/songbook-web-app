@@ -18,11 +18,14 @@ export function AlbumForm({
   initialAlbum,
   allSongs,
   allArtists,
+  languages,
+  defaultLang,
   isNew,
 }: {
   initialAlbum: {
     id: string;
     title: string;
+    titles: Record<string, string>;
     artist: string;
     year: string;
     description: string;
@@ -31,10 +34,16 @@ export function AlbumForm({
   };
   allSongs: Song[];
   allArtists: ArtistOption[];
+  languages: { code: string; label: string }[];
+  defaultLang: string;
   isNew: boolean;
 }) {
   const router = useRouter();
   const [title, setTitle] = useState(initialAlbum.title);
+  const [titles, setTitles] = useState<Record<string, string>>(
+    initialAlbum.titles
+  );
+  const [titleTab, setTitleTab] = useState(defaultLang);
   const [artist, setArtist] = useState(initialAlbum.artist);
   const [year, setYear] = useState(initialAlbum.year);
   const [description, setDescription] = useState(initialAlbum.description);
@@ -87,6 +96,11 @@ export function AlbumForm({
         body: JSON.stringify({
           id,
           title: title.trim(),
+          titles: Object.fromEntries(
+            Object.entries(titles)
+              .map(([lang, value]) => [lang, value.trim()])
+              .filter(([, value]) => value)
+          ),
           artist,
           year: year ? parseInt(year) : undefined,
           description: description.trim() || undefined,
@@ -110,7 +124,7 @@ export function AlbumForm({
     } finally {
       setSaving(false);
     }
-  }, [title, artist, year, description, tags, selectedSongs, isNew, initialAlbum.id, router]);
+  }, [title, titles, artist, year, description, tags, selectedSongs, isNew, initialAlbum.id, router]);
 
   return (
     <div className="max-w-4xl mx-auto px-4 py-8">
@@ -136,6 +150,36 @@ export function AlbumForm({
               onChange={(e) => setTitle(e.target.value)}
               placeholder="Album title"
               className="w-full px-3 py-2 border border-neutral-300 dark:border-neutral-700 rounded-md bg-white dark:bg-neutral-900 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+          </div>
+          <div>
+            <span className="block text-sm mb-1">
+              Title in other languages
+            </span>
+            <div className="flex gap-1 border-b border-neutral-200 dark:border-neutral-800 min-h-[2.5rem]">
+              {languages.map((lang) => (
+                <button
+                  key={lang.code}
+                  type="button"
+                  onClick={() => setTitleTab(lang.code)}
+                  className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
+                    lang.code === titleTab
+                      ? "border-blue-500 text-blue-600 dark:text-blue-400"
+                      : "border-transparent text-neutral-500 hover:text-foreground hover:border-neutral-300"
+                  }`}
+                >
+                  {lang.code.toUpperCase()}
+                </button>
+              ))}
+            </div>
+            <input
+              type="text"
+              value={titles[titleTab] ?? ""}
+              onChange={(e) =>
+                setTitles((prev) => ({ ...prev, [titleTab]: e.target.value }))
+              }
+              placeholder={`${titles[titleTab]?.trim() ? "Title" : "No title"} in ${titleTab.toUpperCase()} (falls back to default)`}
+              className="w-full px-3 py-2 border border-neutral-300 dark:border-neutral-700 rounded-md bg-white dark:bg-neutral-900 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 mt-2"
             />
           </div>
           <div>

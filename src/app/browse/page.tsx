@@ -15,6 +15,7 @@ interface TreeSong {
   id: string;
   title: string;
   titles?: Record<string, string>;
+  choTitles?: Record<string, string>;
   key?: string;
   translations: string[];
 }
@@ -72,6 +73,7 @@ export default async function BrowsePage() {
               id: song.id,
               title: song.title,
               titles: song.titles,
+              choTitles: song.choTitles,
               key: song.key,
               translations: song.translations,
             });

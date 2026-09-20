@@ -1,5 +1,5 @@
 import { notFound, redirect } from "next/navigation";
-import { getAlbum, listSongs, listArtists } from "@/lib/content";
+import { getAlbum, listSongs, listArtists, getLanguagesConfig, resolveSongListTitle } from "@/lib/content";
 import { getSession, canEdit } from "@/lib/auth";
 import { AlbumForm } from "@/components/AlbumForm";
 
@@ -20,21 +20,28 @@ export default async function EditAlbumPage({
     notFound();
   }
 
-  const [songs, artists] = await Promise.all([listSongs(), listArtists()]);
+  const [songs, artists, langConfig] = await Promise.all([
+    listSongs(),
+    listArtists(),
+    getLanguagesConfig(),
+  ]);
 
   return (
     <AlbumForm
       initialAlbum={{
         id: album.id,
         title: album.title,
+        titles: album.titles ?? {},
         artist: album.artist,
         year: album.year?.toString() || "",
         description: album.description || "",
         tags: album.tags.join(", "),
         songs: album.songs,
       }}
-      allSongs={songs.map((s) => ({ id: s.id, title: s.title, key: s.key }))}
+      allSongs={songs.map((s) => ({ id: s.id, title: resolveSongListTitle(s, langConfig.default), key: s.key }))}
       allArtists={artists.map((a) => ({ id: a.id, name: a.name }))}
+      languages={langConfig.languages.map((l) => ({ code: l.code, label: l.label }))}
+      defaultLang={langConfig.default}
       isNew={false}
     />
   );

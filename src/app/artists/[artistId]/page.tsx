@@ -7,8 +7,8 @@ import {
   getSiteConfig,
   getSong,
   getSongTranslations,
+  getSongTitle,
   getLanguagesConfig,
-  resolveLocalizedTitle,
   shouldShowSongInLanguage,
 } from "@/lib/content";
 import { getLocale } from "@/lib/i18n/server";
@@ -57,7 +57,7 @@ export default async function ArtistPage({
             ) {
               return null;
             }
-            const localizedTitle = resolveLocalizedTitle(song, uiLang);
+            const localizedTitle = await getSongTitle(songId, uiLang);
             return { ...song, translations, title: localizedTitle };
           } catch {
             return null;

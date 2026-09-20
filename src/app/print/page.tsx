@@ -18,6 +18,7 @@ export default async function PrintConfigPage({
   const albumOptions = albums.map((a) => ({
     id: a.id,
     title: a.title,
+    titles: a.titles,
     artist: artistMap.get(a.artist) || a.artist,
     songCount: a.songs.length,
   }));

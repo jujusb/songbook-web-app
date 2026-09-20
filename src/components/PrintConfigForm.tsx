@@ -2,10 +2,12 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { useTranslation } from "@/lib/i18n";
 
 interface Album {
   id: string;
   title: string;
+  titles?: Record<string, string>;
   artist: string;
   songCount: number;
 }
@@ -27,6 +29,7 @@ export function PrintConfigForm({
   preselectedAlbum?: string;
 }) {
   const router = useRouter();
+  const { locale } = useTranslation();
   const [scope, setScope] = useState<"all" | "album">(
     preselectedAlbum ? "album" : "all"
   );
@@ -103,7 +106,7 @@ export function PrintConfigForm({
           >
             {albums.map((album) => (
               <option key={album.id} value={album.id}>
-                {album.title} — {album.artist} ({album.songCount} songs)
+                {album.titles?.[locale] || album.title} — {album.artist} ({album.songCount} songs)
               </option>
             ))}
           </select>

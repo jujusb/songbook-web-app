@@ -3,11 +3,13 @@
 import Link from "next/link";
 import { useState } from "react";
 import { useTranslation } from "@/lib/i18n";
+import { resolveSongListTitle } from "@/lib/song-titles";
 
 interface Song {
   id: string;
   title: string;
   titles?: Record<string, string>;
+  choTitles?: Record<string, string>;
   key?: string;
   tags: string[];
   translations: string[];
@@ -57,7 +59,9 @@ export function SongListFilter({
             href={`/songs/${song.id}`}
             className="block p-4 border border-neutral-200 dark:border-neutral-800 rounded-lg hover:border-blue-500 dark:hover:border-blue-500 transition-colors"
           >
-            <h2 className="font-semibold mb-1">{song.titles?.[activeLang] || song.title}</h2>
+            <h2 className="font-semibold mb-1">
+              {resolveSongListTitle(song, activeLang)}
+            </h2>
             {song.key && (
               <span className="text-sm text-neutral-500 mr-3">
                 {t('common.key')}: {song.key}
