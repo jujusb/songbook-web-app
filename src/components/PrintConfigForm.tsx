@@ -17,23 +17,33 @@ interface Language {
   label: string;
 }
 
+interface Artist {
+  id: string;
+  name: string;
+}
+
 export function PrintConfigForm({
   albums,
   languages,
   defaultLang,
   preselectedAlbum,
+  artists = [],
+  preselectedArtist,
 }: {
   albums: Album[];
   languages: Language[];
   defaultLang: string;
   preselectedAlbum?: string;
+  artists?: Artist[];
+  preselectedArtist?: string;
 }) {
   const router = useRouter();
   const { locale } = useTranslation();
-  const [scope, setScope] = useState<"all" | "album">(
-    preselectedAlbum ? "album" : "all"
+  const [scope, setScope] = useState<"all" | "album" | "artist">(
+    preselectedAlbum ? "album" : preselectedArtist ? "artist" : "all"
   );
   const [albumId, setAlbumId] = useState(preselectedAlbum || (albums[0]?.id ?? ""));
+  const [artistId, setArtistId] = useState(preselectedArtist || (artists[0]?.id ?? ""));
   const [selectedLangs, setSelectedLangs] = useState<string[]>([defaultLang]);
   const [includeRefs, setIncludeRefs] = useState(false);
 
@@ -55,6 +65,9 @@ export function PrintConfigForm({
     const params = new URLSearchParams();
     if (scope === "album" && albumId) {
       params.set("album", albumId);
+    }
+    if (scope === "artist" && artistId) {
+      params.set("artist", artistId);
     }
     if (includeRefs) {
       params.set("refs", "1");
@@ -97,6 +110,15 @@ export function PrintConfigForm({
             />
             <span className="text-sm">Single album</span>
           </label>
+          <label className="flex items-center gap-2 cursor-pointer">
+            <input
+              type="radio"
+              checked={scope === "artist"}
+              onChange={() => setScope("artist")}
+              className="accent-blue-600"
+            />
+            <span className="text-sm">Single artist</span>
+          </label>
         </div>
         {scope === "album" && (
           <select
@@ -107,6 +129,19 @@ export function PrintConfigForm({
             {albums.map((album) => (
               <option key={album.id} value={album.id}>
                 {album.titles?.[locale] || album.title} — {album.artist} ({album.songCount} songs)
+              </option>
+            ))}
+          </select>
+        )}
+        {scope === "artist" && (
+          <select
+            value={artistId}
+            onChange={(e) => setArtistId(e.target.value)}
+            className="mt-2 w-full px-3 py-2 border border-neutral-300 dark:border-neutral-700 rounded-md bg-white dark:bg-neutral-900 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+          >
+            {artists.map((artist) => (
+              <option key={artist.id} value={artist.id}>
+                {artist.name}
               </option>
             ))}
           </select>

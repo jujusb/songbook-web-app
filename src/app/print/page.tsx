@@ -4,9 +4,9 @@ import { PrintConfigForm } from "@/components/PrintConfigForm";
 export default async function PrintConfigPage({
   searchParams,
 }: {
-  searchParams: Promise<{ album?: string }>;
+  searchParams: Promise<{ album?: string; artist?: string }>;
 }) {
-  const { album: preselectedAlbum } = await searchParams;
+  const { album: preselectedAlbum, artist: preselectedArtist } = await searchParams;
   const [albums, langConfig, artists] = await Promise.all([
     listAlbums(),
     getLanguagesConfig(),
@@ -23,6 +23,11 @@ export default async function PrintConfigPage({
     songCount: a.songs.length,
   }));
 
+  const artistOptions = artists.map((a) => ({
+    id: a.id,
+    name: a.name,
+  }));
+
   return (
     <div className="max-w-2xl mx-auto px-4 py-8">
       <h1 className="text-2xl font-bold mb-6">Print Songbook</h1>
@@ -34,6 +39,8 @@ export default async function PrintConfigPage({
         }))}
         defaultLang={langConfig.default}
         preselectedAlbum={preselectedAlbum}
+        artists={artistOptions}
+        preselectedArtist={preselectedArtist}
       />
     </div>
   );

@@ -132,16 +132,22 @@ export default async function ArtistPage({
             ))}
           </div>
         )}
-        {showDeleteActions && (
-          <div className="flex gap-2 mt-4">
+        <div className="flex gap-2 mt-4">
+          <Link
+            href={`/print?artist=${artistId}`}
+            className="text-sm px-3 py-1.5 border border-neutral-300 dark:border-neutral-700 rounded-md hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors"
+          >
+            Export PDF for this artist
+          </Link>
+          {showDeleteActions && (
             <DeleteButton
               apiEndpoint="/api/artists"
               id={artistId}
               label={artist.name}
               redirectTo="/browse"
             />
-          </div>
-        )}
+          )}
+        </div>
       </div>
 
       {/* Albums with songs */}

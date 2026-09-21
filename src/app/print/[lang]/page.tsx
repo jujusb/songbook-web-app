@@ -4,6 +4,8 @@ import {
   getSongTranslation,
   getSongTranslations,
   getAlbum,
+  getAlbumsForArtist,
+  getArtist,
   getLanguagesConfig,
   getSiteConfig,
 } from "@/lib/content";
@@ -27,12 +29,13 @@ export default async function PrintPage({
   params: Promise<{ lang: string }>;
   searchParams: Promise<{
     album?: string;
+    artist?: string;
     refs?: string;
     langs?: string;
   }>;
 }) {
   const { lang: primaryLang } = await params;
-  const { album: albumId, refs: showRefsParam, langs: langsParam } = await searchParams;
+  const { album: albumId, artist: artistId, refs: showRefsParam, langs: langsParam } = await searchParams;
 
   const showRefs = showRefsParam === "1" || showRefsParam === "true";
 
@@ -57,7 +60,7 @@ export default async function PrintPage({
     }
   }
 
-  // Determine scope — album or full songbook
+  // Determine scope — album, artist, or full songbook
   let scopeTitle = "Songbook";
   let songIds: string[] | null = null; // null = all songs
 
@@ -68,6 +71,19 @@ export default async function PrintPage({
       songIds = album.songs;
     } catch {
       // album not found, fall through to full songbook
+    }
+  } else if (artistId) {
+    try {
+      const artist = await getArtist(artistId);
+      scopeTitle = artist.name;
+      const artistAlbums = await getAlbumsForArtist(artistId);
+      const ids = new Set<string>();
+      for (const album of artistAlbums) {
+        for (const id of album.songs) ids.add(id);
+      }
+      songIds = [...ids];
+    } catch {
+      // artist not found, fall through to full songbook
     }
   }
 
@@ -121,7 +137,7 @@ export default async function PrintPage({
     siteTitle = config.title;
   } catch {}
 
-  const pageTitle = albumId
+  const pageTitle = albumId || artistId
     ? `${scopeTitle} — ${languages.map(langLabel).join(", ")}`
     : `${siteTitle} — ${languages.map(langLabel).join(", ")}`;
 
@@ -165,10 +181,10 @@ export default async function PrintPage({
           {showRefs && " \u00b7 with references"}
         </span>
         <Link
-          href={albumId ? `/albums/${albumId}` : "/print"}
+          href={albumId ? `/albums/${albumId}` : artistId ? `/artists/${artistId}` : "/print"}
           className="text-sm text-blue-600 hover:underline ml-auto"
         >
-          {albumId ? "Back to Album" : "Back to Print Options"}
+          {albumId ? "Back to Album" : artistId ? "Back to Artist" : "Back to Print Options"}
         </Link>
       </div>
 
@@ -176,7 +192,7 @@ export default async function PrintPage({
         {/* Title page (visible in print) */}
         <div className="toc-print mb-12">
           <h1 className="text-3xl font-bold mb-2">{pageTitle}</h1>
-          {albumId && (
+          {(albumId || artistId) && (
             <p className="text-neutral-500 mb-6">{scopeTitle}</p>
           )}
 

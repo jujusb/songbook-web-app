@@ -114,6 +114,13 @@ export default async function RootLayout({
                   <T k="nav.import" />
                 </Link>
               )}
+              <Link
+                href="/print"
+                className="text-sm px-3 py-1.5 border border-neutral-300 dark:border-neutral-700 rounded-md font-medium hover:bg-neutral-100 dark:hover:bg-neutral-800 hover:text-foreground transition-colors"
+                title="Open the print view to export as PDF"
+              >
+                Convert to PDF
+              </Link>
               <LocaleSwitcher />
               {!isReadOnly() && <UserMenu />}
             </div>
