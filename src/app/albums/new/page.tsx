@@ -1,6 +1,7 @@
-import { redirect } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { listSongs, listArtists, getLanguagesConfig, ensureVariousArtists } from "@/lib/content";
 import { getSession, canEdit } from "@/lib/auth";
+import { isReadOnly } from "@/lib/readonly";
 import { AlbumForm } from "@/components/AlbumForm";
 
 export default async function NewAlbumPage({
@@ -8,6 +9,7 @@ export default async function NewAlbumPage({
 }: {
   searchParams: Promise<{ artist?: string }>;
 }) {
+  if (isReadOnly()) notFound();
   const session = await getSession();
   if (!canEdit(session?.role ?? null)) redirect("/login");
 

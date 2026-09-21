@@ -5,6 +5,13 @@ import { SongTranslationFrontmatterSchema, type Reference, type AudioFile } from
 import { scanMusicDir, getMusicDir, slugify, stripNumberPrefix } from "@/lib/music-importer";
 import { revalidatePath } from "next/cache";
 import matter from "gray-matter";
+import { isReadOnly } from "@/lib/readonly";
+
+function assertWritable() {
+  if (isReadOnly()) {
+    throw new Error("Read-only mode");
+  }
+}
 
 /**
  * Keep the song's localized title (meta.yaml `titles` map) in sync with a
@@ -43,6 +50,7 @@ function setBodyTitle(body: string, title: string): string {
 }
 
 export async function setSongTitleAction(songId: string, lang: string, title: string) {
+  assertWritable();
   const titleValue = title.trim();
   await syncSongTitle(songId, lang, titleValue);
 
@@ -65,6 +73,7 @@ export async function setSongTitleAction(songId: string, lang: string, title: st
 }
 
 export async function saveSongAction(songId: string, lang: string, content: string) {
+  assertWritable();
   // Parse the content - it may be just the ChordPro body (no frontmatter)
   // We need to preserve the original frontmatter
   let body: string;
@@ -99,6 +108,7 @@ export async function saveSongAction(songId: string, lang: string, content: stri
 }
 
 export async function createSongAction(formData: FormData) {
+  assertWritable();
   const title = formData.get("title") as string;
   const lang = (formData.get("lang") as string) || "en";
 
@@ -118,6 +128,7 @@ export async function createSongAction(formData: FormData) {
 }
 
 export async function saveSongReferencesAction(songId: string, references: Reference[]) {
+  assertWritable();
   const meta = await getSong(songId);
   meta.references = references;
   await saveSongMeta(songId, meta);
@@ -126,6 +137,12 @@ export async function saveSongReferencesAction(songId: string, references: Refer
 }
 
 export async function addSongTranslationAction(songId: string, lang: string) {
+  if (isReadOnly()) {
+    return {
+      ok: false as const,
+      error: 'READ_ONLY',
+    };
+  }
   try {
     await addSongTranslation(songId, lang);
     revalidatePath(`/edit/${songId}/${lang}`, "page");
@@ -143,6 +160,12 @@ export async function addSongTranslationAction(songId: string, lang: string) {
 }
 
 export async function removeSongTranslationAction(songId: string, lang: string, currentLang: string) {
+  if (isReadOnly()) {
+    return {
+      ok: false as const,
+      error: 'READ_ONLY',
+    };
+  }
   try {
     const remaining = await deleteSongTranslation(songId, lang);
     revalidatePath(`/edit/${songId}/[lang]`, "page");
@@ -223,6 +246,7 @@ export async function scanMusicDirectoryAction(
 }
 
 export async function importMusicAction(songId: string, configJson?: string, artist?: string) {
+  assertWritable();
   // Scan for this specific song to get its audio files
   if (!configJson) throw new Error("Scan config is required");
   const config = JSON.parse(configJson) as import("@/lib/music-importer").ScanConfig;

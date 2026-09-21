@@ -2,8 +2,12 @@ import { NextResponse, type NextRequest } from 'next/server';
 import { cookies } from 'next/headers';
 import { exchangeCode, verifyIdToken, getOidcConfig, resolveRole } from '@/lib/auth/oidc';
 import { findOrCreateOidcUser, createSession } from '@/lib/auth';
+import { isReadOnly } from '@/lib/readonly';
 
 export async function GET(request: NextRequest) {
+  if (isReadOnly()) {
+    return NextResponse.json({ error: 'Read-only mode' }, { status: 403 });
+  }
   const oidc = await getOidcConfig();
   if (!oidc) {
     return NextResponse.json({ error: 'OIDC is not configured' }, { status: 404 });

@@ -1,8 +1,10 @@
 import { getSession, canEdit } from "@/lib/auth";
-import { redirect } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
+import { isReadOnly } from "@/lib/readonly";
 import { MusicImportClient } from "@/components/MusicImportClient";
 
 export default async function MusicImportPage() {
+  if (isReadOnly()) notFound();
   const session = await getSession();
   if (!canEdit(session?.role ?? null)) redirect("/login");
 

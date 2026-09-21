@@ -5,6 +5,7 @@ import Link from "next/link";
 import { getSiteConfig, getLanguagesConfig } from "@/lib/content";
 import { getLocale } from "@/lib/i18n/server";
 import { getSession, canEdit } from "@/lib/auth";
+import { isReadOnly } from "@/lib/readonly";
 import { UserMenu } from "@/components/UserMenu";
 import { LocaleSwitcher } from "@/components/LocaleSwitcher";
 import { RootClientLayout } from "@/components/RootClientLayout";
@@ -114,7 +115,7 @@ export default async function RootLayout({
                 </Link>
               )}
               <LocaleSwitcher />
-              <UserMenu />
+              {!isReadOnly() && <UserMenu />}
             </div>
           </nav>
         </header>

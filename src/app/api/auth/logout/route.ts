@@ -1,8 +1,12 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
 import { getOidcConfig } from "@/lib/auth/oidc";
+import { isReadOnly } from "@/lib/readonly";
 
 export async function POST(request: NextRequest) {
+  if (isReadOnly()) {
+    return NextResponse.json({ error: "Read-only mode" }, { status: 403 });
+  }
   // Check if this is an OIDC user that should be redirected to the provider's logout
   const user = await getCurrentUser();
   const oidc = await getOidcConfig();

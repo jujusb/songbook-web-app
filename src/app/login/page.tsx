@@ -1,13 +1,15 @@
 import { LoginForm } from "@/components/LoginForm";
 import { getSession } from "@/lib/auth";
 import { getSiteConfig } from "@/lib/content";
-import { redirect } from "next/navigation";
+import { isReadOnly } from "@/lib/readonly";
+import { notFound, redirect } from "next/navigation";
 
 export default async function LoginPage({
   searchParams,
 }: {
   searchParams: Promise<{ error?: string }>;
 }) {
+  if (isReadOnly()) notFound();
   const session = await getSession();
   if (session) redirect("/browse");
 

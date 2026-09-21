@@ -5,6 +5,7 @@ import bcrypt from 'bcryptjs';
 import { SignJWT, jwtVerify } from 'jose';
 import { cookies } from 'next/headers';
 import { UserSchema, type User, type Role } from './schemas';
+import { isReadOnly } from '@/lib/readonly';
 
 const JWT_SECRET = new TextEncoder().encode(
   process.env.JWT_SECRET || 'songbook-default-secret-change-me'
@@ -97,6 +98,7 @@ export async function findOrCreateOidcUser(
 }
 
 export async function saveUser(user: User): Promise<void> {
+  if (isReadOnly()) throw new Error('Read-only mode: user writes disabled');
   const dir = getUsersDir();
   await mkdir(dir, { recursive: true });
   const filePath = path.join(dir, `${user.id}.yaml`);
@@ -110,6 +112,7 @@ export async function createUser(
   role: Role,
   displayName?: string
 ): Promise<User> {
+  if (isReadOnly()) throw new Error('Read-only mode: user writes disabled');
   const id = username.toLowerCase().replace(/[^a-z0-9]+/g, '-');
   const passwordHash = await bcrypt.hash(password, 10);
   const user: User = {
@@ -126,6 +129,7 @@ export async function createUser(
 }
 
 export async function deleteUser(id: string): Promise<void> {
+  if (isReadOnly()) throw new Error('Read-only mode: user writes disabled');
   const { rm } = await import('fs/promises');
   const filePath = path.join(getUsersDir(), `${id}.yaml`);
   await rm(filePath);
@@ -137,6 +141,7 @@ export async function verifyPassword(user: User, password: string): Promise<bool
 }
 
 export async function createSession(user: User): Promise<string> {
+  if (isReadOnly()) throw new Error('Read-only mode: sessions disabled');
   const token = await new SignJWT({ userId: user.id, role: user.role })
     .setProtectedHeader({ alg: 'HS256' })
     .setExpirationTime('7d')
@@ -145,6 +150,7 @@ export async function createSession(user: User): Promise<string> {
 }
 
 export async function getSession(): Promise<{ userId: string; role: Role } | null> {
+  if (isReadOnly()) return null;
   try {
     const cookieStore = await cookies();
     const token = cookieStore.get(COOKIE_NAME)?.value;
@@ -167,14 +173,17 @@ export function canRead(_role: Role | null): boolean {
 }
 
 export function canEdit(role: Role | null): boolean {
+  if (isReadOnly()) return false;
   return role === 'reviewer' || role === 'admin';
 }
 
 export function canAdmin(role: Role | null): boolean {
+  if (isReadOnly()) return false;
   return role === 'admin';
 }
 
 export async function ensureDefaultAdmin(): Promise<void> {
+  if (isReadOnly()) return;
   const users = await listUsers();
   if (users.length === 0) {
     // Create default admin user

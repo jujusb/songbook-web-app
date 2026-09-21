@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { listAlbums, saveAlbum, deleteAlbum } from "@/lib/content";
 import { AlbumSchema } from "@/lib/content/schemas";
+import { isReadOnly } from "@/lib/readonly";
 
 export async function GET() {
   try {
@@ -14,7 +15,12 @@ export async function GET() {
   }
 }
 
+function readonlyResponse() {
+  return NextResponse.json({ error: "Read-only mode" }, { status: 403 });
+}
+
 export async function POST(request: Request) {
+  if (isReadOnly()) return readonlyResponse();
   try {
     const body = await request.json();
     const album = AlbumSchema.parse(body);
@@ -29,6 +35,7 @@ export async function POST(request: Request) {
 }
 
 export async function PUT(request: Request) {
+  if (isReadOnly()) return readonlyResponse();
   try {
     const body = await request.json();
     const album = AlbumSchema.parse(body);
@@ -43,6 +50,7 @@ export async function PUT(request: Request) {
 }
 
 export async function DELETE(request: Request) {
+  if (isReadOnly()) return readonlyResponse();
   try {
     const { searchParams } = new URL(request.url);
     const id = searchParams.get("id");

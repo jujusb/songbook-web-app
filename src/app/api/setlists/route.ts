@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { listSetlists, getSetlist, saveSetlist, deleteSetlist } from "@/lib/content";
 import { getSession, canEdit, canAdmin } from "@/lib/auth";
+import { isReadOnly } from "@/lib/readonly";
 import type { Setlist } from "@/lib/content/schemas";
 
 export async function GET() {
@@ -8,7 +9,12 @@ export async function GET() {
   return NextResponse.json(setlists);
 }
 
+function readonlyResponse() {
+  return NextResponse.json({ error: "Read-only mode" }, { status: 403 });
+}
+
 export async function POST(request: Request) {
+  if (isReadOnly()) return readonlyResponse();
   const session = await getSession();
   if (!canEdit(session?.role ?? null)) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -39,6 +45,7 @@ export async function POST(request: Request) {
 }
 
 export async function PUT(request: Request) {
+  if (isReadOnly()) return readonlyResponse();
   const session = await getSession();
   if (!canEdit(session?.role ?? null)) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -74,6 +81,7 @@ export async function PUT(request: Request) {
 }
 
 export async function DELETE(request: Request) {
+  if (isReadOnly()) return readonlyResponse();
   const session = await getSession();
   if (!canAdmin(session?.role ?? null)) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });

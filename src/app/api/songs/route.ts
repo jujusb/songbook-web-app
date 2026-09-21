@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { listSongs, createSong, saveSongTranslation, getAlbum, saveAlbum, deleteSong } from "@/lib/content";
+import { isReadOnly } from "@/lib/readonly";
 
 export async function GET() {
   try {
@@ -14,6 +15,9 @@ export async function GET() {
 }
 
 export async function POST(request: Request) {
+  if (isReadOnly()) {
+    return NextResponse.json({ error: "Read-only mode" }, { status: 403 });
+  }
   try {
     const body = await request.json();
     const { id, title, lang, chordpro, albumId } = body;
@@ -68,6 +72,9 @@ export async function POST(request: Request) {
 }
 
 export async function DELETE(request: Request) {
+  if (isReadOnly()) {
+    return NextResponse.json({ error: "Read-only mode" }, { status: 403 });
+  }
   try {
     const { searchParams } = new URL(request.url);
     const id = searchParams.get("id");

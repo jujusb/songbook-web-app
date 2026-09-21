@@ -30,3 +30,24 @@ services:
       # - OIDC_AUTO_REDIRECT=false
       # - OIDC_LOGOUT_URL=https://auth.example.com/realms/main/protocol/openid-connect/logout
     restart: unless-stopped
+
+  # Read-only public instance (no login, no admin, no writes).
+  # Serves the same content/music, mounted read-only, with SONGBOOK_READONLY=1.
+  # Point your public hostname at SONGBOOK_PUBLIC_PORT and keep `songbook` private.
+  songbook-public:
+    image: songbook-web-app:latest
+    container_name: songbook-public
+    ports:
+      - "${SONGBOOK_PUBLIC_PORT:-9000}:3000"
+    volumes:
+      - ${SONGBOOK_MUSIC_DIR:-/music}:/app/music:ro
+      - ${SONGBOOK_CONTENT_DIR:-./content}:/app/content:ro
+    environment:
+      - NODE_ENV=production
+      - HOSTNAME=0.0.0.0
+      - PORT=3000
+      - MUSIC_DIR=/app/music
+      - LANGUAGES=${SONGBOOK_LANGUAGES:-en,es,fr}
+      - LANGUAGES_DEFAULT=${SONGBOOK_LANGUAGES_DEFAULT:-es}
+      - SONGBOOK_READONLY=1
+    restart: unless-stopped

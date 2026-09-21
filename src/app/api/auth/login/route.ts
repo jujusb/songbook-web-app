@@ -1,7 +1,11 @@
 import { NextResponse } from "next/server";
 import { getUserByUsername, verifyPassword, createSession, ensureDefaultAdmin } from "@/lib/auth";
+import { isReadOnly } from "@/lib/readonly";
 
 export async function POST(request: Request) {
+  if (isReadOnly()) {
+    return NextResponse.json({ error: "Read-only mode" }, { status: 403 });
+  }
   await ensureDefaultAdmin();
   
   try {
