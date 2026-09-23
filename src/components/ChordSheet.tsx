@@ -3,8 +3,15 @@
 import { useState, useMemo } from "react";
 import ChordSheetJS from "chordsheetjs";
 import { renderVisualChordSheet } from "@/lib/chordpro/visual-render";
+import { SECTION_TYPES } from "@/lib/chordpro/chord-utils";
 import { getReferenceText, getHighlight } from "@/lib/content/references";
 import { useTranslation } from "@/lib/i18n";
+
+const SECTION_TYPES_RE = SECTION_TYPES.join("|");
+const SECTION_MATCH_RE = new RegExp(
+  `\\{(?:start_of_|s)(${SECTION_TYPES_RE})(?:\\s*:\\s*(.+?))?\\}`,
+  "i"
+);
 
 interface ReferenceLocation {
   line?: number;
@@ -60,9 +67,7 @@ function parseSectionMap(
   let lineCounter = 0;
 
   for (const line of lines) {
-    const match = line.match(
-      /\{(?:start_of_|s)(verse|chorus|bridge)(?:\s*:\s*(.+?))?\}/i
-    );
+    const match = line.match(SECTION_MATCH_RE);
     if (match) {
       const sectionType = match[1].toLowerCase(); // verse, chorus, bridge
       const label =

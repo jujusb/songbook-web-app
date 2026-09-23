@@ -1,4 +1,11 @@
 import { txtToChordPro } from "./txt-import";
+import {
+  isChordToken,
+  isCitationLine,
+  normalizeChord,
+  parseSectionHeader,
+  stripTitleNumber,
+} from "./chord-utils";
 
 interface TextItem {
   text: string;
@@ -46,17 +53,11 @@ function groupIntoLines(items: TextItem[], tolerance: number): LineGroup[] {
   return lines;
 }
 
-const CHORD_PATTERN = /^[A-Ga-g][b#]?(?:m|min|maj|dim|aug|sus[24]?|add\d{1,2}|M?\d{1,2}|\/[A-Ga-g][b#]?)*$/;
-
-function isChordToken(token: string): boolean {
-  return CHORD_PATTERN.test(token.trim());
-}
-
 function classifyLine(group: LineGroup): "chords" | "lyrics" | "section" | "other" {
   const text = group.items.map((i) => i.text).join("").trim();
   if (!text) return "other";
 
-  if (/^(?:\[?\s*|--?\s*)(verse|chorus|bridge|pre[- ]?chorus|intro|outro|interlude|tag|coda|instrumental)/i.test(text)) {
+  if (parseSectionHeader(text)) {
     return "section";
   }
 
@@ -81,6 +82,7 @@ function buildChordPro(
 
   let sectionOpen = false;
   let currentSection: string | null = null;
+  let verseCount = 0;
 
   function closeSection() {
     if (sectionOpen) {
@@ -91,10 +93,37 @@ function buildChordPro(
     }
   }
 
-  function sectionDirective(name: string): string {
-    const lower = name.toLowerCase();
-    if (lower === "verse" || lower === "chorus" || lower === "bridge") return lower;
-    return lower;
+  function openSection(directive: string, label: string) {
+    output.push(`{start_of_${directive}: ${label}}`);
+    currentSection = directive;
+    sectionOpen = true;
+  }
+
+  function openAutoSection() {
+    const label = verseCount === 0 ? "Verse" : `Verse ${verseCount + 1}`;
+    verseCount++;
+    openSection("verse", label);
+  }
+
+  // Render section header inline content (chords or text after the colon)
+  function emitInlineContent(content: string) {
+    if (/\[[A-Ga-g][b#]?[^[\]]*\]/.test(content)) {
+      output.push(content);
+      return;
+    }
+    const tokens = content.split(/\s+/).filter(Boolean);
+    if (tokens.length > 0 && tokens.every((t) => isChordToken(t))) {
+      output.push(
+        tokens
+          .map((c, i) => {
+            const chord = normalizeChord(c);
+            return i < tokens.length - 1 ? `[${chord}][ - ]` : `[${chord}]`;
+          })
+          .join(" ")
+      );
+      return;
+    }
+    output.push(content);
   }
 
   let i = 0;
@@ -113,18 +142,13 @@ function buildChordPro(
     const classification = classifyLine(group);
 
     if (classification === "section") {
-      closeSection();
-      const sectionMatch = trimmed.match(
-        /^(?:\[?\s*|--?\s*)(verse|chorus|bridge|pre[- ]?chorus|intro|outro|interlude|tag|coda|instrumental)(?:\s*(\d+))?\s*(?:\]?\s*|--?\s*)[:.\-]*\s*$/i
-      );
-      if (sectionMatch) {
-        const sectionName = sectionMatch[1].toLowerCase();
-        const sectionNum = sectionMatch[2] || "";
-        currentSection = sectionName;
-        output.push(`{start_of_${sectionDirective(sectionName)}: ${
-          sectionName.charAt(0).toUpperCase() + sectionName.slice(1).toLowerCase() + (sectionNum ? ` ${sectionNum}` : "")
-        }}`);
-        sectionOpen = true;
+      const header = parseSectionHeader(trimmed);
+      if (header) {
+        closeSection();
+        openSection(header.directive, header.name);
+        if (header.content) {
+          emitInlineContent(header.content);
+        }
       } else {
         output.push(trimmed);
       }
@@ -138,9 +162,7 @@ function buildChordPro(
       const nextClass = nextGroup ? classifyLine(nextGroup) : "other";
 
       if (!sectionOpen) {
-        output.push("{start_of_verse}");
-        sectionOpen = true;
-        currentSection = "verse";
+        openAutoSection();
       }
 
       if (nextClass === "lyrics" && nextText) {
@@ -148,10 +170,10 @@ function buildChordPro(
           .filter((item) => isChordToken(item.text.trim()))
           .map((item) => ({
             x: item.x,
-            chord: item.text.trim(),
+            chord: normalizeChord(item.text.trim()),
           }));
 
-        let lyricLine = nextText;
+        const lyricLine = nextText;
 
         if (chordPositions.length > 0) {
           const charWidthGuess = estimateCharWidth(nextGroup!.items);
@@ -188,16 +210,24 @@ function buildChordPro(
       }
 
       const chords = trimmed.split(/\s+/);
-      output.push(chords.map((c) => `[${c}]`).join(" "));
+      output.push(chords.map((c) => `[${normalizeChord(c)}]`).join(" "));
       i++;
       continue;
     }
 
     if (classification === "lyrics") {
+      if (isCitationLine(trimmed)) {
+        output.push(`{comment: ${trimmed}}`);
+        i++;
+        continue;
+      }
+      // Skip the title line (may carry a numbering prefix)
+      if (title && stripTitleNumber(trimmed) === title) {
+        i++;
+        continue;
+      }
       if (!sectionOpen) {
-        output.push("{start_of_verse}");
-        sectionOpen = true;
-        currentSection = "verse";
+        openAutoSection();
       }
       output.push(trimmed);
       i++;
@@ -223,11 +253,11 @@ function extractTitle(lines: LineGroup[]): string | null {
     const text = group.items.map((i) => i.text).join("").trim();
     if (!text) continue;
     const titleMatch = text.match(/^title\s*[:=]\s*(.+)$/i);
-    if (titleMatch) return titleMatch[1].trim();
+    if (titleMatch) return stripTitleNumber(titleMatch[1].trim());
     const classification = classifyLine(group);
     if (classification !== "lyrics" && classification !== "other") continue;
     if (!/\[[A-Ga-g][b#]?[^[\]]*\]/.test(text)) {
-      return text;
+      return stripTitleNumber(text);
     }
     break;
   }

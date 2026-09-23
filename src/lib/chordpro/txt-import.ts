@@ -10,35 +10,20 @@
  * 2. **Inline bracket chords** – lyrics already contain chords in [brackets],
  *    which is essentially ChordPro already. We normalise section headers.
  *
- * Section headers like "Verse 1:", "Chorus:", "Bridge:" etc. are converted to
- * ChordPro {start_of_verse}/{start_of_chorus}/{start_of_bridge} directives.
+ * Section headers ("Verse 1:", "(Estribillo)", "🎸INTRO: A E D …") are converted
+ * to ChordPro {start_of_*}/{end_of_*} directives. Section names are recognised
+ * in English, Spanish and French. Blank lines split stanzas: every unlabelled
+ * stanza becomes a numbered verse, so verses, instrumentals and choruses are
+ * separated cleanly when documents put each on its own block.
  */
 
-// Matches a line that is entirely chords (with spaces between them)
-// Chord pattern: optional root note A-G, optional sharp/flat, optional suffix
-const CHORD_TOKEN =
-  /^[A-Ga-g][b#]?(?:m|min|maj|dim|aug|sus[24]?|add\d{1,2}|M?\d{1,2}|\/[A-Ga-g][b#]?)*$/;
-
-function isChordLine(line: string): boolean {
-  const trimmed = line.trim();
-  if (!trimmed) return false;
-  // A chord line is made of tokens that all look like chords
-  const tokens = trimmed.split(/\s+/);
-  if (tokens.length === 0) return false;
-  return tokens.every((t) => CHORD_TOKEN.test(t));
-}
-
-// Matches common section headers: "Verse 1:", "[Chorus]", "-- Bridge --", etc.
-const SECTION_HEADER =
-  /^\s*(?:\[?\s*|--?\s*)(verse|chorus|bridge|pre[- ]?chorus|intro|outro|interlude|tag|coda|instrumental)(?:\s*(\d+))?\s*(?:\]?\s*|--?\s*)[:.\-]*\s*$/i;
-
-function sectionDirective(name: string): string {
-  const lower = name.toLowerCase();
-  if (lower === "verse") return "verse";
-  if (lower === "chorus") return "chorus";
-  if (lower === "bridge") return "bridge";
-  return lower; // intro, outro, interlude, coda, instrumental, etc.
-}
+import {
+  isChordLine,
+  isCitationLine,
+  normalizeChord,
+  parseSectionHeader,
+  stripTitleNumber,
+} from "./chord-utils";
 
 /**
  * Merge a chord line with the lyric line below it, inserting [Chord] markers
@@ -82,11 +67,11 @@ function mergeChordAndLyricLine(
 
     for (const { col, chord } of chords) {
       // Snap to nearest word start (handles Word's irregular spacing)
-      const snapPos = snapToWordStart(col, wordStarts, lyricLen);
+      const snapPos = snapToWordStart(col, wordStarts);
       if (snapPos > lastIdx) {
         result += lyricLine.slice(lastIdx, snapPos);
       }
-      result += `[${chord}]`;
+      result += `[${normalizeChord(chord)}]`;
       lastIdx = snapPos;
     }
 
@@ -119,13 +104,13 @@ function mergeChordAndLyricLine(
 
     // Snap to nearest word start
     if (wordStarts.length > 0) {
-      targetPos = snapToWordStart(targetPos, wordStarts, lyricLen);
+      targetPos = snapToWordStart(targetPos, wordStarts);
     }
 
     if (targetPos > lastIdx) {
       result += lyricLine.slice(lastIdx, targetPos);
     }
-    result += `[${chord}]`;
+    result += `[${normalizeChord(chord)}]`;
     lastIdx = targetPos;
   }
 
@@ -135,7 +120,7 @@ function mergeChordAndLyricLine(
   return result.trimEnd();
 }
 
-function snapToWordStart(pos: number, wordStarts: number[], lyricLen: number): number {
+function snapToWordStart(pos: number, wordStarts: number[]): number {
   if (wordStarts.length === 0) return pos;
   let nearest = wordStarts[0];
   let minDist = Math.abs(pos - nearest);
@@ -163,25 +148,27 @@ function hasInlineChords(text: string): boolean {
 
 /**
  * Extract title from the first non-empty, non-section-header line,
- * or from a "Title:" prefix.
+ * or from a "Title:" prefix. Leading numbering ("1. ", "1) ") is stripped.
  */
 function extractTitle(lines: string[]): string | null {
   for (const line of lines) {
     const trimmed = line.trim();
     if (!trimmed) continue;
 
-    // "Title: Something"
-    const titleMatch = trimmed.match(/^title\s*[:=]\s*(.+)$/i);
-    if (titleMatch) return titleMatch[1].trim();
+    // "{title: Something}" / "{t: Something}" / "Title: Something"
+    const titleMatch = trimmed.match(
+      /^(?:\{(?:t(?:itle)?)\s*[:=]\s*|title\s*[:=]\s*)(.+?)\}?\s*$/i
+    );
+    if (titleMatch) return stripTitleNumber(titleMatch[1].trim());
 
     // Skip section headers and chord lines
-    if (SECTION_HEADER.test(trimmed)) continue;
+    if (parseSectionHeader(trimmed)) continue;
     if (isChordLine(trimmed)) continue;
 
     // First real text line could be the title
     // Only if it doesn't contain chord brackets
     if (!hasInlineChords(trimmed)) {
-      return trimmed;
+      return stripTitleNumber(trimmed);
     }
     break;
   }
@@ -200,6 +187,7 @@ export function txtToChordPro(input: string): {
   const output: string[] = [];
   let currentSection: string | null = null;
   let sectionOpen = false;
+  let verseCount = 0;
   let detectedKey: string | null = null;
   let title: string | null = null;
 
@@ -211,7 +199,8 @@ export function txtToChordPro(input: string): {
 
   // Look for key indication
   for (const line of lines) {
-    const keyMatch = line.trim().match(/^key\s*[:=]\s*([A-Ga-g][b#]?m?)\s*$/i);
+    const candidate = line.trim().replace(/^\{|\}$/g, "");
+    const keyMatch = candidate.match(/^key\s*[:=]\s*([A-Ga-g][b#]?m?)\s*$/i);
     if (keyMatch) {
       detectedKey = keyMatch[1];
       break;
@@ -228,86 +217,90 @@ export function txtToChordPro(input: string): {
     output.push("");
   }
 
+  function sectionDirective(name: string): string {
+    const lower = name.toLowerCase();
+    if (lower === "verse" || lower === "chorus" || lower === "bridge") return lower;
+    return lower;
+  }
+
+  function openSection(name: string, label: string): void {
+    output.push(`{start_of_${sectionDirective(name)}: ${label}}`);
+    currentSection = name;
+    sectionOpen = true;
+  }
+
+  function closeSection(): void {
+    if (sectionOpen) {
+      output.push(`{end_of_${sectionDirective(currentSection!)}}`);
+      output.push("");
+      sectionOpen = false;
+      currentSection = null;
+    }
+  }
+
+  // Open a section for an unlabelled stanza. Every stanza is numbered
+  // sequentially so blank-line-separated verses, choruses and instrumentals
+  // are split into distinct sections.
+  function openAutoSection(): void {
+    const label = verseCount === 0 ? "Verse" : `Verse ${verseCount + 1}`;
+    verseCount++;
+    openSection("verse", label);
+  }
+
+  // Render header inline content (chords or lyric text on the same line)
+  function emitInlineContent(content: string): void {
+    if (hasInlineChords(content)) {
+      output.push(content);
+    } else if (isChordLine(content)) {
+      const chords = content.split(/\s+/);
+      output.push(
+        chords
+          .map((c, i) => {
+            const chord = normalizeChord(c);
+            return i < chords.length - 1 ? `[${chord}][ - ]` : `[${chord}]`;
+          })
+          .join(" ")
+      );
+    } else {
+      output.push(content);
+    }
+  }
+
   let i = 0;
   while (i < lines.length) {
     const line = lines[i];
     const trimmed = line.trim();
 
     // Skip title/key metadata lines we already processed
-    if (/^title\s*[:=]/i.test(trimmed) || /^key\s*[:=]/i.test(trimmed)) {
+    const existingMeta = trimmed.match(
+      /^\{(?:t(?:itle)?|key)\s*[:=]\s*(.+?)\}\s*$/i
+    );
+    if (
+      /^title\s*[:=]/i.test(trimmed) ||
+      /^key\s*[:=]/i.test(trimmed) ||
+      existingMeta
+    ) {
       i++;
       continue;
     }
 
-    // Check for section header
-    const sectionMatch = trimmed.match(SECTION_HEADER);
-    if (sectionMatch) {
-      // Close previous section
-      if (sectionOpen) {
-        output.push(`{end_of_${sectionDirective(currentSection!)}}`);
-        output.push("");
+    // Section header (with or without inline content)
+    const header = parseSectionHeader(trimmed);
+    if (header) {
+      closeSection();
+      openSection(header.directive, header.name);
+      if (header.content) {
+        emitInlineContent(header.content);
       }
-
-      const sectionName = sectionMatch[1];
-      const sectionNum = sectionMatch[2] || "";
-      currentSection = sectionName.toLowerCase();
-
-      output.push(`{start_of_${sectionDirective(sectionName)}: ${
-        sectionName.charAt(0).toUpperCase() +
-        sectionName.slice(1).toLowerCase() +
-        (sectionNum ? ` ${sectionNum}` : "")
-      }}`);
-      sectionOpen = true;
       i++;
       continue;
     }
 
-    // Check for section header with content on the same line
-    // e.g. "🎸INTRO: A  E  D  F#m" or "Instrumental: Am  C  G"
-    const sectionContentMatch = trimmed
-      .replace(/^[^\w\s]+/, "")
-      .trim()
-      .match(
-        /^(verse|chorus|bridge|pre[- ]?chorus|intro|outro|interlude|tag|coda|instrumental)(?:\s*(\d+))?\s*:\s*(.+)$/i
-      );
-    if (sectionContentMatch) {
-      if (sectionOpen) {
-        output.push(`{end_of_${sectionDirective(currentSection!)}}`);
-        output.push("");
-      }
-
-      const sectionName = sectionContentMatch[1];
-      const sectionNum = sectionContentMatch[2] || "";
-      currentSection = sectionName.toLowerCase();
-
-      output.push(`{start_of_${sectionDirective(sectionName)}: ${
-        sectionName.charAt(0).toUpperCase() +
-        sectionName.slice(1).toLowerCase() +
-        (sectionNum ? ` ${sectionNum}` : "")
-      }}`);
-
-      const content = sectionContentMatch[3].trim();
-      if (alreadyInline || hasInlineChords(content)) {
-        output.push(content);
-      } else if (isChordLine(content)) {
-        const chords = content.split(/\s+/);
-        output.push(chords.map((c, i) => i < chords.length - 1 ? `[${c}][ - ]` : `[${c}]`).join(" "));
-      } else {
-        output.push(content);
-      }
-      sectionOpen = true;
-      i++;
-      continue;
-    }
-
-    // Empty line — could be section boundary
+    // Empty line — section boundary: close the current section so the next
+    // stanza starts fresh (newline-split verses/choruses).
     if (!trimmed) {
-      // If no explicit section headers are used, close/open sections on blank lines
       if (sectionOpen) {
-        output.push(`{end_of_${sectionDirective(currentSection!)}}`);
-        output.push("");
-        sectionOpen = false;
-        currentSection = null;
+        closeSection();
       } else {
         output.push("");
       }
@@ -321,10 +314,7 @@ export function txtToChordPro(input: string): {
       const sectionEnd = trimmed.match(/^\{(end_of|e)_(\w+)\}$/i);
 
       if (sectionStart) {
-        if (sectionOpen) {
-          output.push(`{end_of_${sectionDirective(currentSection!)}}`);
-          output.push("");
-        }
+        closeSection();
         currentSection = sectionStart[2].toLowerCase();
         output.push(trimmed);
         sectionOpen = true;
@@ -340,31 +330,9 @@ export function txtToChordPro(input: string): {
         continue;
       }
 
-      // "🎸INTRO: A  E  D  F#m" — section header with chords on the same line
-      const headerMatch = trimmed
-        .replace(/^[^\w\s]+/, "")
-        .trim()
-        .match(
-          /^(verse|chorus|bridge|pre[- ]?chorus|intro|outro|interlude|tag|coda|instrumental)(?:\s*(\d+))?\s*:\s*(.+)$/i
-        );
-      if (headerMatch) {
-        if (sectionOpen) {
-          output.push(`{end_of_${sectionDirective(currentSection!)}}`);
-          output.push("");
-        }
-        const sName = headerMatch[1].toLowerCase();
-        currentSection = sName;
-        output.push(`{start_of_${sectionDirective(sName)}: ${
-          sName.charAt(0).toUpperCase() + sName.slice(1).toLowerCase()
-        }}`);
-        const content = headerMatch[3].trim();
-        if (isChordLine(content)) {
-          const chords = content.split(/\s+/);
-          output.push(chords.map((c, i) => i < chords.length - 1 ? `[${c}][ - ]` : `[${c}]`).join(" "));
-        } else {
-          output.push(content);
-        }
-        sectionOpen = true;
+      // Skip citation lines (turn into comments) before touching sections
+      if (isCitationLine(trimmed)) {
+        output.push(`{comment: ${trimmed}}`);
         i++;
         continue;
       }
@@ -372,9 +340,7 @@ export function txtToChordPro(input: string): {
       // Chord-above-lyrics line even in mixed mode
       if (isChordLine(trimmed)) {
         if (!sectionOpen) {
-          output.push("{start_of_verse}");
-          sectionOpen = true;
-          currentSection = "verse";
+          openAutoSection();
         }
         const nextLine = i + 1 < lines.length ? lines[i + 1] : "";
         const nextTrimmed = nextLine.trim();
@@ -384,18 +350,29 @@ export function txtToChordPro(input: string): {
           continue;
         }
         const chords = trimmed.split(/\s+/);
-        output.push(chords.map((c) => `[${c}]`).join(" "));
+        output.push(chords.map((c) => `[${normalizeChord(c)}]`).join(" "));
+        i++;
+        continue;
+      }
+
+      // Skip the title line
+      if (title && stripTitleNumber(trimmed) === title) {
         i++;
         continue;
       }
 
       // Regular line — auto-open section if needed, then pass through
       if (!sectionOpen && trimmed) {
-        output.push("{start_of_verse}");
-        sectionOpen = true;
-        currentSection = "verse";
+        openAutoSection();
       }
       output.push(trimmed);
+      i++;
+      continue;
+    }
+
+    // Citation line — do not open a verse for e.g. "Lc 1,47"
+    if (isCitationLine(trimmed)) {
+      output.push(`{comment: ${trimmed}}`);
       i++;
       continue;
     }
@@ -408,16 +385,14 @@ export function txtToChordPro(input: string): {
 
       // Auto-open a section if none is open
       if (!sectionOpen) {
-        output.push("{start_of_verse}");
-        sectionOpen = true;
-        currentSection = "verse";
+        openAutoSection();
       }
 
       // If next line is also a chord line or empty, this is a chords-only line
-      if (!nextTrimmed || isChordLine(nextTrimmed) || SECTION_HEADER.test(nextTrimmed)) {
+      if (!nextTrimmed || isChordLine(nextTrimmed) || parseSectionHeader(nextTrimmed)) {
         // Chords-only line (e.g. instrumental)
         const chords = trimmed.split(/\s+/);
-        output.push(chords.map((c) => `[${c}]`).join(" "));
+        output.push(chords.map((c) => `[${normalizeChord(c)}]`).join(" "));
         i++;
       } else {
         // Merge chord line with lyric line below
@@ -428,16 +403,15 @@ export function txtToChordPro(input: string): {
       continue;
     }
 
+    // Skip the title line
+    if (title && stripTitleNumber(trimmed) === title) {
+      i++;
+      continue;
+    }
+
     // Plain lyric line (no chords above)
     if (!sectionOpen) {
-      // Skip the first non-chord, non-section line if it matches the detected title
-      if (title && trimmed === title && output.some((l) => l.startsWith("{title:"))) {
-        i++;
-        continue;
-      }
-      output.push("{start_of_verse}");
-      sectionOpen = true;
-      currentSection = "verse";
+      openAutoSection();
     }
     output.push(trimmed);
     i++;

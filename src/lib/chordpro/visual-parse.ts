@@ -1,3 +1,7 @@
+import { SECTION_TYPES } from "./chord-utils";
+
+const SECTION_TYPES_RE = SECTION_TYPES.join("|");
+
 export interface ChordPosition {
   chord: string;
   position: number;
@@ -46,12 +50,23 @@ export function parseChordProSource(source: string): ParsedLine[] {
 export function directiveLabel(raw: string): string | null {
   const m = raw
     .trim()
-    .match(/^\{(?:start_of_|s)(verse|chorus|bridge)(?:\s*:\s*(.+?))?\}$/i);
+    .match(
+      new RegExp(
+        `^\\{(?:start_of_|s)(${SECTION_TYPES_RE})(?:\\s*:\\s*(.+?))?\\}$`,
+        "i"
+      )
+    );
   if (m) {
     const label = m[2] || m[1].replace(/^\w/, (c) => c.toUpperCase());
     return label;
   }
-  if (/^\{(?:end_of_|e)(verse|chorus|bridge)\}$/i.test(raw.trim())) return null;
+  if (
+    new RegExp(`^\\{(?:end_of_|e)(${SECTION_TYPES_RE})\\}$`, "i").test(
+      raw.trim()
+    )
+  ) {
+    return null;
+  }
   return null;
 }
 
@@ -111,9 +126,14 @@ export function buildSectionSpans(source: string): SectionSpan[] {
     if (pl.type === "directive") {
       const raw = pl.raw.trim();
       const start = raw.match(
-        /^\{(?:start_of_|s)(verse|chorus|bridge)(?:\s*:\s*(.+?))?\}$/i
+        new RegExp(
+          `^\\{(?:start_of_|s)(${SECTION_TYPES_RE})(?:\\s*:\\s*(.+?))?\\}$`,
+          "i"
+        )
       );
-      const end = raw.match(/^\{(?:end_of_|e)(verse|chorus|bridge)\}$/i);
+      const end = raw.match(
+        new RegExp(`^\\{(?:end_of_|e)(${SECTION_TYPES_RE})\\}$`, "i")
+      );
       if (start) {
         const type = start[1].toLowerCase();
         const label = start[2] || type.charAt(0).toUpperCase() + type.slice(1);

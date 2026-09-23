@@ -3,6 +3,9 @@ import {
   directiveLabel,
   isContentLine,
 } from "./visual-parse";
+import { SECTION_TYPES } from "./chord-utils";
+
+const SECTION_TYPES_RE = SECTION_TYPES.join("|");
 
 function escapeHtml(str: string): string {
   return str
@@ -89,7 +92,10 @@ export function renderVisualChordSheet(
       const sectionLabel = directiveLabel(line.raw);
       const isChorusRepeat = /^\{chorus\}$/i.test(raw);
       const isStartOfChorus = /^\{(?:start_of_|s)chorus(?:\s*:\s*(?:.+?))?\}$/i.test(raw);
-      const isEndOfSection = /^\{(?:end_of_|e)(verse|chorus|bridge)\}$/i.test(raw);
+      const isEndOfSection = new RegExp(
+        `^\\{(?:end_of_|e)(${SECTION_TYPES_RE})\\}$`,
+        "i"
+      ).test(raw);
 
       if (isChorusRepeat) {
         finalizeChorus();

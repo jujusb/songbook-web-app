@@ -3,7 +3,18 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { renderVisualChordSheet } from "@/lib/chordpro/visual-render";
+import { SECTION_TYPES } from "@/lib/chordpro/chord-utils";
 import { useTranslation } from "@/lib/i18n";
+
+const SECTION_TYPES_RE = SECTION_TYPES.join("|");
+const START_OF_RE = new RegExp(
+  `\\{(?:start_of_|s)(${SECTION_TYPES_RE})(?:\\s*:\\s*(.+?))?\\}`,
+  "i"
+);
+const END_OF_RE = new RegExp(
+  `\\{(?:end_of_|e)(${SECTION_TYPES_RE})\\}`,
+  "i"
+);
 
 interface Section {
   label: string;
@@ -26,20 +37,15 @@ function parseSections(source: string): Section[] {
     // The leading start_of_* directive renders a section label, but the
     // presentation already shows it in the top bar — drop it from the block.
     const content = currentLines.filter(
-      (l, i) =>
-        !(i === 0 && /^\{(?:start_of_|s)(verse|chorus|bridge)/i.test(l.trim()))
+      (l, i) => !(i === 0 && START_OF_RE.test(l.trim()))
     );
     const sectionSource = content.join("\n");
     sections.push({ label: currentLabel, rawHtml: renderVisualChordSheet(sectionSource) });
   }
 
   for (const line of lines) {
-    const startMatch = line.match(
-      /\{(?:start_of_|s)(verse|chorus|bridge)(?:\s*:\s*(.+?))?\}/i
-    );
-    const endMatch = line.match(
-      /\{(?:end_of_|e)(verse|chorus|bridge)\}/i
-    );
+    const startMatch = line.match(START_OF_RE);
+    const endMatch = line.match(END_OF_RE);
     const isChorusRepeat = /^\{chorus\}$/i.test(line.trim());
 
     if (isChorusRepeat && lastChorusHtml) {
