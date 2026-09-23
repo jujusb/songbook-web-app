@@ -101,7 +101,10 @@ const SECTION_DIRECTIVE_BY_NAME: Record<string, string> = {
 
 export function mapSectionDirective(name: string): string | null {
   const key = stripAccents(name.toLowerCase()).replace(/[\s'\-]+/g, "");
-  return SECTION_DIRECTIVE_BY_NAME[key] ?? null;
+  if (SECTION_DIRECTIVE_BY_NAME[key]) return SECTION_DIRECTIVE_BY_NAME[key];
+  // "(Estribillo final)", "Verse finale" → match the bare section stem
+  const stem = key.replace(/(final|finale|ultimos?|ultimas?|last)$/, "");
+  return SECTION_DIRECTIVE_BY_NAME[stem] ?? null;
 }
 
 /**

@@ -1,4 +1,5 @@
 import { txtToChordPro } from "./txt-import";
+import { parseSectionHeader } from "./chord-utils";
 
 function htmlToText(html: string): string {
   let text = html
@@ -21,36 +22,100 @@ function htmlToText(html: string): string {
 }
 
 /**
- * Extract column text from an HTML table.
- * Returns an array of text strings, one per column.
+ * Extract the cell text of every `<tr>` in a table HTML string.
+ * Returns an array of rows; each row is an array of cell texts with
+ * paragraph/line breaks inside a cell preserved as "\n".
  */
-function extractTableColumns(tableHtml: string): string[] {
-  const columns: string[] = [];
-
-  // Match each <tr>...</tr> row
+function extractTableRows(tableHtml: string): string[][] {
+  const rows: string[][] = [];
   const rowRe = /<tr[^>]*>([\s\S]*?)<\/tr>/gi;
   let rowMatch: RegExpExecArray | null;
 
   while ((rowMatch = rowRe.exec(tableHtml)) !== null) {
-    const rowContent = rowMatch[1];
     const cells: string[] = [];
-
-    // Match each <td>...</td> or <th>...</th> cell
     const cellRe = /<t[dh][^>]*>([\s\S]*?)<\/t[dh]>/gi;
     let cellMatch: RegExpExecArray | null;
-    while ((cellMatch = cellRe.exec(rowContent)) !== null) {
+    while ((cellMatch = cellRe.exec(rowMatch[1])) !== null) {
       cells.push(htmlToText(cellMatch[1]));
     }
+    rows.push(cells);
+  }
 
-    // Add each cell to its column
-    for (let ci = 0; ci < cells.length; ci++) {
-      if (!columns[ci]) columns[ci] = "";
-      if (columns[ci]) columns[ci] += "\n";
-      columns[ci] += cells[ci];
+  return rows;
+}
+
+/**
+ * Turn a table into song text. Each table row corresponds to one stanza —
+ * its cell usually contains many chord/lyric lines stacked as paragraphs.
+ * Cells inside a row are stacked (chords column above lyrics column), and
+ * each new table row is separated by a blank line so the general importer
+ * splits the stanzas into separate sections. A row holding only a section
+ * header ("(Estribillo final)") is merged with the stanza row that follows.
+ */
+function tableRowsToText(rows: string[][]): string {
+  const blankBlocks: string[] = [];
+  const pendingHeader: string[] = [];
+
+  for (const cells of rows) {
+    const lines: string[] = [];
+    for (const cell of cells) {
+      if (cell.trim()) lines.push(cell);
+    }
+    const text = lines.join("\n").trim();
+    if (!text) {
+      blankBlocks.push("");
+      continue;
+    }
+
+    // Bare section header in its own row → attach it to the next stanza
+    const header = parseSectionHeader(lines[0]?.trim() ?? "");
+    if (lines.length === 1 && header && !header.content) {
+      pendingHeader.push(text);
+      continue;
+    }
+
+    if (pendingHeader.length > 0) {
+      blankBlocks.push(pendingHeader.join("\n") + "\n" + text);
+      pendingHeader.length = 0;
+    } else {
+      blankBlocks.push(text);
     }
   }
 
-  return columns.map((c) => c.trim()).filter(Boolean);
+  if (pendingHeader.length > 0) blankBlocks.push(pendingHeader.join("\n"));
+
+  return blankBlocks.join("\n\n").replace(/\n{3,}/g, "\n\n").trim();
+}
+
+/**
+ * Convert mammoth HTML to song text, preserving document order of paragraphs
+ * (section headers, citations, …) and tables. Tables are expanded row-wise
+ * with a blank line between stanzas.
+ */
+function convertHtmlToText(html: string): string {
+  const blocks: string[] = [];
+  const blockRe = /<table[^>]*>[\s\S]*?<\/table>|<p(?:\s[^>]*)?>[\s\S]*?<\/p>/gi;
+  let match: RegExpExecArray | null;
+  let lastIndex = 0;
+
+  while ((match = blockRe.exec(html)) !== null) {
+    const between = html.slice(lastIndex, match.index).replace(/<[^>]+>/g, "").trim();
+    if (between) blocks.push(between);
+
+    if (match[0].toLowerCase().startsWith("<table")) {
+      const text = tableRowsToText(extractTableRows(match[0]));
+      if (text) blocks.push(text);
+    } else {
+      const text = htmlToText(match[0]);
+      if (text) blocks.push(text);
+    }
+    lastIndex = blockRe.lastIndex;
+  }
+
+  const rest = html.slice(lastIndex).replace(/<[^>]+>/g, "").trim();
+  if (rest) blocks.push(rest);
+
+  return blocks.filter((b) => b.trim()).join("\n\n");
 }
 
 export async function docxToChordPro(file: File): Promise<{
@@ -64,35 +129,5 @@ export async function docxToChordPro(file: File): Promise<{
   const result = await mammoth.convertToHtml({ arrayBuffer });
   const html = result.value;
 
-  // Check for tables (column layout)
-  const tableRe = /<table[^>]*>([\s\S]*?)<\/table>/gi;
-  const tableMatches: string[] = [];
-  let tableMatch: RegExpExecArray | null;
-  while ((tableMatch = tableRe.exec(html)) !== null) {
-    tableMatches.push(tableMatch[0]);
-  }
-
-  if (tableMatches.length > 0) {
-    // Process each table column independently, then combine
-    const parts: string[] = [];
-    let globalTitle: string | null = null;
-    let globalKey: string | null = null;
-
-    for (const tableHtml of tableMatches) {
-      const columns = extractTableColumns(tableHtml);
-      for (const colText of columns) {
-        const result = txtToChordPro(colText);
-        if (result.title && !globalTitle) globalTitle = result.title;
-        if (result.detectedKey && !globalKey) globalKey = result.detectedKey;
-        if (result.chordpro) parts.push(result.chordpro);
-      }
-    }
-
-    const chordpro = parts.join("\n\n").trim();
-    return { title: globalTitle, chordpro, detectedKey: globalKey };
-  }
-
-  // No table — extract plain text as before
-  const text = htmlToText(html);
-  return txtToChordPro(text);
+  return txtToChordPro(convertHtmlToText(html));
 }

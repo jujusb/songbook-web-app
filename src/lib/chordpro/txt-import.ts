@@ -191,6 +191,15 @@ export function txtToChordPro(input: string): {
   let detectedKey: string | null = null;
   let title: string | null = null;
 
+  // Case/space/punctuation-insensitive comparison used to de-duplicate the
+  // {title:}/{key:} metadata that was already emitted.
+  const comparable = (s: string): string =>
+    s
+      .toLowerCase()
+      .replace(/[^a-z0-9\u00C0-\u024F\s]/gi, " ")
+      .replace(/\s+/g, " ")
+      .trim();
+
   // Check if this is already inline-chord format
   const alreadyInline = hasInlineChords(input);
 
@@ -271,15 +280,28 @@ export function txtToChordPro(input: string): {
     const line = lines[i];
     const trimmed = line.trim();
 
-    // Skip title/key metadata lines we already processed
-    const existingMeta = trimmed.match(
-      /^\{(?:t(?:itle)?|key)\s*[:=]\s*(.+?)\}\s*$/i
-    );
-    if (
-      /^title\s*[:=]/i.test(trimmed) ||
-      /^key\s*[:=]/i.test(trimmed) ||
-      existingMeta
-    ) {
+    // Skip bare "Title:" / "Key:" text lines we already handled
+    if (/^title\s*[:=]/i.test(trimmed) || /^key\s*[:=]/i.test(trimmed)) {
+      i++;
+      continue;
+    }
+
+    // Skip the {title:}/{key:} metadata we already emitted (duplicates only).
+    // Other instances (e.g. a second song in the same file) are allowed to
+    // pass through verbatim below instead of being dropped.
+    const dupTitle = trimmed.match(/^\{(?:t(?:itle)?)\s*[:=]\s*(.+?)\}\s*$/i);
+    if (dupTitle && title && comparable(dupTitle[1].trim()) === comparable(title)) {
+      i++;
+      continue;
+    }
+    const dupKey = trimmed.match(/^\{(?:key)\s*[:=]\s*(.+?)\}\s*$/i);
+    if (dupKey && detectedKey && comparable(dupKey[1].trim()) === comparable(detectedKey)) {
+      i++;
+      continue;
+    }
+    if (trimmed.match(/^\{(?:t(?:itle)?|key)\s*[:=]\s*.+\}\s*$/i)) {
+      closeSection();
+      output.push(trimmed);
       i++;
       continue;
     }
@@ -326,6 +348,14 @@ export function txtToChordPro(input: string): {
         output.push(trimmed);
         sectionOpen = false;
         currentSection = null;
+        i++;
+        continue;
+      }
+
+      // Pass through any other ChordPro directive (e.g. a second {title:},
+      // {comment:}, {verse: 2}) untouched instead of absorbing it into a verse
+      if (/^\{.+?\}\s*$/.test(trimmed)) {
+        output.push(trimmed);
         i++;
         continue;
       }
