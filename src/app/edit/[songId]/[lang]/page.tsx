@@ -33,6 +33,11 @@ export default async function EditPage({
   }
 
   const translations = await getSongTranslations(songId);
+  const translationsContent = Object.fromEntries(
+    await Promise.all(
+      translations.map(async (l) => [l, (await getSongTranslation(songId, l)).body] as const),
+    ),
+  );
   const langConfig = await getLanguagesConfig();
   const allLanguages = langConfig.languages.map((l) => l.code);
   // Use all configured languages + any song-specific languages
@@ -48,6 +53,7 @@ export default async function EditPage({
       references={meta.references}
       languages={languages}
       translations={translations}
+      translationsContent={translationsContent}
       title={localizedTitle}
       status={translation.meta.status}
       initialShowReferences={showRefs === '1'}

@@ -17,6 +17,7 @@ export function EditPageClient({
   references,
   languages,
   translations,
+  translationsContent,
   title,
   status,
   initialShowReferences = false,
@@ -27,6 +28,7 @@ export function EditPageClient({
   references: Reference[];
   languages: string[];
   translations: string[];
+  translationsContent: Record<string, string>;
   title: string;
   status: string;
   initialShowReferences?: boolean;
@@ -161,6 +163,8 @@ export function EditPageClient({
         songId={songId}
         lang={lang}
         initialContent={initialContent}
+        translations={translationLangs}
+        translationsContent={translationsContent}
       />
       {showReferences && (
         <ReferenceEditor

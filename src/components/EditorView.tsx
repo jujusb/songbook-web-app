@@ -9,6 +9,7 @@ import { syntaxHighlighting, defaultHighlightStyle } from "@codemirror/language"
 import { searchKeymap } from "@codemirror/search";
 import { saveSongAction, saveSongReferencesAction } from "@/app/actions";
 import { VisualChordEditor } from "@/components/VisualChordEditor";
+import { ReadOnlyChordSource } from "@/components/ReadOnlyChordSource";
 import { renderVisualChordSheet } from "@/lib/chordpro/visual-render";
 import { useTranslation } from "@/lib/i18n";
 import { txtToChordPro } from "@/lib/chordpro/txt-import";
@@ -17,16 +18,20 @@ import type { Reference } from "@/lib/content/schemas";
 
 type ImportTab = "text" | "pdf" | "word";
 
-type EditorMode = "code" | "visual";
+type EditorViewMode = "code" | "visual";
 
 export function EditorView({
   songId,
   lang,
   initialContent,
+  translations,
+  translationsContent,
 }: {
   songId: string;
   lang: string;
   initialContent: string;
+  translations: string[];
+  translationsContent: Record<string, string>;
 }) {
   const { t } = useTranslation();
   const editorRef = useRef<HTMLDivElement>(null);
@@ -38,7 +43,10 @@ export function EditorView({
   const contentRef = useRef(content);
   const savingRef = useRef(false);
   const lastSavedRef = useRef(content);
-  const [mode, setMode] = useState<EditorMode>("visual");
+  const [leftView, setLeftView] = useState<EditorViewMode>("visual");
+  const [compareOn, setCompareOn] = useState(false);
+  const [compareLang, setCompareLang] = useState<string | null>(null);
+  const [compareView, setCompareView] = useState<EditorViewMode>("visual");
   const [showImport, setShowImport] = useState(false);
   const [importTab, setImportTab] = useState<ImportTab>("text");
   const [importText, setImportText] = useState("");
@@ -50,6 +58,13 @@ export function EditorView({
 
   const preview = renderVisualChordSheet(content, { repeatChorus: true });
 
+  const otherLangs = translations.filter((l) => l !== lang);
+  const validCompareLang =
+    compareLang && otherLangs.includes(compareLang) ? compareLang : (otherLangs[0] ?? null);
+  const compareSource = (validCompareLang ? translationsContent[validCompareLang] : undefined) ?? "";
+  const comparePreview = renderVisualChordSheet(compareSource, { repeatChorus: false });
+  const showCompare = compareOn && otherLangs.length > 0;
+
   // Keep refs in sync with the latest content
   useEffect(() => {
     contentRef.current = content;
@@ -57,7 +72,7 @@ export function EditorView({
 
   // Initialize CodeMirror when switching to code mode
   useEffect(() => {
-    if (mode !== "code") return;
+    if (leftView !== "code") return;
     if (!editorRef.current) return;
 
     // Destroy previous instance if any
@@ -102,7 +117,7 @@ export function EditorView({
       cmViewRef.current = null;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [mode]);
+  }, [leftView]);
 
   // Sync content into CodeMirror when it changes externally (e.g. import)
   useEffect(() => {
@@ -234,14 +249,18 @@ export function EditorView({
     <div className="flex-1 flex overflow-hidden">
       {/* Editor pane */}
       <div
-        className={`flex flex-col ${mode === "code" ? "w-1/2 border-r border-neutral-200 dark:border-neutral-800" : "flex-1"}`}
+        className={`flex flex-col ${
+          showCompare || leftView === "code"
+            ? "w-1/2 border-r border-neutral-200 dark:border-neutral-800"
+            : "flex-1"
+        }`}
       >
         <div className="px-3 py-1.5 border-b border-neutral-200 dark:border-neutral-800 flex items-center justify-between bg-neutral-50 dark:bg-neutral-900">
           <div className="flex items-center gap-1">
             <button
-              onClick={() => setMode("visual")}
+              onClick={() => setLeftView("visual")}
               className={`text-xs px-2 py-0.5 rounded transition-colors ${
-                mode === "visual"
+                leftView === "visual"
                   ? "bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300 font-semibold"
                   : "text-neutral-500 hover:text-neutral-700 dark:hover:text-neutral-300"
               }`}
@@ -249,14 +268,26 @@ export function EditorView({
               {t('editor.visual')}
             </button>
             <button
-              onClick={() => setMode("code")}
+              onClick={() => setLeftView("code")}
               className={`text-xs px-2 py-0.5 rounded transition-colors ${
-                mode === "code"
+                leftView === "code"
                   ? "bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300 font-semibold"
                   : "text-neutral-500 hover:text-neutral-700 dark:hover:text-neutral-300"
               }`}
             >
               {t('editor.code')}
+            </button>
+            <button
+              onClick={() => setCompareOn((on) => !on)}
+              disabled={otherLangs.length === 0}
+              title={otherLangs.length === 0 ? t('editor.compareNoOtherTranslation') : undefined}
+              className={`text-xs px-2 py-0.5 rounded transition-colors disabled:opacity-40 ${
+                compareOn
+                  ? "bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300 font-semibold"
+                  : "text-neutral-500 hover:text-neutral-700 dark:hover:text-neutral-300"
+              }`}
+            >
+              {t('editor.compare')}
             </button>
           </div>
           <div className="flex items-center gap-2">
@@ -288,12 +319,12 @@ export function EditorView({
         </div>
 
         {/* Code editor */}
-        {mode === "code" && (
+        {leftView === "code" && (
           <div ref={editorRef} className="flex-1 overflow-hidden" />
         )}
 
         {/* Visual editor */}
-        {mode === "visual" && (
+        {leftView === "visual" && (
           <div className="flex-1 overflow-auto p-4">
             <VisualChordEditor source={content} onChange={handleVisualChange} />
           </div>
@@ -301,7 +332,7 @@ export function EditorView({
       </div>
 
       {/* Preview pane (code mode only — visual mode is itself the view) */}
-      {mode === "code" && (
+      {!showCompare && leftView === "code" && (
         <div className="w-1/2 flex flex-col">
           <div className="px-3 py-1.5 border-b border-neutral-200 dark:border-neutral-800 bg-neutral-50 dark:bg-neutral-900">
             <span className="text-xs text-neutral-500 font-medium">{t('editor.preview')}</span>
@@ -312,6 +343,63 @@ export function EditorView({
               dangerouslySetInnerHTML={{ __html: preview }}
             />
           </div>
+        </div>
+      )}
+
+      {/* Compare pane (another language, read mode, repeats not expanded) */}
+      {showCompare && (
+        <div className="w-1/2 flex flex-col">
+          <div className="px-3 py-1.5 border-b border-neutral-200 dark:border-neutral-800 flex items-center justify-between bg-neutral-50 dark:bg-neutral-900">
+            <div className="flex items-center gap-1">
+              <label className="text-xs text-neutral-500 font-medium pr-1">{t('editor.compareWith')}</label>
+              <select
+                value={validCompareLang ?? ""}
+                onChange={(e) => setCompareLang(e.target.value)}
+                className="text-xs px-2 py-1 border border-neutral-300 dark:border-neutral-700 rounded-md bg-white dark:bg-neutral-950 outline-none"
+                aria-label={t('editor.compareWith')}
+              >
+                {otherLangs.map((l) => (
+                  <option key={l} value={l}>
+                    {l.toUpperCase()}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div className="flex items-center gap-1">
+              <button
+                onClick={() => setCompareView("visual")}
+                className={`text-xs px-2 py-0.5 rounded transition-colors ${
+                  compareView === "visual"
+                    ? "bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300 font-semibold"
+                    : "text-neutral-500 hover:text-neutral-700 dark:hover:text-neutral-300"
+                }`}
+              >
+                {t('editor.visual')}
+              </button>
+              <button
+                onClick={() => setCompareView("code")}
+                className={`text-xs px-2 py-0.5 rounded transition-colors ${
+                  compareView === "code"
+                    ? "bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300 font-semibold"
+                    : "text-neutral-500 hover:text-neutral-700 dark:hover:text-neutral-300"
+                }`}
+              >
+                {t('editor.code')}
+              </button>
+            </div>
+          </div>
+          {compareView === "visual" ? (
+            <div className="flex-1 overflow-auto p-4">
+              <div
+                className="visual-chord-editor visual-chord-sheet"
+                dangerouslySetInnerHTML={{ __html: comparePreview }}
+              />
+            </div>
+          ) : (
+            <div className="flex-1 overflow-hidden">
+              <ReadOnlyChordSource source={compareSource} className="h-full" />
+            </div>
+          )}
         </div>
       )}
 
