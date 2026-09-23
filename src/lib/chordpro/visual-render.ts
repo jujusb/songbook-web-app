@@ -22,7 +22,7 @@ export interface VisualRenderOptions {
   dataContentLine?: boolean;
   /** Wrap the given lyric substring in a `<mark class="vce-ref-select">`. */
   highlightRange?: { line: number; start: number; end: number };
-  /** Replay the last chorus section where a `{chorus}` directive appears (read-only sheets). */
+  /** Replay repeated sections where `{chorus}` / `{verse}` / `{instrumental}` or their `: label` variants appear (read-only sheets). */
   repeatChorus?: boolean;
 }
 
@@ -66,51 +66,118 @@ export function renderVisualChordSheet(
   const out: string[] = ['<div class="vce-lines">'];
   let contentLine = 0;
 
-  // `{chorus}` repeat support: capture the HTML emitted for each chorus
-  // section so a `{chorus}` directive can replay the last one. Content-line
+  // Repeat support mirroring ChordPro's `{chorus}` shorthand: capture the HTML
+  // emitted for each verse, chorus, and instrumental section so a repeat
+  // directive can replay it. `{chorus}`, `{verse}`, `{instrumental}` (bare)
+  // replay the last section of that type; `{verse: x}`, `{chorus: x}`,
+  // `{instrumental: x}` replay the section whose label matches x. Content-line
   // indexing is unaffected — a repeat is presentational only.
-  let lastChorusHtml: string | null = null;
-  let capturingChorus = false;
-  let chorusLines: string[] = [];
+  type RepeatType = "verse" | "chorus" | "instrumental";
+  const REPEAT_TYPES: RepeatType[] = ["verse", "chorus", "instrumental"];
+  const RE_REPEAT_TYPES = REPEAT_TYPES.join("|");
+
+  const createRepeatState = () => ({
+    capturing: false,
+    label: null as string | null,
+    lines: [] as string[],
+    lastHtml: null as string | null,
+    byLabel: new Map<string, string>(),
+  });
+
+  const repeats: Record<RepeatType, {
+    capturing: boolean;
+    label: string | null;
+    lines: string[];
+    lastHtml: string | null;
+    byLabel: Map<string, string>;
+  }> = {
+    verse: createRepeatState(),
+    chorus: createRepeatState(),
+    instrumental: createRepeatState(),
+  };
 
   const emit = (html: string) => {
     out.push(html);
-    if (capturingChorus) chorusLines.push(html);
+    for (const type of REPEAT_TYPES) {
+      if (repeats[type].capturing) repeats[type].lines.push(html);
+    }
   };
 
-  const finalizeChorus = () => {
-    if (capturingChorus) {
-      capturingChorus = false;
-      lastChorusHtml = chorusLines.join("\n");
-      chorusLines = [];
+  const finalize = (type: RepeatType) => {
+    const st = repeats[type];
+    if (st.capturing) {
+      st.lastHtml = st.lines.join("\n");
+      if (st.label) {
+        const normalized = st.label.toLowerCase().trim();
+        st.byLabel.set(normalized, st.lastHtml);
+        if (!normalized.startsWith(`${type} `)) {
+          st.byLabel.set(`${type} ${normalized}`, st.lastHtml);
+        }
+        const numMatch = normalized.match(/(\d+)$/);
+        if (numMatch) st.byLabel.set(numMatch[1], st.lastHtml);
+      }
+      st.lines = [];
     }
+    st.capturing = false;
+    st.label = null;
+  };
+
+  const finalizeAll = () => REPEAT_TYPES.forEach(finalize);
+
+  const lookup = (type: RepeatType, req: string): string | null =>
+    repeats[type].byLabel.get(req.trim().toLowerCase()) ?? null;
+
+  const isRepeatBare = (type: RepeatType, raw: string) =>
+    new RegExp(`^\\{${type}\\}$`, "i").test(raw);
+
+  const isStartOfType = (raw: string): RepeatType | null => {
+    const regex = new RegExp(
+      `^\\{(?:start_of_|s)(${RE_REPEAT_TYPES})(?:\\s*:\\s*(?:.+?))?\\}$`,
+      "i"
+    );
+    const m = raw.match(regex);
+    return m ? (m[1].toLowerCase() as RepeatType) : null;
   };
 
   for (const line of lines) {
     if (line.type === "directive") {
       const raw = line.raw.trim();
       const sectionLabel = directiveLabel(line.raw);
-      const isChorusRepeat = /^\{chorus\}$/i.test(raw);
-      const isStartOfChorus = /^\{(?:start_of_|s)chorus(?:\s*:\s*(?:.+?))?\}$/i.test(raw);
+      const labeledRepeat = raw.match(
+        new RegExp(`^\\{(${RE_REPEAT_TYPES})\\s*:\\s*(.+?)\\}$`, "i")
+      );
+      const bareRepeat = REPEAT_TYPES.find((t) => isRepeatBare(t, raw));
+      const startType = isStartOfType(raw);
       const isEndOfSection = new RegExp(
         `^\\{(?:end_of_|e)(${SECTION_TYPES_RE})\\}$`,
         "i"
       ).test(raw);
 
-      if (isChorusRepeat) {
-        finalizeChorus();
-        if (repeatChorus && lastChorusHtml) {
-          out.push(`  ${lastChorusHtml}`);
+      if (labeledRepeat) {
+        finalizeAll();
+        if (repeatChorus) {
+          const html = lookup(labeledRepeat[1].toLowerCase() as RepeatType, labeledRepeat[2]);
+          if (html) out.push(`  ${html}`);
+        }
+        continue;
+      }
+
+      if (bareRepeat) {
+        finalizeAll();
+        if (repeatChorus) {
+          const html = repeats[bareRepeat].lastHtml;
+          if (html) out.push(`  ${html}`);
         }
         continue;
       }
 
       if (repeatChorus) {
-        if (isStartOfChorus) {
-          finalizeChorus();
-          capturingChorus = true;
+        if (startType) {
+          finalizeAll();
+          repeats[startType].capturing = true;
+          repeats[startType].label = sectionLabel ?? null;
         } else if (isEndOfSection || sectionLabel) {
-          finalizeChorus();
+          finalizeAll();
         }
       }
 
@@ -168,7 +235,7 @@ export function renderVisualChordSheet(
     if (isContentLine(line)) contentLine++;
   }
 
-  finalizeChorus();
+  finalizeAll();
 
   out.push("</div>");
   return out.join("\n");
