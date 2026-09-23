@@ -337,15 +337,24 @@ export function txtToChordPro(input: string): {
 
       if (sectionStart) {
         closeSection();
-        currentSection = sectionStart[2].toLowerCase();
-        output.push(trimmed);
+        // Normalise "intro" to the canonical "instrumental" directive
+        const directive = sectionStart[2].toLowerCase();
+        currentSection = directive === "intro" ? "instrumental" : directive;
+        const rewritten = directive === "intro"
+          ? trimmed.replace(/^\{(start_of|s)_intro(:?)/i, (_m, tag, colon) => `{${tag}_instrumental${colon}`)
+          : trimmed;
+        output.push(rewritten);
         sectionOpen = true;
         i++;
         continue;
       }
 
       if (sectionEnd) {
-        output.push(trimmed);
+        const endDirective = sectionEnd[2].toLowerCase();
+        const rewritten = endDirective === "intro"
+          ? trimmed.replace(/^\{(end_of|e)_intro\}/i, (_m, tag) => `{${tag}_instrumental}`)
+          : trimmed;
+        output.push(rewritten);
         sectionOpen = false;
         currentSection = null;
         i++;

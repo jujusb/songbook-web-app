@@ -71,8 +71,8 @@ const SECTION_DIRECTIVE_BY_NAME: Record<string, string> = {
   refrains: "chorus",
   bridge: "bridge",
   prechorus: "prechorus",
-  intro: "intro",
-  introduction: "intro",
+  intro: "instrumental",
+  introduction: "instrumental",
   instrumental: "instrumental",
   interlude: "interlude",
   outro: "outro",
@@ -137,11 +137,13 @@ export interface ParsedSectionHeader {
 
 // Matches a section name (letters, with spaces/hyphens/apostrophes), an
 // optional trailing number, and an optional ": content". Trailing closing
-// characters (parens, brackets, dashes, periods) are allowed so headers like
+// Characters (parens, brackets, dashes, periods) are allowed so headers like
 // "(Estribillo)", "[Chorus]" or "-- Bridge --" match after their opening
-// punctuation has been stripped.
+// punctuation has been stripped. Trailing parenthesised suffixes such as
+// "(Estribillo) (DIOS)" are captured (including the first group's closing
+// paren) and kept in the section label.
 const SECTION_HEADER_NAME_RE =
-  /^([a-zA-Z\u00C0-\u024F]+(?:[\s'\-][a-zA-Z\u00C0-\u024F]+)*)(?:\s*(\d+))?\s*(?::\s*([\s\S]*?))?[)\]}\-* .]*\s*$/;
+  /^([a-zA-Z\u00C0-\u024F]+(?:[\s'\-][a-zA-Z\u00C0-\u024F]+)*)((?:\s*\)?\s*\([^)\n]+\))*)(?:\s*(\d+))?((?:\s*\)?\s*\([^)\n]+\))*)\s*(?::\s*([\s\S]*?))?[)\]}\-* .]*\s*$/;
 
 /**
  * Parse a line as a section header. Handles:
@@ -169,9 +171,12 @@ export function parseSectionHeader(line: string): ParsedSectionHeader | null {
   if (!directive) return null;
 
   const base = prettifyLabel(m[1]);
-  const num = m[2] || "";
-  const name = num ? `${base} ${num}` : base;
-  const content = m[3] !== undefined ? m[3].trim() : undefined;
+  const suffix = ((m[2] || "") + (m[4] || "")).replace(/^\s*\)\s*/, "").trim();
+  const num = m[3] || "";
+  const name = [base, num ? ` ${num}` : "", suffix ? ` ${suffix}` : ""]
+    .join("")
+    .trim();
+  const content = m[5] !== undefined ? m[5].trim() : undefined;
 
   return { directive, name, num, content };
 }

@@ -1,5 +1,6 @@
 import { txtToChordPro } from "./txt-import";
 import { parseSectionHeader } from "./chord-utils";
+import type { Buffer } from "node:buffer";
 
 function htmlToText(html: string): string {
   let text = html
@@ -45,52 +46,62 @@ function extractTableRows(tableHtml: string): string[][] {
 }
 
 /**
- * Turn a table into song text. Each table row corresponds to one stanza —
- * its cell usually contains many chord/lyric lines stacked as paragraphs.
- * Cells inside a row are stacked (chords column above lyrics column), and
- * each new table row is separated by a blank line so the general importer
- * splits the stanzas into separate sections. A row holding only a section
- * header ("(Estribillo final)") is merged with the stanza row that follows.
+ * Convert a list of table cells (one per stanza) into song text. Cells are
+ * joined with a blank line so the general importer splits them into separate
+ * sections. A cell holding only a bare section header ("(Estribillo final)")
+ * is merged with the following stanza cell.
  */
-function tableRowsToText(rows: string[][]): string {
-  const blankBlocks: string[] = [];
-  const pendingHeader: string[] = [];
+function cellBlocksToText(cells: string[]): string {
+  const out: string[] = [];
+  const pendingHeaders: string[] = [];
 
-  for (const cells of rows) {
-    const lines: string[] = [];
-    for (const cell of cells) {
-      if (cell.trim()) lines.push(cell);
-    }
-    const text = lines.join("\n").trim();
-    if (!text) {
-      blankBlocks.push("");
+  for (const cell of cells) {
+    const text = cell.trim();
+    if (!text) continue;
+
+    const header = parseSectionHeader(text);
+    if (!text.includes("\n") && header && !header.content) {
+      pendingHeaders.push(text);
       continue;
     }
 
-    // Bare section header in its own row → attach it to the next stanza
-    const header = parseSectionHeader(lines[0]?.trim() ?? "");
-    if (lines.length === 1 && header && !header.content) {
-      pendingHeader.push(text);
-      continue;
-    }
-
-    if (pendingHeader.length > 0) {
-      blankBlocks.push(pendingHeader.join("\n") + "\n" + text);
-      pendingHeader.length = 0;
+    if (pendingHeaders.length > 0) {
+      out.push(pendingHeaders.join("\n") + "\n" + text);
+      pendingHeaders.length = 0;
     } else {
-      blankBlocks.push(text);
+      out.push(text);
     }
   }
 
-  if (pendingHeader.length > 0) blankBlocks.push(pendingHeader.join("\n"));
+  if (pendingHeaders.length > 0) out.push(pendingHeaders.join("\n"));
 
-  return blankBlocks.join("\n\n").replace(/\n{3,}/g, "\n\n").trim();
+  return out.join("\n\n").replace(/\n{3,}/g, "\n\n").trim();
+}
+
+/**
+ * Turn a table into song text column by column: the first column is
+ * transcribed in full (top to bottom, one cell per stanza), then the second
+ * column, and so on. This keeps each column's content together instead of
+ * interleaving the columns row by row.
+ */
+function tableColumnsToText(rows: string[][]): string {
+  const colCount = rows.reduce((max, r) => Math.max(max, r.length), 0);
+  const parts: string[] = [];
+
+  for (let c = 0; c < colCount; c++) {
+    const cells = rows.map((r) => (r[c] ?? "").trim()).filter((t) => t);
+    if (cells.length === 0) continue;
+    const text = cellBlocksToText(cells);
+    if (text) parts.push(text);
+  }
+
+  return parts.join("\n\n").replace(/\n{3,}/g, "\n\n").trim();
 }
 
 /**
  * Convert mammoth HTML to song text, preserving document order of paragraphs
- * (section headers, citations, …) and tables. Tables are expanded row-wise
- * with a blank line between stanzas.
+ * (section headers, citations, …) and tables. Tables are expanded column by
+ * column with a blank line between stanza cells.
  */
 function convertHtmlToText(html: string): string {
   const blocks: string[] = [];
@@ -103,7 +114,7 @@ function convertHtmlToText(html: string): string {
     if (between) blocks.push(between);
 
     if (match[0].toLowerCase().startsWith("<table")) {
-      const text = tableRowsToText(extractTableRows(match[0]));
+      const text = tableColumnsToText(extractTableRows(match[0]));
       if (text) blocks.push(text);
     } else {
       const text = htmlToText(match[0]);
@@ -126,7 +137,17 @@ export async function docxToChordPro(file: File): Promise<{
   const mammoth = await import("mammoth");
   const arrayBuffer = await file.arrayBuffer();
 
-  const result = await mammoth.convertToHtml({ arrayBuffer });
+  // mammoth's bundled browser entry accepts { arrayBuffer }; the Node entry
+  // accepts { buffer }. Try the arrayBuffer form first and fall back so the
+  // import works regardless of which entry is bundled.
+  let result;
+  try {
+    result = await mammoth.convertToHtml({ arrayBuffer });
+  } catch {
+    result = await mammoth.convertToHtml({
+      buffer: new Uint8Array(arrayBuffer) as unknown as Buffer,
+    });
+  }
   const html = result.value;
 
   return txtToChordPro(convertHtmlToText(html));
