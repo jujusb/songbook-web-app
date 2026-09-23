@@ -306,8 +306,13 @@ export function txtToChordPro(input: string): {
       continue;
     }
 
-    // Section header (with or without inline content)
-    const header = parseSectionHeader(trimmed);
+    // Section header (with or without inline content).
+    // In already-inline ChordPro, anything wrapped in braces is a directive and
+    // is handled below — don't re-interpret e.g. "{verse: 1. : 4.}" as a header.
+    const header =
+      alreadyInline && trimmed.startsWith("{")
+        ? null
+        : parseSectionHeader(trimmed);
     if (header) {
       closeSection();
       openSection(header.directive, header.name);

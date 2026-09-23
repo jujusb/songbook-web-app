@@ -135,6 +135,23 @@ export interface ParsedSectionHeader {
   content?: string;
 }
 
+/**
+ * Split a section label that carries alternate names into its primary name
+ * and aliases. In "{verse: 1. : 4.}" the label "1. : 4." yields primary "1."
+ * and alias "4." — the section keeps its primary label for display while the
+ * alias is usable to resolve verse references and repeat-by-label lookups.
+ */
+export function splitSectionAliases(label: string): {
+  primary: string;
+  aliases: string[];
+} {
+  const parts = label
+    .split(/\s*:\s*/)
+    .map((p) => p.trim())
+    .filter((p) => p !== "");
+  return { primary: parts[0] ?? "", aliases: parts.slice(1) };
+}
+
 // Matches a section name (letters, with spaces/hyphens/apostrophes), an
 // optional trailing number, and an optional ": content". Trailing closing
 // Characters (parens, brackets, dashes, periods) are allowed so headers like

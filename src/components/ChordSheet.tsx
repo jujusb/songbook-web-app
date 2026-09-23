@@ -3,13 +3,17 @@
 import { useState, useMemo } from "react";
 import ChordSheetJS from "chordsheetjs";
 import { renderVisualChordSheet } from "@/lib/chordpro/visual-render";
-import { SECTION_TYPES } from "@/lib/chordpro/chord-utils";
+import { SECTION_TYPES, splitSectionAliases } from "@/lib/chordpro/chord-utils";
 import { getReferenceText, getHighlight } from "@/lib/content/references";
 import { useTranslation } from "@/lib/i18n";
 
 const SECTION_TYPES_RE = SECTION_TYPES.join("|");
 const SECTION_MATCH_RE = new RegExp(
   `\\{(?:start_of_|s)(${SECTION_TYPES_RE})(?:\\s*:\\s*(.+?))?\\}`,
+  "i"
+);
+const SECTION_REPEAT_MATCH_RE = new RegExp(
+  `\\{(${SECTION_TYPES_RE})\\s*:\\s*(.+?)\\}`,
   "i"
 );
 
@@ -57,13 +61,20 @@ function transposeSource(source: string, semitones: number): string {
 
 /**
  * Parse ChordPro source and map section directives to content line indices.
- * Tracks both the type (verse/chorus/bridge) and the label.
+ * Tracks the type (verse/chorus/bridge), the primary label and any alias
+ * names registered by repeated sections, e.g. "{verse: 1. : 4.}" makes the
+ * verse that replays "1." referenceable as "4." too.
  */
-function parseSectionMap(
-  source: string
-): { type: string; label: string; startLine: number }[] {
+type SectionEntry = {
+  type: string;
+  label: string;
+  startLine: number;
+  aliases: string[];
+};
+
+function parseSectionMap(source: string): SectionEntry[] {
   const lines = source.split("\n");
-  const sections: { type: string; label: string; startLine: number }[] = [];
+  const sections: SectionEntry[] = [];
   let lineCounter = 0;
 
   for (const line of lines) {
@@ -73,7 +84,7 @@ function parseSectionMap(
       const label =
         match[2] ||
         sectionType.charAt(0).toUpperCase() + sectionType.slice(1);
-      sections.push({ type: sectionType, label, startLine: lineCounter });
+      sections.push({ type: sectionType, label, startLine: lineCounter, aliases: [] });
     }
     if (
       line.trim() &&
@@ -82,28 +93,49 @@ function parseSectionMap(
       lineCounter++;
     }
   }
+
+  // Attach aliases from repeated sections: "{verse: 1. : 4.}" replays the
+  // section labelled "1." and registers "4." as an alternate reference name.
+  for (const line of lines) {
+    const trimmed = line.trim();
+    const m = trimmed.startsWith("{") ? trimmed.match(SECTION_REPEAT_MATCH_RE) : null;
+    if (m) {
+      const type = m[1].toLowerCase();
+      const { primary, aliases } = splitSectionAliases(m[2]);
+      if (aliases.length > 0) {
+        const target = sections.find(
+          (s) => s.type === type && s.label === primary
+        );
+        if (target) target.aliases.push(...aliases);
+      }
+    }
+  }
+
   return sections;
 }
 
 /**
  * Resolve a single location (verse/chorus/line) to a content-line index.
+ * Verse/chorus names match the section's primary label or any alias.
  */
 function resolveLocation(
   loc: { line?: number; verse?: string; chorus?: string },
-  sectionMap: { type: string; label: string; startLine: number }[]
+  sectionMap: SectionEntry[]
 ): number | null {
   if (loc.line !== undefined) return loc.line;
-  if (loc.verse) {
+  const verse = loc.verse;
+  const chorus = loc.chorus;
+  if (verse) {
     const sec = sectionMap.find(
-      (s) => s.type === "verse" && s.label === loc.verse
+      (s) => s.type === "verse" && (s.label === verse || s.aliases.includes(verse))
     );
     if (sec) return sec.startLine;
   }
-  if (loc.chorus) {
+  if (chorus) {
     const sec = sectionMap.find(
       (s) =>
         s.type === "chorus" &&
-        (!loc.chorus || loc.chorus === s.label || s.label === "Chorus")
+        (!chorus || chorus === s.label || s.label === "Chorus" || s.aliases.includes(chorus))
     );
     if (sec) return sec.startLine;
   }
@@ -118,7 +150,7 @@ function resolveLocation(
  */
 function buildFootnotes(
   references: Reference[],
-  sectionMap: { type: string; label: string; startLine: number }[],
+  sectionMap: SectionEntry[],
   lang: string
 ): Footnote[] {
   const footnotes: Footnote[] = [];

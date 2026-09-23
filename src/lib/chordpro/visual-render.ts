@@ -3,7 +3,7 @@ import {
   directiveLabel,
   isContentLine,
 } from "./visual-parse";
-import { SECTION_TYPES } from "./chord-utils";
+import { SECTION_TYPES, splitSectionAliases } from "./chord-utils";
 
 const SECTION_TYPES_RE = SECTION_TYPES.join("|");
 
@@ -156,8 +156,34 @@ export function renderVisualChordSheet(
       if (labeledRepeat) {
         finalizeAll();
         if (repeatChorus) {
-          const html = lookup(labeledRepeat[1].toLowerCase() as RepeatType, labeledRepeat[2]);
-          if (html) out.push(`  ${html}`);
+          const type = labeledRepeat[1].toLowerCase() as RepeatType;
+          const { primary, aliases } = splitSectionAliases(labeledRepeat[2]);
+          const html = lookup(type, primary);
+          if (html) {
+            // A replayed section adopts its alternate name when one is given:
+            // "{verse: 1. : 4.}" replays verse 1 but displays as "4.".
+            const display = aliases[0] ?? null;
+            const relabeled = display
+              ? html.replace(
+                  /<div class="vce-section-label">([^<]*)<\/div>/,
+                  (_m, label) =>
+                    label.trim()
+                      ? `<div class="vce-section-label">${escapeHtml(display)}</div>`
+                      : _m
+                )
+              : html;
+            out.push(`  ${relabeled}`);
+            // Register any aliases ("{verse: 1. : 4.}" → "4.") so later
+            // repeats or lookups can replay the section by either name.
+            const st = repeats[type];
+            st.lastHtml = relabeled;
+            for (const alias of aliases) {
+              const norm = alias.toLowerCase().trim();
+              if (!norm) continue;
+              st.byLabel.set(norm, relabeled);
+              st.byLabel.set(`${type} ${norm}`, relabeled);
+            }
+          }
         }
         continue;
       }
