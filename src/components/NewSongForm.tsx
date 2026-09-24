@@ -26,6 +26,7 @@ export function NewSongForm({
   const router = useRouter();
   const { languageLabel } = useTranslation();
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const wordFileInputRef = useRef<HTMLInputElement>(null);
 
   const [title, setTitle] = useState("");
   const [lang, setLang] = useState(defaultLang);
@@ -33,8 +34,10 @@ export function NewSongForm({
   const [albumId, setAlbumId] = useState(preselectedAlbum || (albums.length > 0 ? albums[0].id : ""));
   const [chordpro, setChordpro] = useState("");
   const [rawImport, setRawImport] = useState("");
-  const [importMode, setImportMode] = useState<"manual" | "file" | "paste" | "chordpro">("manual");
+  const [importMode, setImportMode] = useState<"manual" | "file" | "paste" | "chordpro" | "word">("manual");
   const [fileName, setFileName] = useState<string | null>(null);
+  const [wordFileName, setWordFileName] = useState<string | null>(null);
+  const [importing, setImporting] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [autoSave, setAutoSave] = useState(true);
@@ -130,6 +133,28 @@ export function NewSongForm({
       processImport(rawImport);
     }
   }, [rawImport, processImport]);
+
+  const handleWordImport = useCallback(
+    async (e: React.ChangeEvent<HTMLInputElement>) => {
+      const file = e.target.files?.[0];
+      if (!file || !file.name.toLowerCase().endsWith(".docx")) return;
+
+      setImporting(true);
+      try {
+        const { docxToChordPro } = await import("@/lib/chordpro/docx-import");
+        const result = await docxToChordPro(file);
+        setChordpro(result.chordpro);
+        if (result.title && !title) setTitle(result.title);
+        if (result.detectedKey && !key) setKey(result.detectedKey);
+        setWordFileName(file.name);
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "Failed to import Word document");
+      } finally {
+        setImporting(false);
+      }
+    },
+    [title, key]
+  );
 
   const handleSave = useCallback(async () => {
     if (!title.trim()) {
@@ -311,6 +336,17 @@ export function NewSongForm({
           </button>
           <button
             type="button"
+            onClick={() => setImportMode("word")}
+            className={`px-4 py-2 text-sm rounded-md border transition-colors ${
+              importMode === "word"
+                ? "bg-blue-600 text-white border-blue-600"
+                : "border-neutral-300 dark:border-neutral-700 hover:bg-neutral-100 dark:hover:bg-neutral-800"
+            }`}
+          >
+            Import from Word
+          </button>
+          <button
+            type="button"
             onClick={() => setImportMode("paste")}
             className={`px-4 py-2 text-sm rounded-md border transition-colors ${
               importMode === "paste"
@@ -406,6 +442,46 @@ export function NewSongForm({
               >
                 Convert to ChordPro
               </button>
+            </div>
+          )}
+
+          {importMode === "word" && (
+            <div className="mb-4">
+              <p className="text-sm text-neutral-500 mb-3">
+                Choose a .docx Word document; it will be converted to ChordPro.
+              </p>
+              <div className="flex items-center gap-3 mb-3">
+                <button
+                  type="button"
+                  onClick={() => wordFileInputRef.current?.click()}
+                  disabled={importing}
+                  className="px-4 py-2 text-sm border border-neutral-300 dark:border-neutral-700 rounded-md hover:bg-neutral-100 dark:hover:bg-neutral-800 disabled:opacity-50 transition-colors"
+                >
+                  {importing ? "Converting..." : "Choose File"}
+                </button>
+                <input
+                  ref={wordFileInputRef}
+                  type="file"
+                  accept=".docx"
+                  onChange={handleWordImport}
+                  className="hidden"
+                />
+                {wordFileName && (
+                  <span className="text-sm text-blue-600 dark:text-blue-400 font-medium">
+                    {wordFileName}
+                  </span>
+                )}
+                {!wordFileName && !importing && (
+                  <span className="text-xs text-neutral-500">
+                    Only .docx files are supported
+                  </span>
+                )}
+              </div>
+              {wordFileName && !importing && (
+                <p className="text-xs text-neutral-500">
+                  Converted. Review the ChordPro on the right and adjust if needed.
+                </p>
+              )}
             </div>
           )}
 

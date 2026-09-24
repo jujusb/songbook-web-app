@@ -429,6 +429,21 @@ a.ref-marker:hover {
   }
 }
 
+/*
+ * Chord alignment is math based on fixed-width columns (NBSP spacers, `ch`
+ * units, and the measured `M` reference width). That only lines up when the
+ * rows share a monospace font, so force it on every element that participates
+ * in the grid — otherwise the add-chord popup (and the chords themselves)
+ * drift away from the lyrics/cursor.
+ */
+.vce-chord-row,
+.vce-lyrics-text,
+.vce-add-chord-popup,
+.vce-add-chord-input {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
+    "Liberation Mono", "Courier New", monospace;
+}
+
 /* Read-only visual chord sheet (preview, song page, print) */
 .visual-chord-sheet {
   user-select: text;

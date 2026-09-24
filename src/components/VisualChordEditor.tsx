@@ -340,6 +340,7 @@ function ContentLine({
   const lyricsRef = useRef<HTMLDivElement>(null);
   const userEditingRef = useRef(false);
   const [addPos, setAddPos] = useState(0);
+  const [addPosPx, setAddPosPx] = useState(0);
 
   // Push text into the contentEditable only for external changes (mount,
   // imports, code-mode edits). While the user is typing, the DOM is already
@@ -437,28 +438,47 @@ function ContentLine({
     return elements;
   }, [sortedChords, chordOriginalIndices, selectedChord, lineIdx, onSelectChord]);
 
-  // Handle double-click on lyrics to add a chord
+  // Handle double-click on lyrics to add a chord. The popup is positioned in
+  // pixels from the real, rendered glyph advances (measured via canvas with the
+  // exact computed font) so it always lands under the cursor regardless of the
+  // resolved font's metrics.
   const handleLyricsDoubleClick = useCallback(
     (e: React.MouseEvent<HTMLDivElement>) => {
-      if (!lyricsRef.current) return;
+      const el = lyricsRef.current;
+      if (!el) return;
 
-      // Calculate character position from click X
-      const rect = lyricsRef.current.getBoundingClientRect();
-      const x = e.clientX - rect.left;
-      // Approximate char width in monospace
-      const testSpan = document.createElement("span");
-      testSpan.className = "vce-lyrics-text";
-      testSpan.style.position = "absolute";
-      testSpan.style.visibility = "hidden";
-      testSpan.textContent = "M";
-      document.body.appendChild(testSpan);
-      const charWidth = testSpan.getBoundingClientRect().width;
-      document.body.removeChild(testSpan);
+      const rect = el.getBoundingClientRect();
+      const style = getComputedStyle(el);
+      const padLeft = parseFloat(style.paddingLeft) || 0;
+      const text = el.textContent ?? "";
+      if (!text.trim().length) return;
 
-      const pos = Math.round(x / charWidth);
-      const clampedPos = Math.max(0, Math.min(pos, line.lyrics.length));
+      const canvas = document.createElement("canvas");
+      const ctx = canvas.getContext("2d");
+      if (!ctx) return;
+      ctx.font = style.font;
 
-      setAddPos(clampedPos);
+      // Cumulative advance width up to each character boundary.
+      const cum: number[] = [0];
+      for (let i = 0; i < text.length; i++) {
+        cum.push(cum[i] + ctx.measureText(text[i]).width);
+      }
+
+      const xIn = e.clientX - rect.left - padLeft;
+
+      // Snap to the nearest character boundary.
+      let best = Math.min(cum.length - 1, line.lyrics.length);
+      let bestDiff = Infinity;
+      for (let i = 0; i <= Math.min(cum.length - 1, line.lyrics.length); i++) {
+        const diff = Math.abs(cum[i] - xIn);
+        if (diff < bestDiff) {
+          bestDiff = diff;
+          best = i;
+        }
+      }
+
+      setAddPos(best);
+      setAddPosPx(padLeft + cum[best]);
       setNewChordName("");
       onStartAddChord();
     },
@@ -505,7 +525,7 @@ function ContentLine({
         {addingChord && (
           <div
             className="vce-add-chord-popup"
-            style={{ left: `${addPos}ch` }}
+            style={{ left: `${addPosPx}px` }}
           >
             <input
               autoFocus
