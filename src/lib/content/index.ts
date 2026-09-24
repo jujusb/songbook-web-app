@@ -434,6 +434,7 @@ export async function createSong(
     tags: [],
     references: [],
     audioFiles: [],
+    partitions: [],
   };
   await saveSongMeta(id, meta, albumId);
 

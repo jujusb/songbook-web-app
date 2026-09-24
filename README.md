@@ -63,12 +63,16 @@ Dev server runs on `http://localhost:3000`.
 | `SONGBOOK_VOICES_NAVIDROME_SONGS_URL` | Second Navidrome ("VOICES") base URL for per-voice-part recordings | _(none)_ |
 | `SONGBOOK_VOICES_NAVIDROME_USERNAME` | Navidrome user for the VOICES instance | _(none)_ |
 | `SONGBOOK_VOICES_NAVIDROME_PASSWORD` | Password for that user | _(none)_ |
+| `SONGBOOK_PARTITION_DIR` | Host folder mounted at `/app/partitions` (sheet-music PDFs) | `./data` |
+| `PARTITIONS_DIR` | In-container path for partition PDFs | `/app/partitions` |
 
 `ADMIN_PASSWORD` and `JWT_SECRET` should be changed for any non-local deployment. All `OIDC_*` env vars override values in `site.yaml`.
 
 Navidrome share links are only rendered when all three `SONGBOOK_NAVIDROME_*` vars are set, and the Navidrome server must run with `EnableSharing=true`. On song pages, the version in the site's default language (`LANGUAGES_DEFAULT`) is treated as the **original version** and uses Spotify instead — when `SPOTIFY_CLIENT_ID`/`SPOTIFY_CLIENT_SECRET` are set (create a Spotify App in the Developer Dashboard), the app searches Spotify by artist + song/album title, picks the best match, and embeds the Spotify player directly on the page. Explicit `spotify:` URLs in the song's `meta.yaml` (and the album's `album.yaml`) take precedence. Without Spotify credentials the UI falls back to plain Spotify search links.
 
 When a second Navidrome instance is configured via `SONGBOOK_VOICES_NAVIDROME_*`, every song page shows the per-voice-part players at the top, split into **Chicos** tabs (TENOR / BASS) and **Chicas** tabs (ALTO / SOPRANO). Recordings are matched by title: it must contain the current-language song title plus a section label — specific labels take priority (`Chico Alta`→TENOR, `Chico Baja`→BASS, `Chica Baja`→ALTO, `Chica Alta`→SOPRANO), otherwise generic keywords (`chico`, `chica`, `tenor`, `bass`, `alto`, `soprano`, `boy`, `girl`, ...). Every matching recording is shown (deduplicated by title), not just the first per section. No UI is rendered when the VOICES vars are unset or no matches are found.
+
+Sheet-music PDFs can be linked to songs via `PARTITIONS_DIR` (`/app/partitions` in the container). On the admin-only page `/admin/partitions`, the **Scan Partitions** button scans the folder, matches each PDF to a song by title (the song name must appear in the filename), and lets you apply the matches into each song's `meta.yaml` (`partitions:` array). Song pages then show an in-page **Instrumental** panel with a sub-tab per instrument (each top-level subfolder of the partitions dir) and an embedded PDF preview served from `/api/partitions/...`.
 
 ## Content Structure
 

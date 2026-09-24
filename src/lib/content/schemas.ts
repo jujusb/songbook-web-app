@@ -49,6 +49,15 @@ export const SpotifyLinksSchema = z.object({
 
 export type SpotifyLinks = z.infer<typeof SpotifyLinksSchema>;
 
+export const PartitionSchema = z.object({
+  instrument: z.string(),              // slug of the instrument folder, e.g. "cuerdas"
+  instrumentLabel: z.string().optional(), // display label for the instrument folder
+  file: z.string(),                    // relative path under the partitions root
+  title: z.string().optional(),        // decoded PDF basename (without extension) for display
+});
+
+export type Partition = z.infer<typeof PartitionSchema>;
+
 export const SongMetaSchema = z.object({
   id: z.string(),
   title: z.string(),
@@ -60,6 +69,7 @@ export const SongMetaSchema = z.object({
   created: z.union([z.string(), z.date()]).optional(),
   references: z.array(ReferenceSchema).default([]),
   audioFiles: z.array(AudioFileSchema).default([]),
+  partitions: z.array(PartitionSchema).default([]),
   spotify: SpotifyLinksSchema.optional(),
 });
 

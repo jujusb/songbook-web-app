@@ -7,6 +7,7 @@ const en = {
     artists: 'Artists',
     newSong: '+ New Song',
     import: 'Import',
+    admin: 'Admin',
   },
   common: {
     save: 'Save',
@@ -72,6 +73,18 @@ const en = {
   },
   spotify: {
     search: 'Spotify Search',
+  },
+  partitions: {
+    title: 'Instrumental',
+    scan: 'Scan Partitions',
+    scanning: 'Scanning...',
+    apply: 'Apply',
+    applying: 'Applying...',
+    applied: 'Applied',
+    applyAll: 'Apply all',
+    found: '{n} song | {n} songs with partitions',
+    none: 'No partitions matched any song.',
+    openInNewTab: 'Open in new tab',
   },
   artist: {
     title: 'Artists',

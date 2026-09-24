@@ -13,6 +13,7 @@ export function LanguageSwitcher({
   onAdd,
   availableToAdd = [],
   busy = null,
+  extraTab,
 }: {
   songId: string;
   languages: string[];
@@ -22,6 +23,7 @@ export function LanguageSwitcher({
   onAdd?: (lang: string) => void;
   availableToAdd?: string[];
   busy?: string | null;
+  extraTab?: { href: string; active: boolean };
 }) {
   const router = useRouter();
   const pathname = usePathname();
@@ -101,6 +103,24 @@ export function LanguageSwitcher({
           )}
         </div>
       ))}
+      {extraTab && (
+        <button
+          type="button"
+          data-lang="tab-instrumental"
+          onClick={() => {
+            setConfirmingRemove(null);
+            setShowAddForm(false);
+            router.push(extraTab.href);
+          }}
+          className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
+            extraTab.active
+              ? "border-blue-500 text-blue-600 dark:text-blue-400"
+              : "border-transparent text-neutral-500 hover:text-foreground hover:border-neutral-300"
+          }`}
+        >
+          {t("partitions.title")}
+        </button>
+      )}
       {onAdd && availableToAdd.length > 0 && (
         <div className="flex items-center gap-1">
           {showAddForm ? (

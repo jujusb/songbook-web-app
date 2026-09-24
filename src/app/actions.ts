@@ -1,7 +1,7 @@
 "use server";
 
 import { saveSongTranslation, saveSongMeta, createSong, getSong, getSongTranslation, getSiteConfig, listArtists, extractBodyTitle, addSongTranslation, deleteSongTranslation, renameSong, changeSongAlbum } from "@/lib/content";
-import { SongTranslationFrontmatterSchema, type Reference, type AudioFile } from "@/lib/content/schemas";
+import { SongTranslationFrontmatterSchema, type Reference, type AudioFile, type SongMeta, type Partition } from "@/lib/content/schemas";
 import { scanMusicDir, getMusicDir, slugify, stripNumberPrefix } from "@/lib/music-importer";
 import { revalidatePath } from "next/cache";
 import matter from "gray-matter";
@@ -385,7 +385,7 @@ export async function importMusicAction(songId: string, configJson?: string, art
   }
 
   // Update or create song
-  let meta;
+  let meta: SongMeta;
   try {
     meta = await getSong(songId);
     meta.audioFiles = audioFiles;
@@ -396,6 +396,7 @@ export async function importMusicAction(songId: string, configJson?: string, art
       tags: [],
       references: [],
       audioFiles,
+      partitions: [],
     };
   }
 
@@ -457,4 +458,79 @@ export async function importMusicAction(songId: string, configJson?: string, art
   revalidatePath(`/songs/${songId}`);
   revalidatePath("/import/music");
   return { songId, title: item.title, audioFiles: audioFiles.length };
+}
+
+/* ------------------------------------------------------------------ */
+/*  Partitions (sheet music)                                          */
+/* ------------------------------------------------------------------ */
+export type { PartitionMatch, PartitionFile } from "@/lib/partitions";
+
+/**
+ * Scan the /app/partitions folder and match PDFs to songs by title
+ * (strict substring on the song's name in any language).
+ */
+export async function scanPartitionsAction() {
+  assertWritable();
+  try {
+    const { listSongs } = await import("@/lib/content");
+    const { matchPartitions } = await import("@/lib/partitions");
+    const songs = await listSongs();
+    const matches = await matchPartitions(songs);
+    return { ok: true as const, matches };
+  } catch (err) {
+    return {
+      ok: false as const,
+      error: err instanceof Error ? err.message : "FAILED",
+    };
+  }
+}
+
+/**
+ * Persist the matched partitions into a song's `meta.yaml` (`partitions`).
+ */
+export async function applyPartitionsAction(
+  songId: string,
+  partitions: Partition[],
+) {
+  assertWritable();
+  try {
+    const meta = await getSong(songId);
+    meta.partitions = partitions;
+    await saveSongMeta(songId, meta);
+    revalidatePath(`/songs/${songId}`);
+    revalidatePath("/songs");
+    revalidatePath("/browse");
+    revalidatePath("/admin/partitions");
+    return { ok: true as const, songId };
+  } catch (err) {
+    return {
+      ok: false as const,
+      error: err instanceof Error ? err.message : "FAILED",
+    };
+  }
+}
+
+/**
+ * Persist partitions for many songs at once.
+ */
+export async function applyAllPartitionsAction(
+  matches: { songId: string; partitions: Partition[] }[],
+) {
+  assertWritable();
+  try {
+    for (const { songId, partitions } of matches) {
+      const meta = await getSong(songId);
+      meta.partitions = partitions;
+      await saveSongMeta(songId, meta);
+    }
+    revalidatePath("/songs");
+    revalidatePath("/browse");
+    revalidatePath("/admin/partitions");
+    return { ok: true as const, applied: matches.length };
+  } catch (err) {
+    return {
+      ok: false as const,
+      error: err instanceof Error ? err.message : "FAILED",
+    };
+  }
 }

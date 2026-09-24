@@ -9,6 +9,7 @@ const fr: Translations = {
     artists: 'Artistes',
     newSong: '+ Nouvelle Chanson',
     import: 'Importer',
+    admin: 'Admin',
   },
   common: {
     save: 'Enregistrer',
@@ -74,6 +75,18 @@ const fr: Translations = {
   },
   spotify: {
     search: 'Rechercher sur Spotify',
+  },
+  partitions: {
+    title: 'Instrumental',
+    scan: 'Scanner les Partitions',
+    scanning: 'Analyse...',
+    apply: 'Appliquer',
+    applying: 'Application...',
+    applied: 'Appliqué',
+    applyAll: 'Tout appliquer',
+    found: '{n} chanson | {n} chansons avec partitions',
+    none: 'Aucune partition ne correspond à une chanson.',
+    openInNewTab: 'Ouvrir dans un nouvel onglet',
   },
   artist: {
     title: 'Artistes',

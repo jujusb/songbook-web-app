@@ -9,6 +9,7 @@ const es: Translations = {
     artists: 'Artistas',
     newSong: '+ Nueva Canción',
     import: 'Importar',
+    admin: 'Admin',
   },
   common: {
     save: 'Guardar',
@@ -74,6 +75,18 @@ const es: Translations = {
   },
   spotify: {
     search: 'Buscar en Spotify',
+  },
+  partitions: {
+    title: 'Instrumental',
+    scan: 'Escanear Partituras',
+    scanning: 'Escaneando...',
+    apply: 'Aplicar',
+    applying: 'Aplicando...',
+    applied: 'Aplicado',
+    applyAll: 'Aplicar todas',
+    found: '{n} canción | {n} canciones con partituras',
+    none: 'Ninguna partitura coincidió con una canción.',
+    openInNewTab: 'Abrir en una pestaña nueva',
   },
   artist: {
     title: 'Artistas',

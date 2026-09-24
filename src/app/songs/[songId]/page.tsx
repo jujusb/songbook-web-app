@@ -26,16 +26,17 @@ import { T } from "@/components/Translate";
 import { getNavidromeConfig } from "@/lib/navidrome/config";
 import { SpotifyPlayer } from "@/components/SpotifyPlayer";
 import { VoiceSections } from "@/components/VoiceSections";
+import { PartitionViewer } from "@/components/PartitionViewer";
 
 export default async function SongPage({
   params,
   searchParams,
 }: {
   params: Promise<{ songId: string }>;
-  searchParams: Promise<{ lang?: string }>;
+  searchParams: Promise<{ lang?: string; parts?: string }>;
 }) {
   const { songId } = await params;
-  const { lang: langParam } = await searchParams;
+  const { lang: langParam, parts } = await searchParams;
 
   let meta;
   try {
@@ -83,6 +84,9 @@ export default async function SongPage({
   const spotify = meta.spotify;
   const showSpotify = isOriginalVersion;
   const showNavidrome = getNavidromeConfig() !== null && !isOriginalVersion;
+
+  const partitions = meta.partitions ?? [];
+  const showParts = parts === "1";
 
   return (
     <div className="max-w-6xl mx-auto px-4 py-8">
@@ -209,30 +213,50 @@ export default async function SongPage({
         songId={songId}
         languages={translations}
         currentLang={lang}
+        extraTab={
+          partitions.length > 0
+            ? {
+                href: `/songs/${songId}?lang=${lang}&parts=1`,
+                active: showParts,
+              }
+            : undefined
+        }
       />
 
-      {meta.audioFiles && meta.audioFiles.length > 0 && (
-        <div className="mt-6">
-          <MusicReader audioFiles={meta.audioFiles} songTitle={localizedTitle} />
-        </div>
+      {showParts ? (
+        partitions.length > 0 ? (
+          <PartitionViewer partitions={partitions} />
+        ) : (
+          <p className="mt-6 text-neutral-500">
+            <T k="partitions.none" />
+          </p>
+        )
+      ) : (
+        <>
+          {meta.audioFiles && meta.audioFiles.length > 0 && (
+            <div className="mt-6">
+              <MusicReader audioFiles={meta.audioFiles} songTitle={localizedTitle} />
+            </div>
+          )}
+
+          <div className="mt-6 flex gap-8">
+            <div className="flex-1 min-w-0">
+              <ChordSheet
+                initialSource={body}
+                songKey={meta.key ?? null}
+                references={meta.references}
+                lang={lang}
+              />
+            </div>
+
+            {meta.references.length > 0 && (
+              <aside className="w-64 shrink-0 hidden lg:block">
+                <ReferencePanel references={meta.references} lang={lang} />
+              </aside>
+            )}
+          </div>
+        </>
       )}
-
-      <div className="mt-6 flex gap-8">
-        <div className="flex-1 min-w-0">
-          <ChordSheet
-            initialSource={body}
-            songKey={meta.key ?? null}
-            references={meta.references}
-            lang={lang}
-          />
-        </div>
-
-        {meta.references.length > 0 && (
-          <aside className="w-64 shrink-0 hidden lg:block">
-            <ReferencePanel references={meta.references} lang={lang} />
-          </aside>
-        )}
-      </div>
     </div>
   );
 }
