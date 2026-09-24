@@ -142,7 +142,7 @@ export default async function ArtistPage({
         )}
         <div className="flex gap-2 mt-4">
           <Link
-            href={`/print?artist=${artistId}`}
+            href={`/pdf?scope=artist&id=${artistId}`}
             className="text-sm px-3 py-1.5 border border-neutral-300 dark:border-neutral-700 rounded-md hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors"
           >
             Export PDF for this artist

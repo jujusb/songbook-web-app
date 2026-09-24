@@ -1,4 +1,5 @@
 import puppeteer from 'puppeteer';
+import { PDFDocument } from 'pdf-lib';
 
 const SESSION_COOKIE = 'songbook-session';
 
@@ -68,4 +69,23 @@ export function safePdfFilename(title: string): string {
     .replace(/^-+|-+$/g, '')
     .slice(0, 80);
   return cleaned || 'setlist';
+}
+
+/**
+ * Merge multiple PDF buffers into a single PDF, preserving their pages
+ * (vector content, not rasterized). The chunk may be empty, in which case a
+ * minimal one-page document is returned.
+ */
+export async function mergePdfBuffers(buffers: Uint8Array[]): Promise<Uint8Array> {
+  const merged = await PDFDocument.create();
+  for (const buffer of buffers) {
+    const src = await PDFDocument.load(buffer, { ignoreEncryption: true }).catch(
+      () => null
+    );
+    if (!src) continue;
+    const pages = await merged.copyPages(src, src.getPageIndices());
+    for (const page of pages) merged.addPage(page);
+  }
+  if (merged.getPageCount() === 0) merged.addPage();
+  return merged.save();
 }

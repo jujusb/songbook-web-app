@@ -8,6 +8,7 @@ import {
   applyAllPartitionsAction,
 } from '@/app/actions';
 import type { PartitionMatch } from '@/app/actions';
+import { partitionInstrumentOf } from '@/lib/partition-utils';
 
 export function PartitionScanClient() {
   const { t } = useTranslation();
@@ -127,18 +128,38 @@ export function PartitionScanClient() {
                         </button>
                       </div>
                       <div className="flex flex-wrap gap-2 mt-3">
-                        {match.partitions.map((part) => (
-                          <span
-                            key={`${part.instrument}::${part.file}`}
-                            className="text-xs px-2 py-1 bg-neutral-100 dark:bg-neutral-800 rounded text-neutral-600 dark:text-neutral-400"
-                          >
-                            <span className="font-medium">
-                              {part.instrumentLabel ?? part.instrument}
+                        {match.partitions.map((part) => {
+                          const parsed = partitionInstrumentOf(part);
+                          const showParsed =
+                            parsed.label !==
+                            (part.instrumentLabel ?? part.instrument);
+                          return (
+                            <span
+                              key={`${part.instrument}::${part.file}`}
+                              className="text-xs px-2 py-1 bg-neutral-100 dark:bg-neutral-800 rounded text-neutral-600 dark:text-neutral-400"
+                            >
+                              <span className="font-medium">
+                                {part.instrumentLabel ?? part.instrument}
+                              </span>
+                              {showParsed && (
+                                <>
+                                  <span className="text-neutral-400">
+                                    {' '}
+                                    &middot;{' '}
+                                  </span>
+                                  <span className="font-medium">
+                                    {parsed.label}
+                                  </span>
+                                </>
+                              )}
+                              <span className="text-neutral-400">
+                                {' '}
+                                &middot;{' '}
+                              </span>
+                              {part.title}
                             </span>
-                            <span className="text-neutral-400"> &middot; </span>
-                            {part.title}
-                          </span>
-                        ))}
+                          );
+                        })}
                       </div>
                     </div>
                   );

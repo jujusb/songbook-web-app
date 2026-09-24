@@ -3,6 +3,14 @@ import { existsSync } from 'fs';
 import path from 'path';
 import type { SongListItem } from '@/lib/content';
 import type { Partition } from '@/lib/content/schemas';
+import {
+  partitionInstrumentOf,
+  slugify,
+  decodeFileName,
+  type PartitionInstrument,
+} from './partition-utils';
+export { partitionInstrumentOf, slugify, type PartitionInstrument };
+export { basenameWithoutExtension } from './partition-utils';
 
 export interface PartitionFile {
   instrument: string;
@@ -19,23 +27,6 @@ export interface PartitionMatch {
 
 export function getPartitionsDir(): string {
   return process.env.PARTITIONS_DIR || path.join(process.cwd(), 'public', 'partitions');
-}
-
-export function slugify(text: string): string {
-  return text
-    .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '')
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, '-')
-    .replace(/^-|-$/g, '');
-}
-
-function decodeFileName(name: string): string {
-  try {
-    return decodeURIComponent(name);
-  } catch {
-    return name;
-  }
 }
 
 /**

@@ -128,9 +128,9 @@ export default async function RootLayout({
                 </Link>
               )}
               <Link
-                href="/print"
+                href="/pdf"
                 className="text-sm px-3 py-1.5 border border-neutral-300 dark:border-neutral-700 rounded-md font-medium hover:bg-neutral-100 dark:hover:bg-neutral-800 hover:text-foreground transition-colors"
-                title="Open the print view to export as PDF"
+                title="Open the convert-to-PDF page to export as PDF"
               >
                 Convert to PDF
               </Link>
