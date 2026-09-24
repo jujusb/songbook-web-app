@@ -1,4 +1,4 @@
-import { readdir, readFile, writeFile, mkdir, rm } from 'fs/promises';
+import { readdir, readFile, writeFile, mkdir, rm, rename } from 'fs/promises';
 import { existsSync } from 'fs';
 import path from 'path';
 import matter from 'gray-matter';
@@ -667,4 +667,59 @@ export async function deleteSong(songId: string): Promise<void> {
       return;
     }
   }
+}
+
+// --- Rename operations ---
+
+/**
+ * Change a song's ID. The song directory is renamed, the meta.yaml `id` is
+ * kept in sync, and every reference to the old ID is updated: the parent
+ * album's `songs` list and any setlist `songs[].songId`. All per-language
+ * `.cho` files and `.revisions/` snapshots move with the directory, so none
+ * of the song content is touched.
+ */
+export async function renameSong(oldId: string, newId: string): Promise<string | null> {
+  if (!oldId || !newId) throw new Error('Song ID is required');
+  if (oldId === newId) throw new Error('New ID is the same as the current ID');
+  if (newId.includes('/') || newId.includes('\\') || newId.includes('..')) {
+    throw new Error('Invalid song ID');
+  }
+
+  const albumId = await findSongAlbumId(oldId);
+  if (!albumId) throw new Error(`Song not found: ${oldId}`);
+  if (await findSongPath(newId)) throw new Error(`A song with ID "${newId}" already exists`);
+
+  const oldDir = path.join(getLibraryDir(), albumId, oldId);
+  const newDir = path.join(getLibraryDir(), albumId, newId);
+  await rename(oldDir, newDir);
+
+  // Keep meta.yaml `id` in sync with the new directory name
+  const meta = await getSong(newId);
+  meta.id = newId;
+  await saveSongMeta(newId, meta);
+
+  // Update the album's songs list
+  try {
+    const album = await getAlbum(albumId);
+    if (album.songs.includes(oldId)) {
+      album.songs = album.songs.map((s: string) => (s === oldId ? newId : s));
+      await saveAlbum(album);
+    }
+  } catch (err) {
+    console.error(`renameSong: failed to update album ${albumId} songs list`, err);
+  }
+
+  // Update any setlists referencing the song
+  try {
+    const setlists = await listSetlists();
+    for (const setlist of setlists) {
+      if (!setlist.songs.some((s) => s.songId === oldId)) continue;
+      setlist.songs = setlist.songs.map((s) => (s.songId === oldId ? { ...s, songId: newId } : s));
+      await saveSetlist(setlist);
+    }
+  } catch (err) {
+    console.error(`renameSong: failed to update setlists for ${oldId}`, err);
+  }
+
+  return albumId;
 }

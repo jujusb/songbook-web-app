@@ -18,6 +18,7 @@ import { LanguageSwitcher } from "@/components/LanguageSwitcher";
 import { ReferencePanel } from "@/components/ReferencePanel";
 import { MusicReader } from "@/components/MusicReader";
 import { DeleteButton } from "@/components/DeleteButton";
+import { ChangeIdButton } from "@/components/ChangeIdButton";
 import { NavidromeShareButton } from "@/components/NavidromeShareButton";
 import { T } from "@/components/Translate";
 import { getNavidromeConfig } from "@/lib/navidrome/config";
@@ -181,12 +182,15 @@ export default async function SongPage({
             />
           )}
           {showDeleteActions && (
-            <DeleteButton
-              apiEndpoint="/api/songs"
-              id={songId}
-              label={meta.title}
-              redirectTo="/browse"
-            />
+            <>
+              <ChangeIdButton songId={songId} lang={lang} />
+              <DeleteButton
+                apiEndpoint="/api/songs"
+                id={songId}
+                label={meta.title}
+                redirectTo="/browse"
+              />
+            </>
           )}
         </div>
       </div>
