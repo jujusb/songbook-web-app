@@ -170,6 +170,16 @@ export default async function SongPage({
               lang={lang}
             />
           )}
+          {showSpotify && (
+            <SpotifyPlayer
+              type="track"
+              id={songId}
+              lang={lang}
+              explicitUrl={spotify?.song ?? null}
+              title={localizedTitle}
+              artist={artist?.name}
+            />
+          )}
           {showDeleteActions && (
             <DeleteButton
               apiEndpoint="/api/songs"
@@ -182,19 +192,6 @@ export default async function SongPage({
       </div>
 
       <VoiceSections id={songId} lang={lang} />
-
-      {showSpotify && (
-        <div className="mt-5">
-          <SpotifyPlayer
-            type="track"
-            id={songId}
-            lang={lang}
-            explicitUrl={spotify?.song ?? null}
-            title={localizedTitle}
-            artist={artist?.name}
-          />
-        </div>
-      )}
 
       <LanguageSwitcher
         songId={songId}
