@@ -32,6 +32,14 @@ function getLibraryDir(): string {
   return path.join(getContentDir(), 'library');
 }
 
+/**
+ * Special pseudo-album for songs that don't belong to any album. Songs live in
+ * `content/library/no-album/<song-id>/` and are intentionally NOT registered in
+ * any `album.yaml`, so album listing, browse, artists and print ignore them
+ * until they are moved into a real album.
+ */
+export const NO_ALBUM_ID = 'no-album';
+
 // --- Various Artists (default artist) ---
 
 const VARIOUS_ARTISTS: Artist = {
@@ -411,13 +419,9 @@ export async function createSong(
   albumId?: string
 ): Promise<void> {
   if (!albumId) {
-    // Must have an album — find or use first available
-    const albums = await listAlbums();
-    if (albums.length > 0) {
-      albumId = albums[0].id;
-    } else {
-      throw new Error('No albums exist. Create an album first.');
-    }
+    // Default to "No Album" — the folder lives in library/no-album/ and is not
+    // registered in any album.yaml until the user explicitly assigns an album.
+    albumId = NO_ALBUM_ID;
   }
 
   const songDir = path.join(getLibraryDir(), albumId, id);
@@ -698,15 +702,17 @@ export async function renameSong(oldId: string, newId: string): Promise<string |
   meta.id = newId;
   await saveSongMeta(newId, meta);
 
-  // Update the album's songs list
-  try {
-    const album = await getAlbum(albumId);
-    if (album.songs.includes(oldId)) {
-      album.songs = album.songs.map((s: string) => (s === oldId ? newId : s));
-      await saveAlbum(album);
+  // Update the album's songs list (skip the "no album" pseudo-album)
+  if (albumId !== NO_ALBUM_ID) {
+    try {
+      const album = await getAlbum(albumId);
+      if (album.songs.includes(oldId)) {
+        album.songs = album.songs.map((s: string) => (s === oldId ? newId : s));
+        await saveAlbum(album);
+      }
+    } catch (err) {
+      console.error(`renameSong: failed to update album ${albumId} songs list`, err);
     }
-  } catch (err) {
-    console.error(`renameSong: failed to update album ${albumId} songs list`, err);
   }
 
   // Update any setlists referencing the song
@@ -722,4 +728,104 @@ export async function renameSong(oldId: string, newId: string): Promise<string |
   }
 
   return albumId;
+}
+
+/**
+ * Move a song into a different album. The song folder is physically moved to
+ * the target album's directory (carrying the per-language `.cho` files and
+ * `.revisions/` with it), the song is removed from the old album's `songs`
+ * list and added to the new one.
+ *
+ * `NO_ALBUM_ID` (the "No Album" pseudo-album) is special: songs assigned there
+ * live in `content/library/no-album/<song-id>/` and are NOT registered in any
+ * `album.yaml`. Moving to "No Album" drops the song from its real album;
+ * moving out of "No Album" into a real album registers it. Picking "No Album"
+ * is the default for newly created songs.
+ */
+export async function changeSongAlbum(
+  songId: string,
+  newAlbumId: string
+): Promise<string | null> {
+  if (!songId || !newAlbumId) throw new Error('Album ID is required');
+  if (newAlbumId.includes('/') || newAlbumId.includes('\\') || newAlbumId.includes('..')) {
+    throw new Error('Invalid album ID');
+  }
+
+  const songPath = await findSongPath(songId);
+  if (!songPath) throw new Error(`Song not found: ${songId}`);
+  const oldAlbumId = await findSongAlbumId(songId);
+  // Throws if the target album does not exist (unless it's the "No Album" pseudo-album)
+  if (newAlbumId !== NO_ALBUM_ID) {
+    await getAlbum(newAlbumId);
+  }
+
+  if (oldAlbumId === newAlbumId) return oldAlbumId;
+
+  const targetSongDir = path.join(getLibraryDir(), newAlbumId, songId);
+  await mkdir(path.dirname(targetSongDir), { recursive: true });
+  await rename(songPath, targetSongDir);
+
+  // Drop the song from the old album's songs list
+  if (oldAlbumId && oldAlbumId !== NO_ALBUM_ID) {
+    try {
+      const album = await getAlbum(oldAlbumId);
+      if (album.songs.includes(songId)) {
+        album.songs = album.songs.filter((s: string) => s !== songId);
+        await saveAlbum(album);
+      }
+    } catch (err) {
+      console.error(`changeSongAlbum: failed to update old album ${oldAlbumId}`, err);
+    }
+  }
+
+  // Add the song to the new album's songs list (skip "No Album")
+  if (newAlbumId !== NO_ALBUM_ID) {
+    try {
+      const album = await getAlbum(newAlbumId);
+      if (!album.songs.includes(songId)) {
+        album.songs.push(songId);
+        await saveAlbum(album);
+      }
+    } catch (err) {
+      console.error(`changeSongAlbum: failed to update new album ${newAlbumId}`, err);
+    }
+  }
+
+  return oldAlbumId;
+}
+
+/**
+ * Ensure every song that has just been (re)assigned to an album's `songs`
+ * list physically lives inside that album's directory. Songs still parked in
+ * the "No Album" folder are moved into `library/<albumId>/<songId>`. This
+ * keeps folder location and album membership consistent when songs are added
+ * through the album editor. Returns the number of folders moved.
+ */
+export async function moveNoAlbumSongsIntoAlbum(
+  albumId: string,
+  songIds: string[]
+): Promise<number> {
+  if (!albumId || songIds.length === 0) return 0;
+  try {
+    await getAlbum(albumId);
+  } catch {
+    return 0;
+  }
+
+  let moved = 0;
+  for (const songId of songIds) {
+    const songPath = await findSongPath(songId);
+    if (!songPath) continue;
+    if (path.basename(path.dirname(songPath)) !== NO_ALBUM_ID) continue;
+    const target = path.join(getLibraryDir(), albumId, songId);
+    if (path.normalize(songPath) === path.normalize(target)) continue;
+    try {
+      await mkdir(path.dirname(target), { recursive: true });
+      await rename(songPath, target);
+      moved++;
+    } catch (err) {
+      console.error(`moveNoAlbumSongsIntoAlbum: failed to move ${songId} to ${albumId}`, err);
+    }
+  }
+  return moved;
 }

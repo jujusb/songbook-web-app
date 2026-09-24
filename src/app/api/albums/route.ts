@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { listAlbums, saveAlbum, deleteAlbum } from "@/lib/content";
+import { listAlbums, saveAlbum, deleteAlbum, moveNoAlbumSongsIntoAlbum } from "@/lib/content";
 import { AlbumSchema } from "@/lib/content/schemas";
 import { isReadOnly } from "@/lib/readonly";
 
@@ -25,6 +25,7 @@ export async function POST(request: Request) {
     const body = await request.json();
     const album = AlbumSchema.parse(body);
     await saveAlbum(album);
+    await moveNoAlbumSongsIntoAlbum(album.id, album.songs);
     return NextResponse.json({ success: true, id: album.id }, { status: 201 });
   } catch (err: unknown) {
     return NextResponse.json(
@@ -40,6 +41,7 @@ export async function PUT(request: Request) {
     const body = await request.json();
     const album = AlbumSchema.parse(body);
     await saveAlbum(album);
+    await moveNoAlbumSongsIntoAlbum(album.id, album.songs);
     return NextResponse.json({ success: true, id: album.id });
   } catch (err: unknown) {
     return NextResponse.json(

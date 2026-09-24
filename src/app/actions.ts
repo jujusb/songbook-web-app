@@ -1,6 +1,6 @@
 "use server";
 
-import { saveSongTranslation, saveSongMeta, createSong, getSong, getSongTranslation, getSiteConfig, listArtists, extractBodyTitle, addSongTranslation, deleteSongTranslation, renameSong } from "@/lib/content";
+import { saveSongTranslation, saveSongMeta, createSong, getSong, getSongTranslation, getSiteConfig, listArtists, extractBodyTitle, addSongTranslation, deleteSongTranslation, renameSong, changeSongAlbum } from "@/lib/content";
 import { SongTranslationFrontmatterSchema, type Reference, type AudioFile } from "@/lib/content/schemas";
 import { scanMusicDir, getMusicDir, slugify, stripNumberPrefix } from "@/lib/music-importer";
 import { revalidatePath } from "next/cache";
@@ -152,6 +152,29 @@ export async function changeSongIdAction(oldId: string, newId: string) {
     revalidatePath("/browse");
     if (albumId) revalidatePath(`/albums/${albumId}`);
     return { ok: true as const, songId: newId, albumId };
+  } catch (err) {
+    return {
+      ok: false as const,
+      error: err instanceof Error ? err.message : 'FAILED',
+    };
+  }
+}
+
+export async function changeSongAlbumAction(songId: string, albumId: string) {
+  if (isReadOnly()) {
+    return {
+      ok: false as const,
+      error: 'READ_ONLY',
+    };
+  }
+  try {
+    const oldAlbumId = await changeSongAlbum(songId, albumId);
+    revalidatePath(`/songs/${songId}`);
+    revalidatePath(`/albums/${albumId}`);
+    if (oldAlbumId && oldAlbumId !== albumId) revalidatePath(`/albums/${oldAlbumId}`);
+    revalidatePath("/songs");
+    revalidatePath("/browse");
+    return { ok: true as const, songId, albumId };
   } catch (err) {
     return {
       ok: false as const,

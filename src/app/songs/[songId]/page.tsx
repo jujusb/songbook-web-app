@@ -10,6 +10,7 @@ import {
   getArtistForSong,
   getSiteConfig,
   getLanguagesConfig,
+  listAlbums,
 } from "@/lib/content";
 import { getLocale } from "@/lib/i18n/server";
 import { getSession, canEdit, canAdmin } from "@/lib/auth";
@@ -19,6 +20,7 @@ import { ReferencePanel } from "@/components/ReferencePanel";
 import { MusicReader } from "@/components/MusicReader";
 import { DeleteButton } from "@/components/DeleteButton";
 import { ChangeIdButton } from "@/components/ChangeIdButton";
+import { ChangeAlbumButton } from "@/components/ChangeAlbumButton";
 import { NavidromeShareButton } from "@/components/NavidromeShareButton";
 import { T } from "@/components/Translate";
 import { getNavidromeConfig } from "@/lib/navidrome/config";
@@ -65,6 +67,7 @@ export default async function SongPage({
   const localizedTitle = await getSongTitle(songId, lang);
   const albums = await getAlbumsForSong(songId);
   const artist = await getArtistForSong(songId);
+  const allAlbums = await listAlbums();
 
   let enableArtistPages = false;
   try {
@@ -183,6 +186,11 @@ export default async function SongPage({
           )}
           {showDeleteActions && (
             <>
+              <ChangeAlbumButton
+                songId={songId}
+                currentAlbumIds={albums.map((a) => a.id)}
+                albums={allAlbums.map((a) => ({ id: a.id, title: a.title, artist: a.artist }))}
+              />
               <ChangeIdButton songId={songId} lang={lang} />
               <DeleteButton
                 apiEndpoint="/api/songs"

@@ -31,7 +31,7 @@ export function NewSongForm({
   const [title, setTitle] = useState("");
   const [lang, setLang] = useState(defaultLang);
   const [key, setKey] = useState("");
-  const [albumId, setAlbumId] = useState(preselectedAlbum || (albums.length > 0 ? albums[0].id : ""));
+  const [albumId, setAlbumId] = useState(preselectedAlbum || "");
   const [chordpro, setChordpro] = useState("");
   const [rawImport, setRawImport] = useState("");
   const [importMode, setImportMode] = useState<"manual" | "file" | "paste" | "chordpro" | "word">("manual");
@@ -93,6 +93,22 @@ export function NewSongForm({
     }
   }, [autoSave, saveDraft]);
 
+  const processImport = useCallback(
+    (text: string) => {
+      const result = txtToChordPro(text);
+
+      setChordpro(result.chordpro);
+
+      if (result.title && !title) {
+        setTitle(result.title);
+      }
+      if (result.detectedKey && !key) {
+        setKey(result.detectedKey);
+      }
+    },
+    [title, key]
+  );
+
   const handleFileUpload = useCallback(
     (e: React.ChangeEvent<HTMLInputElement>) => {
       const file = e.target.files?.[0];
@@ -109,23 +125,7 @@ export function NewSongForm({
       };
       reader.readAsText(file, "utf-8");
     },
-    []
-  );
-
-  const processImport = useCallback(
-    (text: string) => {
-      const result = txtToChordPro(text);
-
-      setChordpro(result.chordpro);
-
-      if (result.title && !title) {
-        setTitle(result.title);
-      }
-      if (result.detectedKey && !key) {
-        setKey(result.detectedKey);
-      }
-    },
-    [title, key]
+    [processImport]
   );
 
   const handlePasteImport = useCallback(() => {
@@ -208,8 +208,8 @@ export function NewSongForm({
       } catch {
         // ignore
       }
-    } catch (err: any) {
-      setError(err.message || "Failed to save");
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : "Failed to save");
     } finally {
       setSaving(false);
     }
@@ -261,14 +261,14 @@ export function NewSongForm({
         </div>
         <div>
           <label className="block text-sm font-medium text-neutral-700 dark:text-neutral-300 mb-1">
-            Album *
+            Album
           </label>
           <select
             value={albumId}
             onChange={(e) => setAlbumId(e.target.value)}
             className="w-full px-3 py-2 border border-neutral-300 dark:border-neutral-700 rounded-md bg-white dark:bg-neutral-900 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
           >
-            <option value="">Select an album...</option>
+            <option value="">No Album</option>
             {albums.map((a) => (
               <option key={a.id} value={a.id}>
                 {a.title} ({a.artist})
@@ -530,7 +530,7 @@ export function NewSongForm({
         <button
           type="button"
           onClick={handleSave}
-          disabled={saving || !title.trim() || !chordpro.trim() || !albumId}
+          disabled={saving || !title.trim() || !chordpro.trim()}
           className="px-6 py-2.5 bg-blue-600 text-white rounded-md font-medium text-sm hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
         >
           {saving ? "Creating..." : "Create Song"}
