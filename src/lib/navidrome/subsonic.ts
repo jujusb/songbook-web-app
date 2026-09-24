@@ -44,6 +44,27 @@ export class SubsonicClient {
     return res.album;
   }
 
+  async getAlbumList2(opts: {
+    type:
+      | 'alphabeticalByName'
+      | 'alphabeticalByArtist'
+      | 'byYear'
+      | 'byGenre'
+      | 'random'
+      | 'newest'
+      | 'highest'
+      | 'frequent'
+      | 'recent'
+      | 'starred';
+    size?: number;
+  }): Promise<AlbumID3[]> {
+    const res = await this.api.getAlbumList2({
+      type: opts.type,
+      size: opts.size ?? 500,
+    });
+    return res.albumList2?.album ?? [];
+  }
+
   async getShares(): Promise<Share[]> {
     const res = await this.api.getShares();
     return res.shares?.share ?? [];

@@ -1,4 +1,5 @@
 import { cookies } from "next/headers";
+import Link from "next/link";
 import {
   listArtists,
   listAlbums,
@@ -8,6 +9,7 @@ import {
 } from "@/lib/content";
 import { getLocale } from "@/lib/i18n/server";
 import { getSession, canEdit } from "@/lib/auth";
+import { hasVoiceSections } from "@/lib/navidrome/voices";
 import { BrowseTree, type TreeData } from "@/components/BrowseTree";
 import { T } from "@/components/Translate";
 
@@ -18,6 +20,8 @@ interface TreeSong {
   choTitles?: Record<string, string>;
   key?: string;
   translations: string[];
+  hasVoices: boolean;
+  hasPartitions: boolean;
 }
 
 interface TreeAlbum {
@@ -49,6 +53,12 @@ export default async function BrowsePage() {
 
   const songMap = new Map(songs.map((s) => [s.id, s]));
 
+  // Cheap flag precomputation (voice presence uses one memoized Navidrome dump).
+  const voicesBySong = new Map<string, boolean>();
+  for (const song of songs) {
+    voicesBySong.set(song.id, await hasVoiceSections(song.id, selectedLang));
+  }
+
   // Build strict Artist > Album > Song tree, keeping only songs that have
   // the selected language (all songs when the default language is selected).
   const treeArtists: TreeArtist[] = artists
@@ -76,6 +86,8 @@ export default async function BrowsePage() {
               choTitles: song.choTitles,
               key: song.key,
               translations: song.translations,
+              hasVoices: voicesBySong.get(song.id) ?? false,
+              hasPartitions: (song.partitions?.length ?? 0) > 0,
             });
           }
 
@@ -107,12 +119,12 @@ export default async function BrowsePage() {
       <div className="flex items-center justify-between mb-2">
         <h1 className="text-2xl font-bold"><T k="browse.title" /></h1>
         {showEditActions && (
-          <a
+          <Link
             href="/artists/new"
             className="text-sm px-3 py-1.5 bg-neutral-900 dark:bg-white text-white dark:text-neutral-900 rounded-md font-medium hover:opacity-90 transition-opacity"
           >
             <T k="artist.newArtist" />
-          </a>
+          </Link>
         )}
       </div>
       <p className="text-sm text-neutral-500 mb-6">

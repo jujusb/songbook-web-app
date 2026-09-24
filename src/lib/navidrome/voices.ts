@@ -74,11 +74,14 @@ function sectionsFromTitle(
 }
 
 const MEMO_TTL_MS = 10 * 60 * 1000;
-const memo = new Map<string, { at: number; value: VoiceGroup[] }>();
+const memo = new Map<string, { at: number; value: unknown }>();
 
-async function memoized(key: string, fn: () => Promise<VoiceGroup[]>): Promise<VoiceGroup[]> {
+async function memoized<T>(
+  key: string,
+  fn: () => Promise<T>,
+): Promise<T> {
   const hit = memo.get(key);
-  if (hit && Date.now() - hit.at < MEMO_TTL_MS) return hit.value;
+  if (hit && Date.now() - hit.at < MEMO_TTL_MS) return hit.value as T;
   const value = await fn();
   memo.set(key, { at: Date.now(), value });
   return value;
@@ -143,4 +146,60 @@ export async function getVoiceSections(songId: string, lang: string): Promise<Vo
       return [];
     }
   });
+}
+
+/**
+ * Fetch the raw titles of every recording on the VOICES instance in one pass
+ * (album list + per-album detail), memoized. Used for cheap "does this song
+ * have voice recordings?" lookups without one search per song.
+ */
+export async function getAllVoiceTrackTitles(): Promise<string[]> {
+  const config = getVoicesConfig();
+  if (!config) return [];
+  const client = new SubsonicClient(config);
+  return memoized('voices:all-titles', async () => {
+    try {
+      const albums = await client.getAlbumList2({
+        type: 'alphabeticalByName',
+        size: 500,
+      });
+      const titles = new Set<string>();
+      for (const album of albums) {
+        try {
+          const detail = await client.getAlbum(album.id);
+          for (const song of detail.song ?? []) {
+            if (song.title) titles.add(song.title);
+          }
+        } catch {
+          // skip unreadable albums
+        }
+      }
+      return [...titles];
+    } catch {
+      return [];
+    }
+  });
+}
+
+/**
+ * Boolean check: does the VOICES instance have at least one recording that
+ * matches this song in the given language? Reuses the per-song matching rules.
+ */
+export async function hasVoiceSections(
+  songId: string,
+  lang: string,
+): Promise<boolean> {
+  const config = getVoicesConfig();
+  if (!config) return false;
+  try {
+    const songTitle = await getSongTitle(songId, lang);
+    const normalizedSongTitle = normalizeTitle(songTitle);
+    if (!normalizedSongTitle) return false;
+    const titles = await getAllVoiceTrackTitles();
+    return titles.some(
+      (title) => sectionsFromTitle(title, normalizedSongTitle) !== null,
+    );
+  } catch {
+    return false;
+  }
 }

@@ -168,6 +168,9 @@ const fr: Translations = {
     addSongTitle: 'Ajouter une chanson à cet album',
     editSongTitle: 'Modifier la chanson',
     editAlbumTitle: "Modifier l'album",
+    voices: 'Voix',
+    voicesHint: 'A des enregistrements par voix',
+    instrumental: 'Instrumental',
   },
   print: {
     title: 'Imprimer',

@@ -167,6 +167,9 @@ const es: Translations = {
     addSong: '+ canción',
     addSongTitle: 'Añadir canción a este álbum',
     editSongTitle: 'Editar canción',
+    voices: 'Voces',
+    voicesHint: 'Tiene grabaciones por voz',
+    instrumental: 'Instrumental',
     editAlbumTitle: 'Editar álbum',
   },
   print: {

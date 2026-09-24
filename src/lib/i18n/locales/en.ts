@@ -166,6 +166,9 @@ const en = {
     addSongTitle: 'Add song to this album',
     editSongTitle: 'Edit song',
     editAlbumTitle: 'Edit album',
+    voices: 'Voices',
+    voicesHint: 'Has voice-part recordings',
+    instrumental: 'Instrumental',
   },
   print: {
     title: 'Print',

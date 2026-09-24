@@ -12,6 +12,8 @@ interface TreeSong {
   choTitles?: Record<string, string>;
   key?: string;
   translations: string[];
+  hasVoices: boolean;
+  hasPartitions: boolean;
 }
 
 interface TreeAlbum {
@@ -153,6 +155,24 @@ function SongNode({
             {languageLabel(lang)}
           </span>
         ))}
+      </div>
+      <div className="flex gap-0.5 shrink-0">
+        {song.hasVoices && (
+          <span
+            className="text-[10px] px-1 py-0.5 rounded bg-purple-50 dark:bg-purple-950 text-purple-600 dark:text-purple-400"
+            title={t('browse.voicesHint')}
+          >
+            {t('browse.voices')}
+          </span>
+        )}
+        {song.hasPartitions && (
+          <span
+            className="text-[10px] px-1 py-0.5 rounded bg-emerald-50 dark:bg-emerald-950 text-emerald-600 dark:text-emerald-400"
+            title={t('partitions.title')}
+          >
+            {t('browse.instrumental')}
+          </span>
+        )}
       </div>
       {canEdit && (
         <div className="flex items-center gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
