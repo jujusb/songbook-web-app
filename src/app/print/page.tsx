@@ -33,10 +33,7 @@ export default async function PrintConfigPage({
       <h1 className="text-2xl font-bold mb-6">Print Songbook</h1>
       <PrintConfigForm
         albums={albumOptions}
-        languages={langConfig.languages.map((l) => ({
-          code: l.code,
-          label: l.label,
-        }))}
+        languages={langConfig.languages}
         defaultLang={langConfig.default}
         preselectedAlbum={preselectedAlbum}
         artists={artistOptions}

@@ -2,6 +2,7 @@
 
 import { useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
+import { useTranslation } from "@/lib/i18n";
 
 interface AvailableSong {
   id: string;
@@ -33,6 +34,7 @@ export function SetlistEditor({
   isNew: boolean;
 }) {
   const router = useRouter();
+  const { languageLabel } = useTranslation();
   const [title, setTitle] = useState(initialSetlist?.title || "");
   const [description, setDescription] = useState(initialSetlist?.description || "");
   const [date, setDate] = useState(initialSetlist?.date || "");
@@ -245,13 +247,13 @@ export function SetlistEditor({
                     >
                       {meta.translations.map((lang) => (
                         <option key={lang} value={lang}>
-                          {lang.toUpperCase()}
+                          {languageLabel(lang)}
                         </option>
                       ))}
                     </select>
                   ) : (
                     <span className="text-xs px-1.5 py-0.5 bg-neutral-100 dark:bg-neutral-800 rounded text-neutral-500">
-                      {item.lang.toUpperCase()}
+                      {languageLabel(item.lang)}
                     </span>
                   )}
 
@@ -324,7 +326,7 @@ export function SetlistEditor({
                         key={lang}
                         className="text-[10px] px-1 py-0.5 bg-neutral-100 dark:bg-neutral-800 rounded text-neutral-500"
                       >
-                        {lang.toUpperCase()}
+                        {languageLabel(lang)}
                       </span>
                     ))}
                   </div>

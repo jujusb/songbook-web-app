@@ -61,7 +61,7 @@ interface BrowseResult {
   hasSubdirs: string[];
 }
 
-const LANGUAGES = ["en", "es", "fr", "pt", "de", "it", "la", "instrumental"];
+const LANGUAGES = ["en", "es", "fr", "pt", "de", "it", "la", "ko"];
 const LANG_CODES = new Set(LANGUAGES);
 
 function looksLikeLanguages(subdirs: string[]): boolean {

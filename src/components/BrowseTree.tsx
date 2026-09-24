@@ -105,7 +105,7 @@ function SongNode({
   onRefresh: () => void;
   canEdit: boolean;
 }) {
-  const { t, locale } = useTranslation();
+  const { t, locale, languageLabel } = useTranslation();
   const displayLang = song.translations.includes(locale) ? locale : (song.translations[0] || "en");
   const displayTitle =
     song.titles?.[displayLang] ||
@@ -150,7 +150,7 @@ function SongNode({
                 : "bg-neutral-100 dark:bg-neutral-800 text-neutral-400"
             }`}
           >
-            {lang.toUpperCase()}
+            {languageLabel(lang)}
           </span>
         ))}
       </div>

@@ -85,16 +85,8 @@ export const SongTranslationFrontmatterSchema = z.object({
 
 export type SongTranslationFrontmatter = z.infer<typeof SongTranslationFrontmatterSchema>;
 
-export const LanguageConfigSchema = z.object({
-  code: z.string(),
-  label: z.string(),
-  rtl: z.boolean().default(false),
-});
-
-export type LanguageConfig = z.infer<typeof LanguageConfigSchema>;
-
 export const LanguagesConfigSchema = z.object({
-  languages: z.array(LanguageConfigSchema),
+  languages: z.array(z.string()),
   default: z.string(),
 });
 

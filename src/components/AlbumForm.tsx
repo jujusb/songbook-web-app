@@ -2,6 +2,7 @@
 
 import { useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
+import { useTranslation } from "@/lib/i18n";
 
 interface Song {
   id: string;
@@ -34,11 +35,12 @@ export function AlbumForm({
   };
   allSongs: Song[];
   allArtists: ArtistOption[];
-  languages: { code: string; label: string }[];
+  languages: string[];
   defaultLang: string;
   isNew: boolean;
 }) {
   const router = useRouter();
+  const { languageLabel } = useTranslation();
   const [title, setTitle] = useState(initialAlbum.title);
   const [titles, setTitles] = useState<Record<string, string>>(
     initialAlbum.titles
@@ -159,16 +161,16 @@ export function AlbumForm({
             <div className="flex gap-1 border-b border-neutral-200 dark:border-neutral-800 min-h-[2.5rem]">
               {languages.map((lang) => (
                 <button
-                  key={lang.code}
+                  key={lang}
                   type="button"
-                  onClick={() => setTitleTab(lang.code)}
+                  onClick={() => setTitleTab(lang)}
                   className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
-                    lang.code === titleTab
+                    lang === titleTab
                       ? "border-blue-500 text-blue-600 dark:text-blue-400"
                       : "border-transparent text-neutral-500 hover:text-foreground hover:border-neutral-300"
                   }`}
                 >
-                  {lang.code.toUpperCase()}
+                  {languageLabel(lang)}
                 </button>
               ))}
             </div>
@@ -178,7 +180,7 @@ export function AlbumForm({
               onChange={(e) =>
                 setTitles((prev) => ({ ...prev, [titleTab]: e.target.value }))
               }
-              placeholder={`${titles[titleTab]?.trim() ? "Title" : "No title"} in ${titleTab.toUpperCase()} (falls back to default)`}
+              placeholder={`${titles[titleTab]?.trim() ? "Title" : "No title"} in ${languageLabel(titleTab)} (falls back to default)`}
               className="w-full px-3 py-2 border border-neutral-300 dark:border-neutral-700 rounded-md bg-white dark:bg-neutral-900 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 mt-2"
             />
           </div>

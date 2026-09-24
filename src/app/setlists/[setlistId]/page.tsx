@@ -3,6 +3,7 @@ import Link from "next/link";
 import { cookies } from "next/headers";
 import { getSetlist, listSongs, getSong, getSongTranslations, getSongTitle, getLanguagesConfig, shouldShowSongInLanguage } from "@/lib/content";
 import { getLocale } from "@/lib/i18n/server";
+import { languageLabelFor } from "@/lib/i18n/labels";
 import { getSession, canEdit, canAdmin } from "@/lib/auth";
 import { SetlistEditor } from "@/components/SetlistEditor";
 import { SetlistVoiceLinks } from "@/components/SetlistVoiceLinks";
@@ -28,6 +29,7 @@ export default async function SetlistPage({
 
   const langConfig = await getLanguagesConfig();
   const selectedLang = getLocale(await cookies(), langConfig.default);
+  const langLabel = languageLabelFor;
 
   // Load available songs for editor
   const songs = await listSongs();
@@ -135,7 +137,7 @@ export default async function SetlistPage({
                     <span className="text-xs text-neutral-400">{song.key}</span>
                   )}
                   <span className="text-xs px-1.5 py-0.5 bg-neutral-100 dark:bg-neutral-800 rounded text-neutral-500">
-                    {song.lang.toUpperCase()}
+                    {langLabel(song.lang)}
                   </span>
                   <SetlistVoiceLinks songId={song.songId} lang={song.lang} />
                 </div>

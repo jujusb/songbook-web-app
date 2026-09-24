@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { cookies } from "next/headers";
 import { getAlbum, getAlbumTitle, getArtist, getSong, getSongTranslations, getSongTitle, getLanguagesConfig, shouldShowSongInLanguage } from "@/lib/content";
 import { getLocale } from "@/lib/i18n/server";
+import { languageLabelFor } from "@/lib/i18n/labels";
 import { getSession, canEdit, canAdmin } from "@/lib/auth";
 import { DeleteButton } from "@/components/DeleteButton";
 
@@ -18,6 +19,7 @@ export default async function AlbumPage({
   const cookieStore = await cookies();
   const langConfig = await getLanguagesConfig();
   const uiLocale = getLocale(cookieStore, langConfig.default);
+  const langLabel = languageLabelFor;
   const displayLang = lang || uiLocale;
 
   let album;
@@ -175,7 +177,7 @@ export default async function AlbumPage({
                           key={lang}
                           className="text-xs px-1.5 py-0.5 bg-neutral-100 dark:bg-neutral-800 rounded text-neutral-500"
                         >
-                          {lang.toUpperCase()}
+                          {langLabel(lang)}
                         </span>
                       ))}
                     </div>

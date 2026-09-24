@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useRef, useCallback, useEffect } from "react";
+import { useTranslation } from "@/lib/i18n";
 
 export interface AudioFileEntry {
   lang: string;
@@ -89,6 +90,7 @@ export function MusicReader({
   songTitle?: string;
 }) {
   const audioRef = useRef<HTMLAudioElement>(null);
+  const { languageLabel } = useTranslation();
   const [current, setCurrent] = useState<string | null>(null);
   const [playing, setPlaying] = useState(false);
   const [duration, setDuration] = useState(0);
@@ -280,7 +282,7 @@ export function MusicReader({
                       : "bg-neutral-100 dark:bg-neutral-800 text-neutral-500 hover:bg-neutral-200 dark:hover:bg-neutral-700"
                   }`}
                 >
-                  {l.toUpperCase()}
+                  {languageLabel(l)}
                   {l === "es" && (
                     <span className="ml-0.5 opacity-60">*</span>
                   )}

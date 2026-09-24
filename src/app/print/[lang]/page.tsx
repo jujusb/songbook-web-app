@@ -11,6 +11,7 @@ import {
 } from "@/lib/content";
 import { renderToHtml, renderReferencesHtml } from "@/lib/chordpro";
 import Link from "next/link";
+import { languageLabelFor } from "@/lib/i18n/labels";
 import { PrintButton } from "@/components/PrintButton";
 
 interface PrintSong {
@@ -47,7 +48,7 @@ export default async function PrintPage({
       languages = langsParam.split(",").map((l) => l.trim()).filter(Boolean);
     } else {
       const langConfig = await getLanguagesConfig();
-      languages = langConfig.languages.map((l) => l.code);
+      languages = langConfig.languages;
     }
   } else {
     // Single language mode (may include additional via langs param)
@@ -123,13 +124,8 @@ export default async function PrintPage({
     }
   }
 
-  // Build language label for display
-  const langConfig = await getLanguagesConfig().catch(() => null);
-  const langLabel = (code: string) => {
-    if (!langConfig) return code.toUpperCase();
-    const found = langConfig.languages.find((l) => l.code === code);
-    return found ? found.label : code.toUpperCase();
-  };
+  // Build language label for display (from the i18n library)
+  const langLabel = languageLabelFor;
 
   let siteTitle = "Songbook";
   try {

@@ -25,7 +25,7 @@ export function LanguageSwitcher({
 }) {
   const router = useRouter();
   const pathname = usePathname();
-  const { t } = useTranslation();
+  const { t, languageLabel } = useTranslation();
   const [confirmingRemove, setConfirmingRemove] = useState<string | null>(null);
   const [showAddForm, setShowAddForm] = useState(false);
   const [addSelection, setAddSelection] = useState("");
@@ -54,7 +54,7 @@ export function LanguageSwitcher({
                 : "border-transparent text-neutral-500 hover:text-foreground hover:border-neutral-300"
             }`}
           >
-            {lang.toUpperCase()}
+            {languageLabel(lang)}
           </button>
           {onRemove && (
             confirmingRemove === lang ? (
@@ -114,7 +114,7 @@ export function LanguageSwitcher({
               >
                 {availableToAdd.map((l) => (
                   <option key={l} value={l}>
-                    {l.toUpperCase()}
+                    {languageLabel(l)}
                   </option>
                 ))}
               </select>

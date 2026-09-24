@@ -12,6 +12,7 @@ import {
   shouldShowSongInLanguage,
 } from "@/lib/content";
 import { getLocale } from "@/lib/i18n/server";
+import { languageLabelFor } from "@/lib/i18n/labels";
 import { getSession, canAdmin } from "@/lib/auth";
 import { DeleteButton } from "@/components/DeleteButton";
 import { T } from "@/components/Translate";
@@ -30,6 +31,7 @@ export default async function ArtistPage({
   const cookieStore = await cookies();
   const langConfig = await getLanguagesConfig();
   const uiLang = getLocale(cookieStore, langConfig.default);
+  const langLabel = languageLabelFor;
 
   let artist;
   try {
@@ -207,7 +209,7 @@ export default async function ArtistPage({
                                 key={lang}
                                 className="text-[10px] px-1 py-0.5 bg-neutral-100 dark:bg-neutral-800 rounded text-neutral-500"
                               >
-                                {lang.toUpperCase()}
+                                {langLabel(lang)}
                               </span>
                             ))}
                           </div>

@@ -12,11 +12,6 @@ interface Album {
   songCount: number;
 }
 
-interface Language {
-  code: string;
-  label: string;
-}
-
 interface Artist {
   id: string;
   name: string;
@@ -31,14 +26,14 @@ export function PrintConfigForm({
   preselectedArtist,
 }: {
   albums: Album[];
-  languages: Language[];
+  languages: string[];
   defaultLang: string;
   preselectedAlbum?: string;
   artists?: Artist[];
   preselectedArtist?: string;
 }) {
   const router = useRouter();
-  const { locale } = useTranslation();
+  const { locale, languageLabel } = useTranslation();
   const [scope, setScope] = useState<"all" | "album" | "artist">(
     preselectedAlbum ? "album" : preselectedArtist ? "artist" : "all"
   );
@@ -56,7 +51,7 @@ export function PrintConfigForm({
   };
 
   const selectAllLangs = () => {
-    setSelectedLangs(languages.map((l) => l.code));
+    setSelectedLangs([...languages]);
   };
 
   const handlePrint = () => {
@@ -163,20 +158,20 @@ export function PrintConfigForm({
         <div className="flex flex-wrap gap-2">
           {languages.map((lang) => (
             <label
-              key={lang.code}
+              key={lang}
               className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md border text-sm cursor-pointer transition-colors ${
-                selectedLangs.includes(lang.code)
+                selectedLangs.includes(lang)
                   ? "border-blue-500 bg-blue-50 dark:bg-blue-950 text-blue-700 dark:text-blue-300"
                   : "border-neutral-300 dark:border-neutral-700 hover:bg-neutral-50 dark:hover:bg-neutral-900"
               }`}
             >
               <input
                 type="checkbox"
-                checked={selectedLangs.includes(lang.code)}
-                onChange={() => toggleLang(lang.code)}
+                checked={selectedLangs.includes(lang)}
+                onChange={() => toggleLang(lang)}
                 className="sr-only"
               />
-              {lang.label}
+              {languageLabel(lang)}
             </label>
           ))}
         </div>

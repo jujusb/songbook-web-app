@@ -5,6 +5,7 @@ import matter from 'gray-matter';
 import * as yaml from 'js-yaml';
 import { saveRevision } from './revisions';
 import { syncSongToMusicDir } from '@/lib/lyrics-sync';
+import { FALLBACK_LANGUAGES } from '@/lib/i18n/labels';
 export { resolveSongListTitle } from '../song-titles';
 import {
   SongMetaSchema,
@@ -444,40 +445,13 @@ export async function createSong(
 
 export async function getLanguagesConfig(): Promise<LanguagesConfig> {
   const envLanguages = process.env.LANGUAGES;
-  if (envLanguages) {
-    const codes = envLanguages.split(',').map(s => s.trim()).filter(Boolean);
-    const languages = codes.map(code => ({
-      code,
-      label: code.toUpperCase(),
-      rtl: false,
-    }));
-    return LanguagesConfigSchema.parse({
-      languages,
-      default: process.env.LANGUAGES_DEFAULT || codes[0] || 'en',
-    });
-  }
-
-  const filePath = path.join(getContentDir(), 'config', 'languages.yaml');
-  let raw: string;
-  try {
-    raw = await readFile(filePath, 'utf-8');
-  } catch (err: unknown) {
-    if ((err as NodeJS.ErrnoException).code !== 'ENOENT') throw err;
-    const defaults: LanguagesConfig = {
-      languages: [
-        { code: 'en', label: 'English', rtl: false },
-        { code: 'es', label: 'Español', rtl: false },
-        { code: 'fr', label: 'Français', rtl: false },
-        { code: 'instrumental', label: 'Instrumental', rtl: false },
-      ],
-      default: 'en',
-    };
-    await mkdir(path.dirname(filePath), { recursive: true });
-    await writeFile(filePath, yaml.dump(defaults), 'utf-8');
-    raw = await readFile(filePath, 'utf-8');
-  }
-  const parsed = yaml.load(raw);
-  return LanguagesConfigSchema.parse(parsed);
+  const languages = envLanguages
+    ? envLanguages.split(',').map(s => s.trim()).filter(Boolean)
+    : [...FALLBACK_LANGUAGES];
+  return LanguagesConfigSchema.parse({
+    languages,
+    default: process.env.LANGUAGES_DEFAULT || languages[0] || 'en',
+  });
 }
 
 export async function getSiteConfig(): Promise<SiteConfig> {

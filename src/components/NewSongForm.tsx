@@ -4,6 +4,7 @@ import { useState, useCallback, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { renderVisualChordSheet } from "@/lib/chordpro/visual-render";
 import { txtToChordPro } from "@/lib/chordpro/txt-import";
+import { useTranslation } from "@/lib/i18n";
 
 function renderPreview(source: string): string {
   return renderVisualChordSheet(source, { repeatChorus: true });
@@ -13,16 +14,21 @@ const DRAFT_KEY = "songbook-new-song-draft";
 
 export function NewSongForm({
   albums,
+  languages,
+  defaultLang,
   preselectedAlbum,
 }: {
   albums: { id: string; title: string; artist: string }[];
+  languages: string[];
+  defaultLang: string;
   preselectedAlbum?: string;
 }) {
   const router = useRouter();
+  const { languageLabel } = useTranslation();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [title, setTitle] = useState("");
-  const [lang, setLang] = useState("en");
+  const [lang, setLang] = useState(defaultLang);
   const [key, setKey] = useState("");
   const [albumId, setAlbumId] = useState(preselectedAlbum || (albums.length > 0 ? albums[0].id : ""));
   const [chordpro, setChordpro] = useState("");
@@ -254,16 +260,11 @@ export function NewSongForm({
             onChange={(e) => setLang(e.target.value)}
             className="w-full px-3 py-2 border border-neutral-300 dark:border-neutral-700 rounded-md bg-white dark:bg-neutral-900 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
           >
-            <option value="en">English</option>
-            <option value="es">Espanol</option>
-            <option value="fr">Francais</option>
-            <option value="pt">Portugues</option>
-            <option value="de">Deutsch</option>
-            <option value="ar">Arabic</option>
-            <option value="zh">Chinese</option>
-            <option value="ko">Korean</option>
-            <option value="ja">Japanese</option>
-            <option value="ru">Russian</option>
+            {languages.map((l) => (
+              <option key={l} value={l}>
+                {languageLabel(l)}
+              </option>
+            ))}
           </select>
         </div>
         <div>

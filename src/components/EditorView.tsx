@@ -33,7 +33,7 @@ export function EditorView({
   translations: string[];
   translationsContent: Record<string, string>;
 }) {
-  const { t } = useTranslation();
+  const { t, languageLabel } = useTranslation();
   const editorRef = useRef<HTMLDivElement>(null);
   const cmViewRef = useRef<CMEditorView | null>(null);
   const [content, setContent] = useState(initialContent);
@@ -360,7 +360,7 @@ export function EditorView({
               >
                 {otherLangs.map((l) => (
                   <option key={l} value={l}>
-                    {l.toUpperCase()}
+                    {languageLabel(l)}
                   </option>
                 ))}
               </select>

@@ -6,11 +6,13 @@ import {
   useState,
   useEffect,
   useCallback,
+  useMemo,
   type ReactNode,
 } from 'react';
 import en from './locales/en';
 import es from './locales/es';
 import fr from './locales/fr';
+import { languageLabelFor } from './labels';
 import type { Translations } from './locales/en';
 
 const LOCALE_STORAGE_KEY = 'songbook-ui-locale';
@@ -20,6 +22,7 @@ const locales: Record<string, Translations> = { en, es, fr };
 interface I18nContextValue {
   locale: string;
   t: (key: string, params?: Record<string, string | number>) => string;
+  languageLabel: (code: string) => string;
   setLocale: (locale: string) => void;
   availableLocales: { code: string; label: string }[];
 }
@@ -27,6 +30,7 @@ interface I18nContextValue {
 const I18nContext = createContext<I18nContextValue>({
   locale: 'en',
   t: (key: string) => key,
+  languageLabel: (code: string) => code.toUpperCase(),
   setLocale: () => {},
   availableLocales: [],
 });
@@ -51,26 +55,33 @@ function interpolate(template: string, params?: Record<string, string | number>)
 export function I18nProvider({
   children,
   initialLocale = 'en',
+  songLanguages,
 }: {
   children: ReactNode;
   initialLocale?: string;
+  songLanguages?: string[];
 }) {
   const [locale, setLocaleState] = useState(initialLocale);
+
+  const songbookCodes = useMemo(
+    () => (songLanguages && songLanguages.length > 0 ? songLanguages : Object.keys(locales)),
+    [songLanguages],
+  );
 
   useEffect(() => {
     try {
       const stored = localStorage.getItem(LOCALE_STORAGE_KEY);
-      if (stored && locales[stored]) {
+      if (stored && songbookCodes.includes(stored)) {
         // eslint-disable-next-line react-hooks/set-state-in-effect
         setLocaleState(stored);
       }
     } catch {
       // localStorage not available
     }
-  }, []);
+  }, [songbookCodes]);
 
   const setLocale = useCallback((code: string) => {
-    if (locales[code]) {
+    if (songbookCodes.includes(code)) {
       setLocaleState(code);
       try {
         localStorage.setItem(LOCALE_STORAGE_KEY, code);
@@ -78,7 +89,7 @@ export function I18nProvider({
         // localStorage not available
       }
     }
-  }, []);
+  }, [songbookCodes]);
 
   const translations = locales[locale] || locales['en'];
 
@@ -95,14 +106,17 @@ export function I18nProvider({
     [translations],
   );
 
-  const availableLocales = [
-    { code: 'en', label: 'English' },
-    { code: 'es', label: 'Español' },
-    { code: 'fr', label: 'Français' },
-  ];
+  const availableLocales = songbookCodes.map((code) => ({
+    code,
+    label: languageLabelFor(code),
+  }));
+
+  const languageLabel = languageLabelFor;
 
   return (
-    <I18nContext.Provider value={{ locale, t, setLocale, availableLocales }}>
+    <I18nContext.Provider
+      value={{ locale, t, languageLabel, setLocale, availableLocales }}
+    >
       {children}
     </I18nContext.Provider>
   );

@@ -1,5 +1,6 @@
 import { notFound } from "next/navigation";
 import { getSong, getSongTranslation, getSongTranslations, getSongTitle } from "@/lib/content";
+import { languageLabelFor } from "@/lib/i18n/labels";
 import { ChordSheet } from "@/components/ChordSheet";
 
 export default async function ComparePage({
@@ -11,6 +12,8 @@ export default async function ComparePage({
 }) {
   const { songId } = await params;
   const { langs: langsParam } = await searchParams;
+
+  const langLabel = languageLabelFor;
 
   let meta;
   try {
@@ -62,7 +65,7 @@ export default async function ComparePage({
             className="border border-neutral-200 dark:border-neutral-800 rounded-lg overflow-hidden"
           >
             <div className="px-4 py-2 bg-neutral-50 dark:bg-neutral-900 border-b border-neutral-200 dark:border-neutral-800">
-              <span className="font-semibold text-sm">{lang.toUpperCase()}</span>
+              <span className="font-semibold text-sm">{langLabel(lang)}</span>
             </div>
             <div className="p-4">
               <ChordSheet initialSource={body} songKey={meta.key ?? null} references={meta.references} idPrefix={lang} lang={lang} />

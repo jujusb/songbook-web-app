@@ -36,8 +36,11 @@ export default async function RootLayout({
   let showEditActions = false;
   const cookieStore = await cookies();
   let fallbackLocale = 'en';
+  let songLanguages: string[] | undefined;
   try {
-    fallbackLocale = (await getLanguagesConfig()).default;
+    const langConfig = await getLanguagesConfig();
+    fallbackLocale = langConfig.default;
+    songLanguages = langConfig.languages;
   } catch {
     // languages config not available yet
   }
@@ -54,7 +57,7 @@ export default async function RootLayout({
   } catch {}
 
   return (
-    <RootClientLayout initialLocale={uiLocale}>
+    <RootClientLayout initialLocale={uiLocale} songLanguages={songLanguages}>
     <html
       lang={uiLocale}
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}

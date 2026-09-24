@@ -35,7 +35,7 @@ export default async function NewAlbumPage({
       }}
       allSongs={songs.map((s) => ({ id: s.id, title: s.title, key: s.key }))}
       allArtists={artists.map((a) => ({ id: a.id, name: a.name }))}
-      languages={langConfig.languages.map((l) => ({ code: l.code, label: l.label }))}
+      languages={langConfig.languages}
       defaultLang={langConfig.default}
       isNew={true}
     />

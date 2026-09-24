@@ -39,7 +39,7 @@ export default async function EditPage({
     ),
   );
   const langConfig = await getLanguagesConfig();
-  const allLanguages = langConfig.languages.map((l) => l.code);
+  const allLanguages = langConfig.languages;
   // Use all configured languages + any song-specific languages
   const languages = Array.from(new Set([...allLanguages, ...translations]));
 
