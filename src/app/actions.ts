@@ -1,11 +1,13 @@
 "use server";
 
-import { saveSongTranslation, saveSongMeta, createSong, getSong, getSongTranslation, getSiteConfig, listArtists, extractBodyTitle, addSongTranslation, deleteSongTranslation, renameSong, changeSongAlbum } from "@/lib/content";
+import { saveSongTranslation, saveSongMeta, createSong, getSong, getSongTranslation, getSiteConfig, listArtists, extractBodyTitle, addSongTranslation, deleteSongTranslation, renameSong, changeSongAlbum, getSetlist, saveSetlist } from "@/lib/content";
 import { SongTranslationFrontmatterSchema, type Reference, type AudioFile, type SongMeta, type Partition } from "@/lib/content/schemas";
 import { scanMusicDir, getMusicDir, slugify, stripNumberPrefix } from "@/lib/music-importer";
 import { revalidatePath } from "next/cache";
 import matter from "gray-matter";
 import { isReadOnly } from "@/lib/readonly";
+import { getSession, canEdit } from "@/lib/auth";
+import { randomUUID } from "node:crypto";
 
 function assertWritable() {
   if (isReadOnly()) {
@@ -527,6 +529,163 @@ export async function applyAllPartitionsAction(
     revalidatePath("/browse");
     revalidatePath("/admin/partitions");
     return { ok: true as const, applied: matches.length };
+  } catch (err) {
+    return {
+      ok: false as const,
+      error: err instanceof Error ? err.message : "FAILED",
+    };
+  }
+}
+
+/* ------------------------------------------------------------------ */
+/*  Setlist voice shares (Navidrome)                                  */
+/* ------------------------------------------------------------------ */
+export type { VoiceShareWithTracks } from "@/lib/navidrome/setlist-shares";
+
+/**
+ * Generate one Navidrome share per voice section (TENOR / BASS / ALTO /
+ * SOPRANO) containing that voice's recordings for all songs in the setlist,
+ * and persist the share links on the setlist.
+ */
+export async function generateSetlistVoiceSharesAction(setlistId: string) {
+  assertWritable();
+  const session = await getSession();
+  if (!canEdit(session?.role ?? null)) {
+    return { ok: false as const, error: "Unauthorized" };
+  }
+  try {
+    const { generateSetlistVoiceShares } = await import(
+      "@/lib/navidrome/setlist-shares"
+    );
+    const setlist = await getSetlist(setlistId);
+    const { shares, enriched } = await generateSetlistVoiceShares(setlist);
+    await saveSetlist({ ...setlist, voiceShares: shares });
+    revalidatePath(`/setlists/${setlistId}`);
+    revalidatePath("/setlists");
+    return {
+      ok: true as const,
+      shares,
+      sections: enriched.map((share) => share.section),
+    };
+  } catch (err) {
+    return {
+      ok: false as const,
+      error: err instanceof Error ? err.message : "FAILED",
+    };
+  }
+}
+
+/* ------------------------------------------------------------------ */
+/*  Setlist visibility & sharing                                      */
+/* ------------------------------------------------------------------ */
+
+/**
+ * Toggle whether a setlist is visible to anyone (public) or only to editors
+ * and holders of the share token (private, the default).
+ */
+export async function setSetlistPublicAction(setlistId: string, isPublic: boolean) {
+  assertWritable();
+  const session = await getSession();
+  if (!canEdit(session?.role ?? null)) {
+    return { ok: false as const, error: "Unauthorized" };
+  }
+  try {
+    const setlist = await getSetlist(setlistId);
+    await saveSetlist({ ...setlist, public: isPublic });
+    revalidatePath(`/setlists/${setlistId}`);
+    revalidatePath("/setlists");
+    return { ok: true as const, public: isPublic };
+  } catch (err) {
+    return {
+      ok: false as const,
+      error: err instanceof Error ? err.message : "FAILED",
+    };
+  }
+}
+
+/**
+ * Create (or reuse) the share token for a setlist. Returns the token making
+ * up the public link that grants view access to the setlist page to anyone
+ * holding it.
+ */
+export async function createSetlistShareAction(setlistId: string) {
+  assertWritable();
+  const session = await getSession();
+  if (!canEdit(session?.role ?? null)) {
+    return { ok: false as const, error: "Unauthorized" };
+  }
+  try {
+    const setlist = await getSetlist(setlistId);
+    const token = setlist.shareToken || randomUUID();
+    await saveSetlist({ ...setlist, shareToken: token });
+    revalidatePath(`/setlists/${setlistId}`);
+    revalidatePath("/setlists");
+    return { ok: true as const, shareToken: token };
+  } catch (err) {
+    return {
+      ok: false as const,
+      error: err instanceof Error ? err.message : "FAILED",
+    };
+  }
+}
+
+/**
+ * Revoke the share token so only editors (or a "public" setlist) grant
+ * access.
+ */
+export async function deleteSetlistShareAction(setlistId: string) {
+  assertWritable();
+  const session = await getSession();
+  if (!canEdit(session?.role ?? null)) {
+    return { ok: false as const, error: "Unauthorized" };
+  }
+  try {
+    const setlist = await getSetlist(setlistId);
+    await saveSetlist({ ...setlist, shareToken: undefined });
+    revalidatePath(`/setlists/${setlistId}`);
+    revalidatePath("/setlists");
+    return { ok: true as const };
+  } catch (err) {
+    return {
+      ok: false as const,
+      error: err instanceof Error ? err.message : "FAILED",
+    };
+  }
+}
+
+const SHARE_SLUG_PATTERN = /^[a-zA-Z0-9][a-zA-Z0-9_-]{0,59}$/;
+
+/**
+ * Set (or clear) the custom slug used in the setlist share link
+ * (`/setlists/share/<slug>`). Must be URL-safe and unique across setlists.
+ * An empty value removes the slug so the link falls back to the share token.
+ */
+export async function setSetlistShareSlugAction(setlistId: string, slug: string) {
+  assertWritable();
+  const session = await getSession();
+  if (!canEdit(session?.role ?? null)) {
+    return { ok: false as const, error: "Unauthorized" };
+  }
+  const value = slug.trim();
+  if (value && !SHARE_SLUG_PATTERN.test(value)) {
+    return { ok: false as const, error: "INVALID_SLUG" };
+  }
+  try {
+    const { listSetlists } = await import("@/lib/content");
+    const setlist = await getSetlist(setlistId);
+    if (value) {
+      const all = await listSetlists();
+      const taken = all.some(
+        (other) => other.id !== setlistId && other.shareSlug === value,
+      );
+      if (taken) {
+        return { ok: false as const, error: "SLUG_TAKEN" };
+      }
+    }
+    await saveSetlist({ ...setlist, shareSlug: value || undefined });
+    revalidatePath(`/setlists/${setlistId}`);
+    revalidatePath("/setlists");
+    return { ok: true as const, slug: value };
   } catch (err) {
     return {
       ok: false as const,

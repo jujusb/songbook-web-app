@@ -30,6 +30,8 @@ services:
       - SONGBOOK_VOICES_NAVIDROME_SONGS_URL=${SONGBOOK_VOICES_NAVIDROME_SONGS_URL:-}
       - SONGBOOK_VOICES_NAVIDROME_USERNAME=${SONGBOOK_VOICES_NAVIDROME_USERNAME:-}
       - SONGBOOK_VOICES_NAVIDROME_PASSWORD=${SONGBOOK_VOICES_NAVIDROME_PASSWORD:-}
+      # --- Public/read-only instance base URL (used in setlist share links) ---
+      - SONGBOOK_PUBLIC_URL=${SONGBOOK_PUBLIC_URL:-}
       # --- OIDC / SSO (all optional — set OIDC_ISSUER to enable) ---
       # - OIDC_ISSUER=https://auth.example.com/realms/main
       # - OIDC_CLIENT_ID=songbook
@@ -76,4 +78,6 @@ services:
       - SONGBOOK_VOICES_NAVIDROME_SONGS_URL=${SONGBOOK_VOICES_NAVIDROME_SONGS_URL:-}
       - SONGBOOK_VOICES_NAVIDROME_USERNAME=${SONGBOOK_VOICES_NAVIDROME_USERNAME:-}
       - SONGBOOK_VOICES_NAVIDROME_PASSWORD=${SONGBOOK_VOICES_NAVIDROME_PASSWORD:-}
+      # --- Public/read-only instance base URL (used in setlist share links) ---
+      - SONGBOOK_PUBLIC_URL=${SONGBOOK_PUBLIC_URL:-}
     restart: unless-stopped

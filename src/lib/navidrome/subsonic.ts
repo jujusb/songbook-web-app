@@ -70,11 +70,28 @@ export class SubsonicClient {
     return res.shares?.share ?? [];
   }
 
-  async createShare(id: string, description?: string): Promise<Share> {
-    const res = await this.api.createShare({ id, description });
+  /**
+   * Create a share of one media item or several tracks at once (a multi-track
+   * share shows all of them as a playlist).
+   */
+  async createShare(
+    id: string | string[],
+    description?: string,
+    expires?: number,
+  ): Promise<Share> {
+    const res = await this.api.createShare({
+      id,
+      description,
+      ...(expires ? { expires } : {}),
+    });
     const share = res.shares?.share?.[0];
     if (!share) throw new Error('Navidrome createShare returned no share');
     return share;
+  }
+
+  /** Delete a share, which also removes the playlist Navidrome created for it. */
+  async deleteShare(id: string): Promise<void> {
+    await this.api.deleteShare({ id });
   }
 
   /** Authenticated streaming URL for a media file. */

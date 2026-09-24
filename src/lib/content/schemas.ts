@@ -149,6 +149,8 @@ export const SiteConfigSchema = z.object({
   pdfPageSize: z.string().default('A4'),
   enableArtistPages: z.boolean().default(true),
   oidc: OidcConfigSchema.optional(),
+  /** Base URL of the read-only/public instance, used for setlist share links. */
+  publicUrl: z.string().optional(),
 });
 
 export type SiteConfig = z.infer<typeof SiteConfigSchema>;
@@ -162,12 +164,30 @@ export const SetlistItemSchema = z.object({
 
 export type SetlistItem = z.infer<typeof SetlistItemSchema>;
 
+export const VoiceShareSectionSchema = z.enum(['tenor', 'bass', 'alto', 'soprano']);
+export type VoiceShareSection = z.infer<typeof VoiceShareSectionSchema>;
+
+/** A generated Navidrome share for one voice section of a setlist. */
+export const VoiceShareSchema = z.object({
+  section: VoiceShareSectionSchema,
+  url: z.string(),
+  count: z.number().int().nonnegative().default(0),
+  /** Whether the share page allows embedding in an iframe. */
+  embeddable: z.boolean().default(false),
+});
+
+export type VoiceShare = z.infer<typeof VoiceShareSchema>;
+
 export const SetlistSchema = z.object({
   id: z.string(),
   title: z.string(),
   description: z.string().optional(),
   date: z.string().optional(),               // e.g. service date "2025-07-13"
   songs: z.array(SetlistItemSchema).default([]),
+  voiceShares: z.array(VoiceShareSchema).default([]),  // per-voice Navidrome shares
+  public: z.boolean().default(false),        // browsable by anyone (private by default)
+  shareToken: z.string().optional(),         // grants view access via ?share=<token>
+  shareSlug: z.string().optional(),          // optional custom slug for the share link
   created: z.union([z.string(), z.date()]).optional(),
   modified: z.union([z.string(), z.date()]).optional(),
 });

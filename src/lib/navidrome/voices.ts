@@ -12,6 +12,13 @@ export interface VoicePart {
   coverArtUrl?: string;
 }
 
+/** A raw recording on the VOICES instance, with its Navidrome id. */
+export interface VoiceTrack {
+  id: string;
+  title: string;
+  coverArt?: string;
+}
+
 export interface VoiceSectionGroup {
   section: VoiceSection;
   parts: VoicePart[];
@@ -23,7 +30,7 @@ export interface VoiceGroup {
 }
 
 const GENDER_ORDER: VoiceGender[] = ['boys', 'girls'];
-const SECTION_ORDER: VoiceSection[] = ['tenor', 'bass', 'alto', 'soprano'];
+export const SECTION_ORDER: VoiceSection[] = ['tenor', 'bass', 'alto', 'soprano'];
 const SECTION_GENDER: Record<VoiceSection, VoiceGender> = {
   tenor: 'boys',
   bass: 'boys',
@@ -149,36 +156,108 @@ export async function getVoiceSections(songId: string, lang: string): Promise<Vo
 }
 
 /**
- * Fetch the raw titles of every recording on the VOICES instance in one pass
- * (album list + per-album detail), memoized. Used for cheap "does this song
- * have voice recordings?" lookups without one search per song.
+ * Fetch every recording on the VOICES instance in one pass (album list +
+ * per-album detail), memoized, keeping the Navidrome track ids.
  */
-export async function getAllVoiceTrackTitles(): Promise<string[]> {
+export async function getAllVoiceTracks(): Promise<VoiceTrack[]> {
   const config = getVoicesConfig();
   if (!config) return [];
   const client = new SubsonicClient(config);
-  return memoized('voices:all-titles', async () => {
+  return memoized('voices:all-tracks', async () => {
     try {
       const albums = await client.getAlbumList2({
         type: 'alphabeticalByName',
         size: 500,
       });
-      const titles = new Set<string>();
+      const tracks: VoiceTrack[] = [];
+      const seen = new Set<string>();
       for (const album of albums) {
         try {
           const detail = await client.getAlbum(album.id);
           for (const song of detail.song ?? []) {
-            if (song.title) titles.add(song.title);
+            if (!song.id || !song.title) continue;
+            const key = `${song.id}::${normalizeTitle(song.title)}`;
+            if (seen.has(key)) continue;
+            seen.add(key);
+            tracks.push({ id: song.id, title: song.title, coverArt: song.coverArt });
           }
         } catch {
           // skip unreadable albums
         }
       }
-      return [...titles];
+      return tracks;
     } catch {
       return [];
     }
   });
+}
+
+/**
+ * Fetch the raw titles of every recording on the VOICES instance (uses the
+ * shared memoized dump). Used for cheap "does this song have voice
+ * recordings?" lookups without one search per song.
+ */
+export async function getAllVoiceTrackTitles(): Promise<string[]> {
+  const tracks = await getAllVoiceTracks();
+  return [...new Set(tracks.map((track) => track.title))];
+}
+
+/**
+ * Collect the VOICES track ids for each voice section across a set of
+ * `{songId, lang}` items (e.g. a setlist), using the one-pass dump and the
+ * per-song matching rules. Tracks are deduplicated per section by id AND by
+ * normalized title, so the same recording never shows up twice in a section's
+ * playlist even when the server stores it under several ids.
+ */
+export async function getVoiceTrackIdsForSetlist(
+  items: { songId: string; lang: string }[],
+): Promise<Partial<Record<VoiceSection, VoiceTrack[]>>> {
+  const config = getVoicesConfig();
+  if (!config) return {};
+  if (items.length === 0) return {};
+  try {
+    const tracks = await getAllVoiceTracks();
+    if (tracks.length === 0) return {};
+    const bySection: Record<VoiceSection, Map<string, VoiceTrack>> = {
+      tenor: new Map(),
+      bass: new Map(),
+      alto: new Map(),
+      soprano: new Map(),
+    };
+    for (const item of items) {
+      let songTitle: string;
+      try {
+        songTitle = await getSongTitle(item.songId, item.lang);
+      } catch {
+        continue;
+      }
+      const normalizedSongTitle = normalizeTitle(songTitle);
+      if (!normalizedSongTitle) continue;
+      for (const track of tracks) {
+        const sections = sectionsFromTitle(track.title, normalizedSongTitle);
+        if (!sections) continue;
+        const titleKey = normalizeTitle(track.title);
+        for (const section of sections) {
+          const map = bySection[section];
+          // Some recordings exist twice on the server under different ids;
+          // never list the same track name twice within one section.
+          const containsSameTitle =
+            !titleKey ||
+            [...map.values()].some((t) => normalizeTitle(t.title) === titleKey);
+          if (map.has(track.id) || containsSameTitle) continue;
+          map.set(track.id, track);
+        }
+      }
+    }
+    const result: Partial<Record<VoiceSection, VoiceTrack[]>> = {};
+    for (const section of SECTION_ORDER) {
+      const list = [...bySection[section].values()];
+      if (list.length > 0) result[section] = list;
+    }
+    return result;
+  } catch {
+    return {};
+  }
 }
 
 /**

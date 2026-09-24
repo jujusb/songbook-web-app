@@ -1,20 +1,26 @@
-import { notFound, redirect } from "next/navigation";
+import { notFound } from "next/navigation";
 import Link from "next/link";
 import { cookies } from "next/headers";
-import { getSetlist, listSongs, getSong, getSongTranslations, getSongTitle, getLanguagesConfig, shouldShowSongInLanguage } from "@/lib/content";
+import { getSetlist, listSongs, getSong, getSongTranslations, getSongTitle, getLanguagesConfig, shouldShowSongInLanguage, getShareBaseUrl } from "@/lib/content";
 import { getLocale } from "@/lib/i18n/server";
-import { languageLabelFor } from "@/lib/i18n/labels";
-import { getSession, canEdit, canAdmin } from "@/lib/auth";
+import { getSession, canEdit, canAdmin, canViewSetlist } from "@/lib/auth";
 import { SetlistEditor } from "@/components/SetlistEditor";
-import { SetlistVoiceLinks } from "@/components/SetlistVoiceLinks";
+import { SetlistVoicePlaylists } from "@/components/SetlistVoicePlaylists";
+import { SetlistShareControls } from "@/components/SetlistShareControls";
+import { SetlistReadOnlyView } from "@/components/SetlistReadOnlyView";
 import { DeleteButton } from "@/components/DeleteButton";
+import { getSetlistVoiceShares } from "@/lib/navidrome/setlist-shares";
 
 export default async function SetlistPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ setlistId: string }>;
+  searchParams: Promise<{ share?: string }>;
 }) {
   const { setlistId } = await params;
+  const { share } = await searchParams;
+  const shareParam = typeof share === "string" ? share : undefined;
 
   let setlist;
   try {
@@ -27,9 +33,18 @@ export default async function SetlistPage({
   const showEditActions = canEdit(session?.role ?? null);
   const showDeleteActions = canAdmin(session?.role ?? null);
 
+  if (!canViewSetlist(setlist, shareParam, showEditActions)) {
+    notFound();
+  }
+
+  const voiceShares = await getSetlistVoiceShares(setlist);
+  const presentHref = `/setlists/${setlistId}/present${
+    shareParam ? `?share=${shareParam}` : ""
+  }`;
+
   const langConfig = await getLanguagesConfig();
   const selectedLang = getLocale(await cookies(), langConfig.default);
-  const langLabel = languageLabelFor;
+  const publicUrl = await getShareBaseUrl();
 
   // Load available songs for editor
   const songs = await listSongs();
@@ -83,7 +98,7 @@ export default async function SetlistPage({
         <div className="flex gap-2">
           {setlist.songs.length > 0 && (
             <Link
-              href={`/setlists/${setlistId}/present`}
+              href={presentHref}
               className="text-sm px-3 py-1.5 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
             >
               Present
@@ -100,6 +115,22 @@ export default async function SetlistPage({
         </div>
       </div>
 
+      {showEditActions && (
+        <SetlistShareControls
+          setlistId={setlist.id}
+          isPublic={setlist.public ?? false}
+          shareToken={setlist.shareToken}
+          shareSlug={setlist.shareSlug}
+          publicUrl={publicUrl}
+        />
+      )}
+
+      <SetlistVoicePlaylists
+        setlistId={setlist.id}
+        shares={voiceShares}
+        canGenerate={showEditActions}
+      />
+
       {showEditActions ? (
         <SetlistEditor
           availableSongs={songsWithLangs}
@@ -113,38 +144,11 @@ export default async function SetlistPage({
           isNew={false}
         />
       ) : (
-        /* Read-only song list */
-        <div className="border border-neutral-200 dark:border-neutral-800 rounded-lg overflow-hidden">
-          <div className="px-4 py-2 bg-neutral-50 dark:bg-neutral-900 border-b border-neutral-200 dark:border-neutral-800">
-            <span className="text-xs font-medium text-neutral-500 uppercase tracking-wide">
-              Song Order
-            </span>
-          </div>
-          <ol className="divide-y divide-neutral-200 dark:divide-neutral-800">
-            {visibleSongDetails.map((song, index) => (
-              <li key={`${song.songId}-${index}`}>
-                <div className="flex items-center gap-4 px-4 py-3 hover:bg-neutral-50 dark:hover:bg-neutral-900 transition-colors">
-                  <span className="text-sm text-neutral-400 w-8 text-right font-mono">
-                    {index + 1}
-                  </span>
-                  <Link
-                    href={`/songs/${song.songId}`}
-                    className="flex-1 font-medium hover:underline"
-                  >
-                    {song.title}
-                  </Link>
-                  {song.key && (
-                    <span className="text-xs text-neutral-400">{song.key}</span>
-                  )}
-                  <span className="text-xs px-1.5 py-0.5 bg-neutral-100 dark:bg-neutral-800 rounded text-neutral-500">
-                    {langLabel(song.lang)}
-                  </span>
-                  <SetlistVoiceLinks songId={song.songId} lang={song.lang} />
-                </div>
-              </li>
-            ))}
-          </ol>
-        </div>
+        <SetlistReadOnlyView
+          songs={songDetails}
+          selectedLang={selectedLang}
+          defaultLang={langConfig.default}
+        />
       )}
     </div>
   );

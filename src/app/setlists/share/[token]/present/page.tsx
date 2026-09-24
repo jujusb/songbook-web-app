@@ -1,36 +1,24 @@
 import { notFound } from "next/navigation";
-import { getSetlist, getSong, getSongTranslation } from "@/lib/content";
-import { getSession, canEdit, canViewSetlist } from "@/lib/auth";
+import { findSetlistByShareToken, getSong, getSongTranslation } from "@/lib/content";
 import { PresentationView } from "@/components/PresentationView";
 
-export default async function SetlistPresentPage({
+/**
+ * Presentation view reached through a setlist share link. Resolves the setlist
+ * by its share token or custom slug, so the presenter does not need to log in.
+ */
+export default async function SetlistSharePresentPage({
   params,
   searchParams,
 }: {
-  params: Promise<{ setlistId: string }>;
-  searchParams: Promise<{ display?: string; share?: string }>;
+  params: Promise<{ token: string }>;
+  searchParams: Promise<{ display?: string }>;
 }) {
-  const { setlistId } = await params;
-  const { display, share } = await searchParams;
-  const shareParam = typeof share === "string" ? share : undefined;
+  const { token } = await params;
+  const { display } = await searchParams;
 
-  let setlist;
-  try {
-    setlist = await getSetlist(setlistId);
-  } catch {
-    notFound();
-  }
+  const setlist = await findSetlistByShareToken(token);
+  if (!setlist || setlist.songs.length === 0) notFound();
 
-  const session = await getSession();
-  if (!canViewSetlist(setlist, shareParam, canEdit(session?.role ?? null))) {
-    notFound();
-  }
-
-  if (setlist.songs.length === 0) {
-    notFound();
-  }
-
-  // Load all songs for the setlist
   const setlistSongs = await Promise.all(
     setlist.songs.map(async (item) => {
       try {
@@ -51,9 +39,7 @@ export default async function SetlistPresentPage({
     (s): s is { songId: string; title: string; source: string } => s !== null
   );
 
-  if (validSongs.length === 0) {
-    notFound();
-  }
+  if (validSongs.length === 0) notFound();
 
   return (
     <PresentationView

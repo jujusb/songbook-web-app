@@ -5,8 +5,10 @@ import { isReadOnly } from "@/lib/readonly";
 import type { Setlist } from "@/lib/content/schemas";
 
 export async function GET() {
-  const setlists = await listSetlists();
-  return NextResponse.json(setlists);
+  const all = await listSetlists();
+  const session = await getSession();
+  const showAll = canEdit(session?.role ?? null);
+  return NextResponse.json(showAll ? all : all.filter((s) => s.public));
 }
 
 function readonlyResponse() {
@@ -33,6 +35,8 @@ export async function POST(request: Request) {
       description: data.description || undefined,
       date: data.date || undefined,
       songs: data.songs || [],
+      voiceShares: data.voiceShares || [],
+      public: false,
       created: new Date().toISOString(),
     };
 
@@ -69,6 +73,10 @@ export async function PUT(request: Request) {
       description: data.description || undefined,
       date: data.date || undefined,
       songs: data.songs || [],
+      voiceShares: existing?.voiceShares ?? [],
+      public: existing?.public ?? false,
+      shareToken: existing?.shareToken,
+      shareSlug: existing?.shareSlug,
       created: existing?.created || new Date().toISOString(),
     };
 

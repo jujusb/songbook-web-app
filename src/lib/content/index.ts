@@ -268,6 +268,17 @@ export async function getSetlist(id: string): Promise<Setlist> {
   return SetlistSchema.parse(parsed);
 }
 
+/**
+ * Find a setlist by its share identifier: either the auto-generated share
+ * token or the optional custom slug. Both are accepted so a slug never breaks
+ * a link shared before it was set.
+ */
+export async function findSetlistByShareToken(token: string): Promise<Setlist | null> {
+  if (!token) return null;
+  const setlists = await listSetlists();
+  return setlists.find((s) => s.shareToken === token || s.shareSlug === token) ?? null;
+}
+
 export async function saveSetlist(setlist: Setlist): Promise<void> {
   const validated = SetlistSchema.parse(setlist);
   const dir = getSetlistsDir();
@@ -507,6 +518,21 @@ export async function getSiteConfig(): Promise<SiteConfig> {
   }
 
   return SiteConfigSchema.parse(parsed);
+}
+
+/**
+ * Base URL used for setlist share links, pointing at the read-only/public
+ * instance so shared links never require a login. Resolved from the
+ * `SONGBOOK_PUBLIC_URL` env var, then `site.yaml` `publicUrl`. Returns null
+ * when unset (the caller falls back to the current request origin).
+ */
+export async function getShareBaseUrl(): Promise<string | null> {
+  if (process.env.SONGBOOK_PUBLIC_URL) {
+    return process.env.SONGBOOK_PUBLIC_URL.replace(/\/+$/, '');
+  }
+  const config = await getSiteConfig().catch(() => null);
+  if (config?.publicUrl) return config.publicUrl.replace(/\/+$/, '');
+  return null;
 }
 
 // --- Albums ---

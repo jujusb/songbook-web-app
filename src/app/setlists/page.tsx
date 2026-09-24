@@ -16,6 +16,11 @@ export default async function SetlistsPage() {
   const session = await getSession();
   const showEditActions = canEdit(session?.role ?? null);
 
+  // Private setlists (the default) are only visible to editors.
+  const visibleSetlists = showEditActions
+    ? setlists
+    : setlists.filter((s) => s.public);
+
   return (
     <div className="max-w-6xl mx-auto px-4 py-8">
       <div className="flex items-center justify-between mb-6">
@@ -30,11 +35,11 @@ export default async function SetlistsPage() {
         )}
       </div>
 
-      {setlists.length === 0 ? (
+      {visibleSetlists.length === 0 ? (
         <p className="text-neutral-500"><T k="setlist.noSetlists" /></p>
       ) : (
         <div className="space-y-3">
-          {setlists.map((setlist) => {
+          {visibleSetlists.map((setlist) => {
             const visibleSongs = setlist.songs.filter((s) => {
               if (selectedLang === langConfig.default) return true;
               const song = songMap.get(s.songId);
@@ -56,6 +61,21 @@ export default async function SetlistsPage() {
                     )}
                   </div>
                   <div className="flex items-center gap-3 text-xs text-neutral-400 shrink-0 ml-4">
+                    {showEditActions && (
+                      <span
+                        className={`px-1.5 py-0.5 rounded ${
+                          setlist.public
+                            ? "bg-green-100 dark:bg-green-950 text-green-600 dark:text-green-400"
+                            : "bg-neutral-100 dark:bg-neutral-800 text-neutral-500 dark:text-neutral-400"
+                        }`}
+                      >
+                        {setlist.public ? (
+                          <T k="setlist.publicBadge" />
+                        ) : (
+                          <T k="setlist.privateBadge" />
+                        )}
+                      </span>
+                    )}
                     {setlist.date && <span>{setlist.date}</span>}
                     <span>
                       {visibleSongs.length} song

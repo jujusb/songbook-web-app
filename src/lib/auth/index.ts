@@ -182,6 +182,21 @@ export function canAdmin(role: Role | null): boolean {
   return role === 'admin';
 }
 
+/**
+ * Whether a visitor may view a setlist: editors always can; otherwise the
+ * setlist must be public or the visitor must present the matching share token
+ * (`?share=<token>` in the URL).
+ */
+export function canViewSetlist(
+  setlist: { public?: boolean; shareToken?: string },
+  shareParam: string | undefined,
+  isEditor: boolean,
+): boolean {
+  if (isEditor) return true;
+  if (setlist.public) return true;
+  return !!setlist.shareToken && shareParam === setlist.shareToken;
+}
+
 export async function ensureDefaultAdmin(): Promise<void> {
   if (isReadOnly()) return;
   const users = await listUsers();
