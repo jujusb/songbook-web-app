@@ -70,6 +70,9 @@ const en = {
     unavailable: 'Share unavailable',
     tracks: '{n} track | {n} tracks',
   },
+  spotify: {
+    search: 'Spotify Search',
+  },
   artist: {
     title: 'Artists',
     newArtist: '+ Artist',

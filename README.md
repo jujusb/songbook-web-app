@@ -58,10 +58,12 @@ Dev server runs on `http://localhost:3000`.
 | `SONGBOOK_NAVIDROME_SONGS_URL` | Navidrome (Subsonic) base URL used to generate share links | _(none)_ |
 | `SONGBOOK_NAVIDROME_USERNAME` | Navidrome user allowed to create shares | _(none)_ |
 | `SONGBOOK_NAVIDROME_PASSWORD` | Password for that Navidrome user | _(none)_ |
+| `SPOTIFY_CLIENT_ID` | Spotify Web API client ID (auto-embedded players) | _(none)_ |
+| `SPOTIFY_CLIENT_SECRET` | Spotify Web API client secret | _(none)_ |
 
 `ADMIN_PASSWORD` and `JWT_SECRET` should be changed for any non-local deployment. All `OIDC_*` env vars override values in `site.yaml`.
 
-Navidrome share links are only rendered when all three `SONGBOOK_NAVIDROME_*` vars are set, and the Navidrome server must run with `EnableSharing=true`. On song pages, the version in the site's default language (`LANGUAGES_DEFAULT`) is treated as the **original version** and links to Spotify instead — add `spotify:` to the song's `meta.yaml` (and the album's `album.yaml`) with the track/album URLs.
+Navidrome share links are only rendered when all three `SONGBOOK_NAVIDROME_*` vars are set, and the Navidrome server must run with `EnableSharing=true`. On song pages, the version in the site's default language (`LANGUAGES_DEFAULT`) is treated as the **original version** and uses Spotify instead — when `SPOTIFY_CLIENT_ID`/`SPOTIFY_CLIENT_SECRET` are set (create a Spotify App in the Developer Dashboard), the app searches Spotify by artist + song/album title, picks the best match, and embeds the Spotify player directly on the page. Explicit `spotify:` URLs in the song's `meta.yaml` (and the album's `album.yaml`) take precedence. Without Spotify credentials the UI falls back to plain Spotify search links.
 
 ## Content Structure
 
@@ -86,7 +88,7 @@ content/
         .revisions/        # timestamped .cho snapshots
 ```
 
-Spotify links live in `meta.yaml` (`spotify.song` / `spotify.album` for the track and its album) and optionally in `album.yaml` (`spotify` for the album page). They are shown instead of Navidrome share links when the song is viewed in the site's default language.
+Spotify links live in `meta.yaml` (`spotify.song` / `spotify.album` for the track and its album) and optionally in `album.yaml` (`spotify` for the album page). They take precedence over the automatic Spotify lookup and the Navidrome share links when the song is viewed in the site's default language.
 
 ### Song format
 

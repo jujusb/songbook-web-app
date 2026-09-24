@@ -21,6 +21,7 @@ import { DeleteButton } from "@/components/DeleteButton";
 import { NavidromeShareButton } from "@/components/NavidromeShareButton";
 import { T } from "@/components/Translate";
 import { getNavidromeConfig } from "@/lib/navidrome/config";
+import { SpotifyPlayer } from "@/components/SpotifyPlayer";
 
 export default async function SongPage({
   params,
@@ -75,9 +76,8 @@ export default async function SongPage({
 
   const isOriginalVersion = lang === langConfig.default;
   const spotify = meta.spotify;
-  const showSpotify =
-    isOriginalVersion && (!!spotify?.song || !!spotify?.album);
-  const showNavidrome = getNavidromeConfig() !== null && !showSpotify;
+  const showSpotify = isOriginalVersion;
+  const showNavidrome = getNavidromeConfig() !== null && !isOriginalVersion;
 
   return (
     <div className="max-w-6xl mx-auto px-4 py-8">
@@ -151,16 +151,6 @@ export default async function SongPage({
               <T k="song.listen" />
             </Link>
           )}
-          {showSpotify && spotify?.song && (
-            <a
-              href={spotify.song}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="px-3 py-1.5 bg-green-600 text-white rounded-md text-sm hover:bg-green-700 transition-colors"
-            >
-              <T k="song.spotify" />
-            </a>
-          )}
           {showSpotify && spotify?.album && (
             <a
               href={spotify.album}
@@ -189,6 +179,19 @@ export default async function SongPage({
           )}
         </div>
       </div>
+
+      {showSpotify && (
+        <div className="mt-5">
+          <SpotifyPlayer
+            type="track"
+            id={songId}
+            lang={lang}
+            explicitUrl={spotify?.song ?? null}
+            title={localizedTitle}
+            artist={artist?.name}
+          />
+        </div>
+      )}
 
       <LanguageSwitcher
         songId={songId}

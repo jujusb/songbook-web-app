@@ -21,6 +21,9 @@ services:
       - SONGBOOK_NAVIDROME_SONGS_URL=${SONGBOOK_NAVIDROME_SONGS_URL:-}
       - SONGBOOK_NAVIDROME_USERNAME=${SONGBOOK_NAVIDROME_USERNAME:-}
       - SONGBOOK_NAVIDROME_PASSWORD=${SONGBOOK_NAVIDROME_PASSWORD:-}
+      # --- Spotify Web API (optional — enables automatic Spotify embed players) ---
+      - SPOTIFY_CLIENT_ID=${SPOTIFY_CLIENT_ID:-}
+      - SPOTIFY_CLIENT_SECRET=${SPOTIFY_CLIENT_SECRET:-}
       # --- OIDC / SSO (all optional — set OIDC_ISSUER to enable) ---
       # - OIDC_ISSUER=https://auth.example.com/realms/main
       # - OIDC_CLIENT_ID=songbook
@@ -58,4 +61,7 @@ services:
       - SONGBOOK_NAVIDROME_SONGS_URL=${SONGBOOK_NAVIDROME_SONGS_URL:-}
       - SONGBOOK_NAVIDROME_USERNAME=${SONGBOOK_NAVIDROME_USERNAME:-}
       - SONGBOOK_NAVIDROME_PASSWORD=${SONGBOOK_NAVIDROME_PASSWORD:-}
+      # --- Spotify Web API (optional — enables automatic Spotify embed players) ---
+      - SPOTIFY_CLIENT_ID=${SPOTIFY_CLIENT_ID:-}
+      - SPOTIFY_CLIENT_SECRET=${SPOTIFY_CLIENT_SECRET:-}
     restart: unless-stopped

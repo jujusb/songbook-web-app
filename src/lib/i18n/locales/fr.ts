@@ -72,6 +72,9 @@ const fr: Translations = {
     unavailable: 'Partage indisponible',
     tracks: '{n} piste | {n} pistes',
   },
+  spotify: {
+    search: 'Rechercher sur Spotify',
+  },
   artist: {
     title: 'Artistes',
     newArtist: '+ Artiste',

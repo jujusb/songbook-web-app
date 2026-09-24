@@ -7,8 +7,8 @@ import { languageLabelFor } from "@/lib/i18n/labels";
 import { getSession, canEdit, canAdmin } from "@/lib/auth";
 import { DeleteButton } from "@/components/DeleteButton";
 import { NavidromeShareButton } from "@/components/NavidromeShareButton";
-import { T } from "@/components/Translate";
 import { getNavidromeConfig } from "@/lib/navidrome/config";
+import { SpotifyPlayer } from "@/components/SpotifyPlayer";
 
 export default async function AlbumPage({
   params,
@@ -63,6 +63,7 @@ export default async function AlbumPage({
   const showEditActions = canEdit(session?.role ?? null);
   const showDeleteActions = canAdmin(session?.role ?? null);
   const navidromeEnabled = getNavidromeConfig() !== null;
+  const isOriginalLanguage = displayLang === langConfig.default;
 
   return (
     <div className="max-w-6xl mx-auto px-4 py-8">
@@ -125,15 +126,15 @@ export default async function AlbumPage({
           >
             Export PDF for this Album
           </Link>
-          {album.spotify ? (
-            <a
-              href={album.spotify}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-sm px-3 py-1.5 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors"
-            >
-              <T k="album.spotify" />
-            </a>
+          {isOriginalLanguage ? (
+            <SpotifyPlayer
+              type="album"
+              id={albumId}
+              lang={displayLang}
+              explicitUrl={album.spotify ?? null}
+              title={localizedAlbumTitle}
+              artist={artistName}
+            />
           ) : null}
           {showEditActions && (
             <Link
@@ -211,15 +212,30 @@ export default async function AlbumPage({
                       </div>
                     )}
                   </Link>
-                  {navidromeEnabled && (
-                    <NavidromeShareButton
-                      key={`${song.id}:${displayLang}`}
-                      variant="compact"
-                      type="song"
-                      id={song.id}
-                      lang={displayLang}
-                    />
-                  )}
+                  {(() => {
+                    if (isOriginalLanguage) {
+                      return (
+                        <SpotifyPlayer
+                          variant="compact"
+                          type="track"
+                          id={song.id}
+                          lang={displayLang}
+                          explicitUrl={song.spotify?.song ?? null}
+                          title={song.title}
+                          artist={artistName}
+                        />
+                      );
+                    }
+                    return navidromeEnabled ? (
+                      <NavidromeShareButton
+                        key={`${song.id}:${displayLang}`}
+                        variant="compact"
+                        type="song"
+                        id={song.id}
+                        lang={displayLang}
+                      />
+                    ) : null;
+                  })()}
                 </li>
               )
             ))}

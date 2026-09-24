@@ -72,6 +72,9 @@ const es: Translations = {
     unavailable: 'Compartir no disponible',
     tracks: '{n} pista | {n} pistas',
   },
+  spotify: {
+    search: 'Buscar en Spotify',
+  },
   artist: {
     title: 'Artistas',
     newArtist: '+ Artista',
