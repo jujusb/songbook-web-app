@@ -29,9 +29,16 @@ RUN npm run build
 FROM base AS runner
 ENV NODE_ENV=production
 ENV NEXT_TELEMETRY_DISABLED=1
+# The container runs as unprivileged user `nextjs` but the default HOME (/root)
+# is not readable/writable by it — puppeteer's config loader (cosmiconfig)
+# fails on `~/.config/puppeteer`. Point HOME at a writable location and give
+# Puppeteer an explicit cache dir (the binary is the system /usr/bin/chromium).
+ENV HOME=/tmp
+ENV PUPPETEER_CACHE_DIR=/tmp/puppeteer-cache
 
 RUN addgroup --system --gid 1001 nodejs && \
-    adduser --system --uid 1001 nextjs
+    adduser --system --uid 1001 nextjs && \
+    mkdir -p /tmp/puppeteer-cache && chown nextjs:nodejs /tmp/puppeteer-cache
 
 WORKDIR /app
 

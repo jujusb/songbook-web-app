@@ -139,6 +139,9 @@ const es: Translations = {
     publicBadge: 'Pública',
     privateBadge: 'Privada',
     actionFailed: 'Algo salió mal.',
+    downloadPdf: 'Descargar PDF',
+    preparingPdf: 'Preparando PDF...',
+    pdfFailed: 'No se pudo generar el PDF.',
   },
   auth: {
     login: 'Iniciar sesión',

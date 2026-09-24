@@ -8,6 +8,7 @@ import { SetlistEditor } from "@/components/SetlistEditor";
 import { SetlistVoicePlaylists } from "@/components/SetlistVoicePlaylists";
 import { SetlistShareControls } from "@/components/SetlistShareControls";
 import { SetlistReadOnlyView } from "@/components/SetlistReadOnlyView";
+import { SetlistPdfButton } from "@/components/SetlistPdfButton";
 import { DeleteButton } from "@/components/DeleteButton";
 import { getSetlistVoiceShares } from "@/lib/navidrome/setlist-shares";
 
@@ -103,6 +104,12 @@ export default async function SetlistPage({
             >
               Present
             </Link>
+          )}
+          {setlist.songs.length > 0 && (
+            <SetlistPdfButton
+              setlistId={setlist.id}
+              shareToken={setlist.shareToken}
+            />
           )}
           {showDeleteActions && (
             <DeleteButton

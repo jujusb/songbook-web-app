@@ -137,6 +137,9 @@ const en = {
     publicBadge: 'Public',
     privateBadge: 'Private',
     actionFailed: 'Something went wrong.',
+    downloadPdf: 'Download PDF',
+    preparingPdf: 'Preparing PDF...',
+    pdfFailed: 'Failed to generate the PDF.',
   },
   auth: {
     login: 'Login',

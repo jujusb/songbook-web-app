@@ -13,6 +13,7 @@ import { getLocale } from "@/lib/i18n/server";
 import { getSetlistVoiceShares } from "@/lib/navidrome/setlist-shares";
 import { SetlistReadOnlyView } from "@/components/SetlistReadOnlyView";
 import { SetlistVoicePlaylists } from "@/components/SetlistVoicePlaylists";
+import { SetlistPdfButton } from "@/components/SetlistPdfButton";
 
 /**
  * Share link page for a setlist. The URL carries a share token (or custom
@@ -91,6 +92,12 @@ export default async function SetlistSharePage({
           >
             Present
           </Link>
+        )}
+        {setlist.songs.length > 0 && (
+          <SetlistPdfButton
+            setlistId={setlist.id}
+            shareToken={setlist.shareToken}
+          />
         )}
       </div>
 
