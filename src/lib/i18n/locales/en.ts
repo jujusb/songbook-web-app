@@ -6,7 +6,6 @@ const en = {
     setlists: 'Setlists',
     artists: 'Artists',
     newSong: '+ New Song',
-    import: 'Import',
     admin: 'Admin',
   },
   common: {

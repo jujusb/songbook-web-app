@@ -8,7 +8,6 @@ const fr: Translations = {
     setlists: 'Listes',
     artists: 'Artistes',
     newSong: '+ Nouvelle Chanson',
-    import: 'Importer',
     admin: 'Admin',
   },
   common: {
