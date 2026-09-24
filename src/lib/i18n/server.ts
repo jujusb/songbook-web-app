@@ -42,12 +42,14 @@ export function plural(template: string, n: number): string {
   return parts[1] || parts[0] || template;
 }
 
+const LANGUAGE_TAG = /^[a-zA-Z]{2,8}([_-][a-zA-Z0-9]{1,8})*$/;
+
 export function getLocale(cookieStore?: {
   get: (name: string) => { value: string } | undefined;
 }, fallback = 'en'): string {
   if (cookieStore) {
     const cookie = cookieStore.get(LOCALE_STORAGE_KEY);
-    if (cookie && locales[cookie.value]) return cookie.value;
+    if (cookie && LANGUAGE_TAG.test(cookie.value)) return cookie.value;
   }
   return fallback;
 }

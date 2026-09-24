@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { cookies } from "next/headers";
 import {
   getSong,
   getSongTranslation,
@@ -8,7 +9,9 @@ import {
   getAlbumsForSong,
   getArtistForSong,
   getSiteConfig,
+  getLanguagesConfig,
 } from "@/lib/content";
+import { getLocale } from "@/lib/i18n/server";
 import { getSession, canEdit, canAdmin } from "@/lib/auth";
 import { ChordSheet } from "@/components/ChordSheet";
 import { LanguageSwitcher } from "@/components/LanguageSwitcher";
@@ -44,8 +47,14 @@ export default async function SongPage({
     );
   }
 
+  const langConfig = await getLanguagesConfig();
+  const selectedLang = getLocale(await cookies(), langConfig.default);
   const lang =
-    langParam && translations.includes(langParam) ? langParam : translations[0];
+    langParam && translations.includes(langParam)
+      ? langParam
+      : translations.includes(selectedLang)
+        ? selectedLang
+        : translations[0];
 
   const { body } = await getSongTranslation(songId, lang);
   const localizedTitle = await getSongTitle(songId, lang);

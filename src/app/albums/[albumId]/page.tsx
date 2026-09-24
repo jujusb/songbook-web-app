@@ -73,7 +73,7 @@ export default async function AlbumPage({
         <h1 className="text-3xl font-bold">{localizedAlbumTitle}</h1>
         <div className="flex items-center gap-3 mt-1 text-sm text-neutral-500">
           <Link
-            href={`/artists/${album.artist}`}
+            href={`/artists/${album.artist}?lang=${displayLang}`}
             className="hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
           >
             {artistName}
@@ -157,7 +157,7 @@ export default async function AlbumPage({
               song && (
                 <li key={song.id}>
                   <Link
-                    href={`/songs/${song.id}`}
+                    href={`/songs/${song.id}?lang=${displayLang}`}
                     className="flex items-center gap-4 px-4 py-3 hover:bg-neutral-50 dark:hover:bg-neutral-900 transition-colors"
                   >
                     <span className="text-sm text-neutral-400 w-8 text-right font-mono">

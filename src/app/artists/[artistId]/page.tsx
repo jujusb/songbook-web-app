@@ -19,8 +19,10 @@ import { T } from "@/components/Translate";
 
 export default async function ArtistPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ artistId: string }>;
+  searchParams: Promise<{ lang?: string }>;
 }) {
   const config = await getSiteConfig();
   if (!config.enableArtistPages) {
@@ -28,9 +30,13 @@ export default async function ArtistPage({
   }
 
   const { artistId } = await params;
+  const { lang: langParam } = await searchParams;
   const cookieStore = await cookies();
   const langConfig = await getLanguagesConfig();
-  const uiLang = getLocale(cookieStore, langConfig.default);
+  const uiLang =
+    langParam && langConfig.languages.includes(langParam)
+      ? langParam
+      : getLocale(cookieStore, langConfig.default);
   const langLabel = languageLabelFor;
 
   let artist;
@@ -165,7 +171,7 @@ export default async function ArtistPage({
               <div className="px-4 py-3 bg-neutral-50 dark:bg-neutral-900 border-b border-neutral-200 dark:border-neutral-800 flex items-center justify-between">
                 <div>
                   <Link
-                    href={`/albums/${album.id}`}
+                    href={`/albums/${album.id}?lang=${uiLang}`}
                     className="font-semibold hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
                   >
                     {album.title}
@@ -177,7 +183,7 @@ export default async function ArtistPage({
                   </div>
                 </div>
                 <Link
-                  href={`/albums/${album.id}`}
+                  href={`/albums/${album.id}?lang=${uiLang}`}
                   className="text-xs text-blue-600 dark:text-blue-400 hover:underline"
                 >
                   View album &rarr;
@@ -189,7 +195,7 @@ export default async function ArtistPage({
                     song && (
                       <li key={song.id}>
                         <Link
-                          href={`/songs/${song.id}`}
+                          href={`/songs/${song.id}?lang=${uiLang}`}
                           className="flex items-center gap-4 px-4 py-2.5 hover:bg-neutral-50 dark:hover:bg-neutral-900 transition-colors"
                         >
                           <span className="text-sm text-neutral-400 w-6 text-right font-mono">
