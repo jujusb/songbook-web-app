@@ -22,6 +22,7 @@ import { NavidromeShareButton } from "@/components/NavidromeShareButton";
 import { T } from "@/components/Translate";
 import { getNavidromeConfig } from "@/lib/navidrome/config";
 import { SpotifyPlayer } from "@/components/SpotifyPlayer";
+import { VoiceSections } from "@/components/VoiceSections";
 
 export default async function SongPage({
   params,
@@ -179,6 +180,8 @@ export default async function SongPage({
           )}
         </div>
       </div>
+
+      <VoiceSections id={songId} lang={lang} />
 
       {showSpotify && (
         <div className="mt-5">
