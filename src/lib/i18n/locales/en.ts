@@ -138,7 +138,7 @@ const en = {
     privateBadge: 'Private',
     actionFailed: 'Something went wrong.',
     downloadPdf: 'Download PDF',
-    pdfInstruments: 'Instruments',
+    exportToPdf: 'Export to PDF',
     downloadPdfInstruments: 'Print the setlist as sheet music for a set of instruments',
     preparingPdf: 'Preparing PDF...',
     pdfFailed: 'Failed to generate the PDF.',

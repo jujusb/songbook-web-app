@@ -156,7 +156,7 @@ export default async function PdfPage({
         scope={scope}
         id={id ?? ""}
         share={share ?? undefined}
-        scopeLocked={scope === "setlist"}
+        scopeLocked={scope === "setlist" && share !== null}
         instruments={instruments}
         selectedInstrument={selectedForViewer}
         instrumentalFiles={instrumentalFiles}

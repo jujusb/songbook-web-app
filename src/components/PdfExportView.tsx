@@ -340,26 +340,7 @@ export function PdfExportView({
       {scopeSelector(scope, id)}
 
       {type === "chords" &&
-        (scopeLocked ? (
-          <div>
-            <label className="block text-sm font-medium mb-2">
-              {t("pdf.languages")}
-            </label>
-            <div className="flex flex-wrap gap-2">
-              {[...new Set(viewerSongs.map((s) => s.lang))].map((lang) => (
-                <span
-                  key={lang}
-                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-md border border-blue-500 bg-blue-50 dark:bg-blue-950 text-blue-700 dark:text-blue-300 text-sm"
-                >
-                  {languageLabel(lang)}
-                </span>
-              ))}
-            </div>
-            <p className="text-xs text-neutral-500 mt-2">
-              {t("pdf.languagesLocked")}
-            </p>
-          </div>
-        ) : (
+        scope !== "setlist" && (
           <div>
             <div className="flex items-center justify-between mb-2">
               <label className="text-sm font-medium">{t("pdf.languages")}</label>
@@ -392,7 +373,7 @@ export function PdfExportView({
               ))}
             </div>
           </div>
-        ))}
+        )}
         <label className="flex items-center gap-2 cursor-pointer mt-3">
           <input
             type="checkbox"

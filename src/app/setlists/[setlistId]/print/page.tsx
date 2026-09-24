@@ -1,6 +1,6 @@
 import { notFound } from "next/navigation";
 import { cookies } from "next/headers";
-import { getSetlist, getSongTranslations, getLanguagesConfig } from "@/lib/content";
+import { getSetlist, getLanguagesConfig } from "@/lib/content";
 import { resolveScopeSongs } from "@/lib/export/song-scope";
 import { loadPrintSongs } from "@/lib/print/load";
 import { PrintSongbook } from "@/components/PrintSongbook";
@@ -35,25 +35,11 @@ export default async function SetlistPrintPage({
       ? lang
       : cookieLang;
 
-  // The "current selection": editors see every song in the setlist, everyone
-  // else sees the songs filtered for the currently selected language — the
-  // same list the setlist page displays.
+  // Every setlist item pins its own language (`item.lang`), so no language
+  // filtering here: the songbook always prints each song in the language the
+  // setlist selected — independent of the current UI locale.
   const resolved = await resolveScopeSongs("setlist", setlistId);
-  let songs = resolved.songs;
-  if (!showEditActions) {
-    const filtered: typeof songs = [];
-    for (const songEnt of songs) {
-      const translations = await getSongTranslations(songEnt.songId).catch(() => [] as string[]);
-      if (
-        !selectedLang ||
-        selectedLang === langConfig.default ||
-        translations.includes(selectedLang)
-      ) {
-        filtered.push(songEnt);
-      }
-    }
-    songs = filtered;
-  }
+  const songs = resolved.songs;
 
   const printSongs = await loadPrintSongs(songs, [selectedLang], false);
 

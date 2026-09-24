@@ -140,7 +140,7 @@ const es: Translations = {
     privateBadge: 'Privada',
     actionFailed: 'Algo salió mal.',
     downloadPdf: 'Descargar PDF',
-    pdfInstruments: 'Instrumentos',
+    exportToPdf: 'Exportar a PDF',
     downloadPdfInstruments: 'Imprimir la lista como partituras para un conjunto de instrumentos',
     preparingPdf: 'Preparando PDF...',
     pdfFailed: 'No se pudo generar el PDF.',
