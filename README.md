@@ -55,8 +55,13 @@ Dev server runs on `http://localhost:3000`.
 | `OIDC_BUTTON_LABEL` | Text for the SSO button on the login page | `Sign in with SSO` |
 | `OIDC_AUTO_REDIRECT` | Skip login form, redirect straight to OIDC | `false` |
 | `OIDC_LOGOUT_URL` | Provider logout endpoint (optional) | _(none)_ |
+| `SONGBOOK_NAVIDROME_SONGS_URL` | Navidrome (Subsonic) base URL used to generate share links | _(none)_ |
+| `SONGBOOK_NAVIDROME_USERNAME` | Navidrome user allowed to create shares | _(none)_ |
+| `SONGBOOK_NAVIDROME_PASSWORD` | Password for that Navidrome user | _(none)_ |
 
 `ADMIN_PASSWORD` and `JWT_SECRET` should be changed for any non-local deployment. All `OIDC_*` env vars override values in `site.yaml`.
+
+Navidrome share links are only rendered when all three `SONGBOOK_NAVIDROME_*` vars are set, and the Navidrome server must run with `EnableSharing=true`. On song pages, the version in the site's default language (`LANGUAGES_DEFAULT`) is treated as the **original version** and links to Spotify instead — add `spotify:` to the song's `meta.yaml` (and the album's `album.yaml`) with the track/album URLs.
 
 ## Content Structure
 
@@ -75,11 +80,13 @@ content/
     <album-id>/
       album.yaml
       <song-id>/
-        meta.yaml          # title, tags, key, tempo, references
+        meta.yaml          # title, tags, key, tempo, references, spotify
         en.cho             # English lyrics + chords (ChordPro format)
         es.cho             # Spanish translation
         .revisions/        # timestamped .cho snapshots
 ```
+
+Spotify links live in `meta.yaml` (`spotify.song` / `spotify.album` for the track and its album) and optionally in `album.yaml` (`spotify` for the album page). They are shown instead of Navidrome share links when the song is viewed in the site's default language.
 
 ### Song format
 

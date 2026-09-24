@@ -6,6 +6,9 @@ import { getLocale } from "@/lib/i18n/server";
 import { languageLabelFor } from "@/lib/i18n/labels";
 import { getSession, canEdit, canAdmin } from "@/lib/auth";
 import { DeleteButton } from "@/components/DeleteButton";
+import { NavidromeShareButton } from "@/components/NavidromeShareButton";
+import { T } from "@/components/Translate";
+import { getNavidromeConfig } from "@/lib/navidrome/config";
 
 export default async function AlbumPage({
   params,
@@ -59,6 +62,7 @@ export default async function AlbumPage({
   const session = await getSession();
   const showEditActions = canEdit(session?.role ?? null);
   const showDeleteActions = canAdmin(session?.role ?? null);
+  const navidromeEnabled = getNavidromeConfig() !== null;
 
   return (
     <div className="max-w-6xl mx-auto px-4 py-8">
@@ -121,6 +125,16 @@ export default async function AlbumPage({
           >
             Export PDF for this Album
           </Link>
+          {album.spotify ? (
+            <a
+              href={album.spotify}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-sm px-3 py-1.5 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors"
+            >
+              <T k="album.spotify" />
+            </a>
+          ) : null}
           {showEditActions && (
             <Link
               href={`/songs/new?album=${albumId}`}
@@ -155,10 +169,13 @@ export default async function AlbumPage({
           <ol className="divide-y divide-neutral-200 dark:divide-neutral-800">
             {validSongs.map((song, index) => (
               song && (
-                <li key={song.id}>
+                <li
+                  key={song.id}
+                  className="flex items-center gap-4 px-4 py-3 hover:bg-neutral-50 dark:hover:bg-neutral-900 transition-colors"
+                >
                   <Link
                     href={`/songs/${song.id}?lang=${displayLang}`}
-                    className="flex items-center gap-4 px-4 py-3 hover:bg-neutral-50 dark:hover:bg-neutral-900 transition-colors"
+                    className="flex items-center gap-4 flex-1 min-w-0"
                   >
                     <span className="text-sm text-neutral-400 w-8 text-right font-mono">
                       {index + 1}
@@ -194,6 +211,15 @@ export default async function AlbumPage({
                       </div>
                     )}
                   </Link>
+                  {navidromeEnabled && (
+                    <NavidromeShareButton
+                      key={`${song.id}:${displayLang}`}
+                      variant="compact"
+                      type="song"
+                      id={song.id}
+                      lang={displayLang}
+                    />
+                  )}
                 </li>
               )
             ))}

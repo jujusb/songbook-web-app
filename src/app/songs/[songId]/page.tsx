@@ -18,7 +18,9 @@ import { LanguageSwitcher } from "@/components/LanguageSwitcher";
 import { ReferencePanel } from "@/components/ReferencePanel";
 import { MusicReader } from "@/components/MusicReader";
 import { DeleteButton } from "@/components/DeleteButton";
+import { NavidromeShareButton } from "@/components/NavidromeShareButton";
 import { T } from "@/components/Translate";
+import { getNavidromeConfig } from "@/lib/navidrome/config";
 
 export default async function SongPage({
   params,
@@ -70,6 +72,12 @@ export default async function SongPage({
   const session = await getSession();
   const showEditActions = canEdit(session?.role ?? null);
   const showDeleteActions = canAdmin(session?.role ?? null);
+
+  const isOriginalVersion = lang === langConfig.default;
+  const spotify = meta.spotify;
+  const showSpotify =
+    isOriginalVersion && (!!spotify?.song || !!spotify?.album);
+  const showNavidrome = getNavidromeConfig() !== null && !showSpotify;
 
   return (
     <div className="max-w-6xl mx-auto px-4 py-8">
@@ -142,6 +150,34 @@ export default async function SongPage({
             >
               <T k="song.listen" />
             </Link>
+          )}
+          {showSpotify && spotify?.song && (
+            <a
+              href={spotify.song}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="px-3 py-1.5 bg-green-600 text-white rounded-md text-sm hover:bg-green-700 transition-colors"
+            >
+              <T k="song.spotify" />
+            </a>
+          )}
+          {showSpotify && spotify?.album && (
+            <a
+              href={spotify.album}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="px-3 py-1.5 border border-neutral-300 dark:border-neutral-700 rounded-md hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors"
+            >
+              <T k="song.spotifyAlbum" />
+            </a>
+          )}
+          {showNavidrome && (
+            <NavidromeShareButton
+              key={`${songId}:${lang}`}
+              type="song"
+              id={songId}
+              lang={lang}
+            />
           )}
           {showDeleteActions && (
             <DeleteButton

@@ -17,6 +17,10 @@ services:
       # --- Languages (optional — set LANGUAGES to configure without content files) ---
       - LANGUAGES=${SONGBOOK_LANGUAGES:-en,es,fr}
       - LANGUAGES_DEFAULT=${SONGBOOK_LANGUAGES_DEFAULT:-es}
+      # --- Navidrome share links (all optional — omit to disable) ---
+      - SONGBOOK_NAVIDROME_SONGS_URL=${SONGBOOK_NAVIDROME_SONGS_URL:-}
+      - SONGBOOK_NAVIDROME_USERNAME=${SONGBOOK_NAVIDROME_USERNAME:-}
+      - SONGBOOK_NAVIDROME_PASSWORD=${SONGBOOK_NAVIDROME_PASSWORD:-}
       # --- OIDC / SSO (all optional — set OIDC_ISSUER to enable) ---
       # - OIDC_ISSUER=https://auth.example.com/realms/main
       # - OIDC_CLIENT_ID=songbook
@@ -50,4 +54,8 @@ services:
       - LANGUAGES=${SONGBOOK_LANGUAGES:-en,es,fr}
       - LANGUAGES_DEFAULT=${SONGBOOK_LANGUAGES_DEFAULT:-es}
       - SONGBOOK_READONLY=1
+      # --- Navidrome share links (all optional — omit to disable) ---
+      - SONGBOOK_NAVIDROME_SONGS_URL=${SONGBOOK_NAVIDROME_SONGS_URL:-}
+      - SONGBOOK_NAVIDROME_USERNAME=${SONGBOOK_NAVIDROME_USERNAME:-}
+      - SONGBOOK_NAVIDROME_PASSWORD=${SONGBOOK_NAVIDROME_PASSWORD:-}
     restart: unless-stopped

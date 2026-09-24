@@ -32,6 +32,23 @@ export const AudioFileSchema = z.object({
 
 export type AudioFile = z.infer<typeof AudioFileSchema>;
 
+export const SpotifyLinksSchema = z.object({
+  song: z
+    .string()
+    .refine((u) => u.startsWith('https://open.spotify.com/'), {
+      message: 'Spotify song URL must start with https://open.spotify.com/',
+    })
+    .optional(),
+  album: z
+    .string()
+    .refine((u) => u.startsWith('https://open.spotify.com/'), {
+      message: 'Spotify album URL must start with https://open.spotify.com/',
+    })
+    .optional(),
+});
+
+export type SpotifyLinks = z.infer<typeof SpotifyLinksSchema>;
+
 export const SongMetaSchema = z.object({
   id: z.string(),
   title: z.string(),
@@ -43,6 +60,7 @@ export const SongMetaSchema = z.object({
   created: z.union([z.string(), z.date()]).optional(),
   references: z.array(ReferenceSchema).default([]),
   audioFiles: z.array(AudioFileSchema).default([]),
+  spotify: SpotifyLinksSchema.optional(),
 });
 
 export type SongMeta = z.infer<typeof SongMetaSchema>;
@@ -58,6 +76,7 @@ export const AlbumSchema = z.object({
   songs: z.array(z.string()).default([]),
   titles: z.record(z.string(), z.string()).optional(),
   created: z.union([z.string(), z.date()]).optional(),
+  spotify: z.string().optional(),      // Spotify album URL
 });
 
 export type Album = z.infer<typeof AlbumSchema>;
