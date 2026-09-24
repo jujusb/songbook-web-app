@@ -13,6 +13,7 @@ import { getLocale, createT } from "@/lib/i18n/server";
 import { getSession, canEdit, canViewSetlist } from "@/lib/auth";
 import { resolveScopeSongs } from "@/lib/export/song-scope";
 import { planSongbookChapters } from "@/lib/print/load";
+import { resolveSongListTitle } from "@/lib/song-titles";
 import { partitionInstrumentOf } from "@/lib/partitions";
 import { PdfExportView } from "@/components/PdfExportView";
 import type { ScopeOption, InstrumentalFile, ViewerSong } from "@/components/PdfExportView";
@@ -84,6 +85,41 @@ export default async function PdfPage({
     if (canViewSetlist(s, share ?? undefined, isEditor)) {
       setlists.push({ id: s.id, title: s.title, meta: s.date ?? undefined });
     }
+  }
+
+  // For the chords type, the song/album/artist lists must only contain entries
+  // that actually have a translation in one of the selected languages, so the
+  // user can't pick a song/album/artist with no content in that language.
+  if (type === "chords") {
+    const songHasLang = (s: (typeof songsData)[number]) =>
+      s.translations.some((l) => langs.includes(l));
+    const filteredSongIds = new Set(songsData.filter(songHasLang).map((s) => s.id));
+
+    const albumHasLang = (a: (typeof albumsData)[number]) =>
+      a.songs.some((id) => filteredSongIds.has(id));
+    const artistHasLang = (ar: (typeof artistsData)[number]) =>
+      albumsData.some((a) => a.artist === ar.id && albumHasLang(a));
+
+    const albumsFiltered: ScopeOption[] = albumsData.filter(albumHasLang).map((a) => ({
+      id: a.id,
+      title: a.titles?.[langs[0]] || a.title,
+      meta: `${artistName.get(a.artist) || a.artist} · ${a.songs.length}`,
+    }));
+    const songsFiltered: ScopeOption[] = songsData.filter(songHasLang).map((s) => ({
+      id: s.id,
+      title: resolveSongListTitle(s, langs[0]),
+    }));
+    const artistsFiltered: ScopeOption[] = artistsData.filter(artistHasLang).map((a) => ({
+      id: a.id,
+      title: a.name,
+    }));
+
+    albums.length = 0;
+    songs.length = 0;
+    artists.length = 0;
+    albums.push(...albumsFiltered);
+    songs.push(...songsFiltered);
+    artists.push(...artistsFiltered);
   }
 
   // --- Resolve the current scope -----------------------------------------
