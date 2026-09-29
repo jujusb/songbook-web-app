@@ -39,6 +39,8 @@ function renderMetadataDirective(raw: string): string | null {
       return `<div class="vce-metadata vce-subtitle">${escapeHtml(value)}</div>`;
     case "key":
       return `<div class="vce-metadata vce-key">${escapeHtml(value)}</div>`;
+    case "capo":
+      return `<div class="vce-metadata vce-capo">Capo ${escapeHtml(value)}</div>`;
     case "comment":
     case "c":
       return `<div class="vce-comment">${escapeHtml(value)}</div>`;

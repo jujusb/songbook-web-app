@@ -74,6 +74,18 @@ export async function setSongTitleAction(songId: string, lang: string, title: st
   revalidatePath("/browse");
 }
 
+export async function setSongKeyAction(songId: string, key: string) {
+  assertWritable();
+  const meta = await getSong(songId);
+  const nextKey = key.trim() === "" ? undefined : key.trim();
+  const merged: typeof meta = { ...meta, key: nextKey };
+  await saveSongMeta(songId, merged);
+  revalidatePath(`/songs/${songId}`);
+  revalidatePath(`/edit/${songId}`);
+  revalidatePath("/songs");
+  revalidatePath("/browse");
+}
+
 export async function saveSongAction(songId: string, lang: string, content: string) {
   assertWritable();
   // Parse the content - it may be just the ChordPro body (no frontmatter)

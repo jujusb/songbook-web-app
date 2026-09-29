@@ -44,6 +44,8 @@ const en = {
     editing: 'Editing',
     status: 'Status',
     view: 'View song',
+    tonality: 'Tonality',
+    tonalityPlaceholder: '—',
     meta: 'Metadata',
     referencesEditor: 'References',
     addTranslation: 'Add translation',

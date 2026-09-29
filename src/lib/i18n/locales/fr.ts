@@ -46,6 +46,8 @@ const fr: Translations = {
     editing: 'Modification',
     status: 'Statut',
     view: 'Voir la chanson',
+    tonality: 'Tonalité',
+    tonalityPlaceholder: '—',
     meta: 'Métadonnées',
     referencesEditor: 'Références',
     addTranslation: 'Ajouter une traduction',

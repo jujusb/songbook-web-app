@@ -21,6 +21,7 @@ import {
   isChordLine,
   isCitationLine,
   normalizeChord,
+  parseCapoFret,
   parseSectionHeader,
   stripTitleNumber,
 } from "./chord-utils";
@@ -161,9 +162,11 @@ function extractTitle(lines: string[]): string | null {
     );
     if (titleMatch) return stripTitleNumber(titleMatch[1].trim());
 
-    // Skip section headers and chord lines
+    // Skip section headers, chord lines and capo notes — a capo line at the top
+    // of a document is not the song's title.
     if (parseSectionHeader(trimmed)) continue;
     if (isChordLine(trimmed)) continue;
+    if (parseCapoFret(trimmed) !== null) continue;
 
     // First real text line could be the title
     // Only if it doesn't contain chord brackets
@@ -374,6 +377,17 @@ export function txtToChordPro(input: string): {
         continue;
       }
 
+      // Capo note ("Cejilla 5º traste") → {capo: 5}. Checked before
+      // isCitationLine, which would otherwise match a bare "Cejilla 2" as a
+      // scripture citation (word + digits).
+      const inlineCapo = parseCapoFret(trimmed);
+      if (inlineCapo !== null) {
+        closeSection();
+        output.push(`{capo: ${inlineCapo}}`);
+        i++;
+        continue;
+      }
+
       // Skip citation lines (turn into comments) before touching sections
       if (isCitationLine(trimmed)) {
         output.push(`{comment: ${trimmed}}`);
@@ -410,6 +424,17 @@ export function txtToChordPro(input: string): {
         openAutoSection();
       }
       output.push(trimmed);
+      i++;
+      continue;
+    }
+
+    // Capo note ("Cejilla 5º traste") → {capo: 5}. Checked before
+    // isCitationLine (which would match "Cejilla 2" as a citation) and before
+    // the section fallbacks, so the note is never swallowed as a verse.
+    const capo = parseCapoFret(trimmed);
+    if (capo !== null) {
+      closeSection();
+      output.push(`{capo: ${capo}}`);
       i++;
       continue;
     }

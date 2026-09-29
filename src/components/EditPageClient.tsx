@@ -4,11 +4,21 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useTranslation } from '@/lib/i18n';
-import { setSongTitleAction, addSongTranslationAction, removeSongTranslationAction } from '@/app/actions';
+import { setSongTitleAction, setSongKeyAction, addSongTranslationAction, removeSongTranslationAction } from '@/app/actions';
 import { EditorView } from '@/components/EditorView';
 import { ReferenceEditor } from '@/components/ReferenceEditor';
 import { LanguageSwitcher } from '@/components/LanguageSwitcher';
 import type { Reference } from '@/lib/content/schemas';
+
+/**
+ * Suggestions for the tonality field, matching the `key` value format the
+ * importers produce (`[A-G][b#]?m?`). The field stays free text, since a song
+ * can be written in any spelling the player uses.
+ */
+const TONALITY_OPTIONS = [
+  'C', 'Db', 'D', 'Eb', 'E', 'F', 'Gb', 'G', 'Ab', 'A', 'Bb', 'B',
+  'Am', 'Bbm', 'Bm', 'Cm', 'C#m', 'Dm', 'Ebm', 'Em', 'Fm', 'F#m', 'Gm', 'G#m',
+] as const;
 
 export function EditPageClient({
   songId,
@@ -20,6 +30,7 @@ export function EditPageClient({
   translationsContent,
   title,
   status,
+  keySignature,
   initialShowReferences = false,
 }: {
   songId: string;
@@ -31,6 +42,7 @@ export function EditPageClient({
   translationsContent: Record<string, string>;
   title: string;
   status: string;
+  keySignature: string | undefined;
   initialShowReferences?: boolean;
 }) {
   const { t } = useTranslation();
@@ -39,6 +51,9 @@ export function EditPageClient({
   const [titleInput, setTitleInput] = useState(title);
   const [savingTitle, setSavingTitle] = useState(false);
   const [titleSaved, setTitleSaved] = useState(true);
+  const [keyInput, setKeyInput] = useState(keySignature ?? '');
+  const [savingKey, setSavingKey] = useState(false);
+  const [keySaved, setKeySaved] = useState(true);
   const [translationBusy, setTranslationBusy] = useState<string | null>(null);
   const [translationError, setTranslationError] = useState<string | null>(null);
   const [translationLangs, setTranslationLangs] = useState<string[]>(translations);
@@ -52,6 +67,11 @@ export function EditPageClient({
     setTitleSaved(true);
   }, [title]);
 
+  useEffect(() => {
+    setKeyInput(keySignature ?? '');
+    setKeySaved(true);
+  }, [keySignature]);
+
   const handleSaveTitle = async () => {
     const next = titleInput.trim();
     if (next === title.trim()) return;
@@ -64,6 +84,21 @@ export function EditPageClient({
       console.error('Title save failed:', err);
     } finally {
       setSavingTitle(false);
+    }
+  };
+
+  const handleSaveKey = async () => {
+    const next = keyInput.trim();
+    if (next === (keySignature ?? '').trim()) return;
+    setSavingKey(true);
+    try {
+      await setSongKeyAction(songId, next);
+      setKeySaved(true);
+      router.refresh();
+    } catch (err) {
+      console.error('Key save failed:', err);
+    } finally {
+      setSavingKey(false);
     }
   };
 
@@ -131,6 +166,46 @@ export function EditPageClient({
           >
             {savingTitle ? t('common.saving') : titleSaved ? t('common.saved') : t('common.save')}
           </button>
+          <div className="w-px h-5 bg-neutral-200 dark:bg-neutral-800 shrink-0" />
+          <div className="flex items-center gap-1.5 shrink-0">
+            <label
+              htmlFor="song-key-signature"
+              className="text-xs text-neutral-500 whitespace-nowrap"
+            >
+              {t('song.tonality')}
+            </label>
+            <input
+              id="song-key-signature"
+              type="text"
+              list="song-key-signature-options"
+              value={keyInput}
+              onChange={(e) => {
+                setKeyInput(e.target.value);
+                setKeySaved(false);
+              }}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  e.preventDefault();
+                  handleSaveKey();
+                }
+              }}
+              placeholder={t('song.tonalityPlaceholder')}
+              className="w-16 px-2 py-1 border border-transparent hover:border-neutral-300 dark:hover:border-neutral-700 focus:border-blue-500 dark:focus:border-blue-500 rounded-md bg-transparent focus:bg-white dark:focus:bg-neutral-900 outline-none"
+              aria-label={t('song.tonality')}
+            />
+            <datalist id="song-key-signature-options">
+              {TONALITY_OPTIONS.map((option) => (
+                <option key={option} value={option} />
+              ))}
+            </datalist>
+            <button
+              onClick={handleSaveKey}
+              disabled={savingKey || keySaved}
+              className="text-xs px-2.5 py-1.5 border border-neutral-300 dark:border-neutral-700 rounded-md hover:bg-neutral-100 dark:hover:bg-neutral-800 disabled:opacity-50 transition-colors"
+            >
+              {savingKey ? t('common.saving') : keySaved ? t('common.saved') : t('common.save')}
+            </button>
+          </div>
         </div>
         <div className="flex items-center gap-3 shrink-0">
           <span className="text-xs text-neutral-500">

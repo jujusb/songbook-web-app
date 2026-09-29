@@ -213,3 +213,26 @@ const CITATION_RE =
 export function isCitationLine(line: string): boolean {
   return CITATION_RE.test(line.trim());
 }
+
+// A standalone capo note, e.g. "Cejilla 5º traste", "Capo: 5", "capo at 3rd
+// fret", "Clavija 2". Anchored at both ends so lyrics that merely mention a
+// capo ("I put the capo on tonight") are not mistaken for a directive.
+const CAPO_RE =
+  /^(?:capo|cejilla|clavija|ceja)\b[\s.:=-]*(?:(?:en|at|on|de|du|el|la|le|the|case|fret|traste)\b[\s.:=-]*){0,2}(?:n[ºo°]\.?)?\s*(\d{1,2})\s*(?:[º°oª]|th|st|nd|rd|er|ro|a)?\s*(?:(?:traste|trastes|fret|frets|frete|case)\b)?\s*[.!]?$/i;
+
+// Highest capo fret a line is allowed to claim. Fret 0 means "no capo", which
+// is a legitimate value to import but not one worth inventing from a typo.
+const MAX_CAPO_FRET = 12;
+
+/**
+ * Parse a capo note into its fret number, or null when the line is not a capo
+ * note. Recognised in English, Spanish and French since the importers feed all
+ * three through the same converter.
+ */
+export function parseCapoFret(line: string): number | null {
+  const m = line.trim().match(CAPO_RE);
+  if (!m) return null;
+  const fret = parseInt(m[1], 10);
+  if (!Number.isInteger(fret) || fret < 0 || fret > MAX_CAPO_FRET) return null;
+  return fret;
+}
