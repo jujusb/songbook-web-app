@@ -39,12 +39,6 @@ export const SpotifyLinksSchema = z.object({
       message: 'Spotify song URL must start with https://open.spotify.com/',
     })
     .optional(),
-  album: z
-    .string()
-    .refine((u) => u.startsWith('https://open.spotify.com/'), {
-      message: 'Spotify album URL must start with https://open.spotify.com/',
-    })
-    .optional(),
 });
 
 export type SpotifyLinks = z.infer<typeof SpotifyLinksSchema>;
@@ -71,6 +65,12 @@ export const SongMetaSchema = z.object({
   audioFiles: z.array(AudioFileSchema).default([]),
   partitions: z.array(PartitionSchema).default([]),
   spotify: SpotifyLinksSchema.optional(),
+  youtube: z
+    .string()
+    .refine((u) => u.startsWith('https://www.youtube.com/') || u.startsWith('https://youtu.be/'), {
+      message: 'YouTube URL must start with https://www.youtube.com/ or https://youtu.be/',
+    })
+    .optional(),
 });
 
 export type SongMeta = z.infer<typeof SongMetaSchema>;
@@ -86,7 +86,24 @@ export const AlbumSchema = z.object({
   songs: z.array(z.string()).default([]),
   titles: z.record(z.string(), z.string()).optional(),
   created: z.union([z.string(), z.date()]).optional(),
-  spotify: z.string().optional(),      // Spotify album URL
+  spotify: z
+    .string()
+    .refine((u) => u.startsWith('https://open.spotify.com/'), {
+      message: 'Spotify album URL must start with https://open.spotify.com/',
+    })
+    .optional(),      // Spotify album URL
+  youtube: z
+    .string()
+    .refine((u) => u.startsWith('https://www.youtube.com/') || u.startsWith('https://youtu.be/'), {
+      message: 'YouTube URL must start with https://www.youtube.com/ or https://youtu.be/',
+    })
+    .optional(),
+  youtubePlaylist: z
+    .string()
+    .refine((u) => u.startsWith('https://www.youtube.com/') || u.startsWith('https://youtu.be/'), {
+      message: 'YouTube playlist URL must start with https://www.youtube.com/ or https://youtu.be/',
+    })
+    .optional(),
 });
 
 export type Album = z.infer<typeof AlbumSchema>;

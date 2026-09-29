@@ -1,6 +1,6 @@
 "use server";
 
-import { saveSongTranslation, saveSongMeta, createSong, getSong, getSongTranslation, getSiteConfig, extractBodyTitle, addSongTranslation, deleteSongTranslation, renameSong, changeSongAlbum, getSetlist, saveSetlist, listSongs, getAlbum, saveAlbum, createAlbum, getLanguagesConfig, NO_ALBUM_ID } from "@/lib/content";
+import { saveSongTranslation, saveSongMeta, createSong, getSong, getSongTranslation, getSiteConfig, extractBodyTitle, addSongTranslation, deleteSongTranslation, renameSong, changeSongAlbum, getSetlist, saveSetlist, listSongs, getAlbum, saveAlbum, createAlbum, getLanguagesConfig, NO_ALBUM_ID, getAlbumsForSong } from "@/lib/content";
 import { SongTranslationFrontmatterSchema, type Reference, type Partition, type Album } from "@/lib/content/schemas";
 import { revalidatePath } from "next/cache";
 import matter from "gray-matter";
@@ -337,6 +337,26 @@ export async function saveSongReferencesAction(songId: string, references: Refer
   await saveSongMeta(songId, meta);
   revalidatePath(`/songs/${songId}`);
   revalidatePath(`/edit/${songId}/[lang]`, "page");
+}
+
+export async function saveSongLinksAction(
+  songId: string,
+  links: {
+    spotifySong?: string;
+    youtube?: string;
+  },
+) {
+  assertWritable();
+  const meta = await getSong(songId);
+  const spotifySong = links.spotifySong?.trim() || undefined;
+  const youtube = links.youtube?.trim() || undefined;
+  meta.spotify = spotifySong ? { ...(meta.spotify ?? {}), song: spotifySong } : undefined;
+  meta.youtube = youtube;
+  await saveSongMeta(songId, meta);
+  revalidatePath(`/songs/${songId}`);
+  revalidatePath(`/edit/${songId}/[lang]`, "page");
+  const albumIds = await getAlbumsForSong(songId);
+  for (const albumId of albumIds) revalidatePath(`/albums/${albumId}`);
 }
 
 export async function changeSongIdAction(oldId: string, newId: string) {

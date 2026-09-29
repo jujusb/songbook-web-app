@@ -51,6 +51,8 @@ export default async function EditPage({
       lang={lang}
       initialContent={translation.body}
       references={meta.references}
+      spotify={meta.spotify}
+      youtube={meta.youtube}
       languages={languages}
       translations={translations}
       translationsContent={translationsContent}

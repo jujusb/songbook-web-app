@@ -39,6 +39,9 @@ export default async function EditAlbumPage({
         description: album.description || "",
         tags: album.tags.join(", "),
         songs: album.songs,
+        spotify: album.spotify,
+        youtube: album.youtube,
+        youtubePlaylist: album.youtubePlaylist,
       }}
       allSongs={songs.map((s) => ({ id: s.id, title: resolveSongListTitle(s, langConfig.default), key: s.key }))}
       allArtists={artists.map((a) => ({ id: a.id, name: a.name }))}

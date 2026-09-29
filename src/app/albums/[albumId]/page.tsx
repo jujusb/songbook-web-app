@@ -9,6 +9,7 @@ import { DeleteButton } from "@/components/DeleteButton";
 import { NavidromeShareButton } from "@/components/NavidromeShareButton";
 import { getNavidromeConfig } from "@/lib/navidrome/config";
 import { SpotifyPlayer } from "@/components/SpotifyPlayer";
+import { YouTubePlayer } from "@/components/YouTubePlayer";
 
 export default async function AlbumPage({
   params,
@@ -126,7 +127,7 @@ export default async function AlbumPage({
           >
             Export PDF for this Album
           </Link>
-          {isOriginalLanguage ? (
+          {isOriginalLanguage && album.spotify ? (
             <SpotifyPlayer
               type="album"
               id={albumId}
@@ -134,6 +135,16 @@ export default async function AlbumPage({
               explicitUrl={album.spotify ?? null}
               title={localizedAlbumTitle}
               artist={artistName}
+            />
+          ) : null}
+          {isOriginalLanguage && album.youtube ? (
+            <YouTubePlayer url={album.youtube} title={localizedAlbumTitle} />
+          ) : null}
+          {isOriginalLanguage && album.youtubePlaylist ? (
+            <YouTubePlayer
+              url={album.youtubePlaylist}
+              title={localizedAlbumTitle}
+              isPlaylist
             />
           ) : null}
           {showEditActions && (

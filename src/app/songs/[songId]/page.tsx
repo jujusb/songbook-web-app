@@ -25,6 +25,7 @@ import { NavidromeShareButton } from "@/components/NavidromeShareButton";
 import { T } from "@/components/Translate";
 import { getNavidromeConfig } from "@/lib/navidrome/config";
 import { SpotifyPlayer } from "@/components/SpotifyPlayer";
+import { YouTubePlayer } from "@/components/YouTubePlayer";
 import { VoiceSections } from "@/components/VoiceSections";
 import { PartitionViewer } from "@/components/PartitionViewer";
 
@@ -160,16 +161,6 @@ export default async function SongPage({
               <T k="song.listen" />
             </Link>
           )}
-          {showSpotify && spotify?.album && (
-            <a
-              href={spotify.album}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="px-3 py-1.5 border border-neutral-300 dark:border-neutral-700 rounded-md hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors"
-            >
-              <T k="song.spotifyAlbum" />
-            </a>
-          )}
           {showNavidrome && (
             <NavidromeShareButton
               key={`${songId}:${lang}`}
@@ -187,6 +178,9 @@ export default async function SongPage({
               title={localizedTitle}
               artist={artist?.name}
             />
+          )}
+          {showSpotify && meta.youtube && (
+            <YouTubePlayer url={meta.youtube} title={localizedTitle} />
           )}
           {showDeleteActions && (
             <>

@@ -32,6 +32,9 @@ export function AlbumForm({
     description: string;
     tags: string;
     songs: string[];
+    spotify?: string;
+    youtube?: string;
+    youtubePlaylist?: string;
   };
   allSongs: Song[];
   allArtists: ArtistOption[];
@@ -50,6 +53,9 @@ export function AlbumForm({
   const [year, setYear] = useState(initialAlbum.year);
   const [description, setDescription] = useState(initialAlbum.description);
   const [tags, setTags] = useState(initialAlbum.tags);
+  const [spotify, setSpotify] = useState(initialAlbum.spotify ?? "");
+  const [youtube, setYoutube] = useState(initialAlbum.youtube ?? "");
+  const [youtubePlaylist, setYoutubePlaylist] = useState(initialAlbum.youtubePlaylist ?? "");
   const [selectedSongs, setSelectedSongs] = useState<string[]>(initialAlbum.songs);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -110,6 +116,9 @@ export function AlbumForm({
             .split(",")
             .map((t) => t.trim())
             .filter(Boolean),
+          spotify: spotify.trim() || undefined,
+          youtube: youtube.trim() || undefined,
+          youtubePlaylist: youtubePlaylist.trim() || undefined,
           songs: selectedSongs,
         }),
       });
@@ -126,7 +135,7 @@ export function AlbumForm({
     } finally {
       setSaving(false);
     }
-  }, [title, titles, artist, year, description, tags, selectedSongs, isNew, initialAlbum.id, router]);
+  }, [title, titles, artist, year, description, tags, spotify, youtube, youtubePlaylist, selectedSongs, isNew, initialAlbum.id, router]);
 
   return (
     <div className="max-w-4xl mx-auto px-4 py-8">
@@ -212,6 +221,42 @@ export function AlbumForm({
               value={year}
               onChange={(e) => setYear(e.target.value)}
               placeholder="2024"
+              className="w-full px-3 py-2 border border-neutral-300 dark:border-neutral-700 rounded-md bg-white dark:bg-neutral-900 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-neutral-700 dark:text-neutral-300 mb-1">
+              Spotify album URL
+            </label>
+            <input
+              type="url"
+              value={spotify}
+              onChange={(e) => setSpotify(e.target.value)}
+              placeholder="https://open.spotify.com/album/..."
+              className="w-full px-3 py-2 border border-neutral-300 dark:border-neutral-700 rounded-md bg-white dark:bg-neutral-900 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-neutral-700 dark:text-neutral-300 mb-1">
+              YouTube URL
+            </label>
+            <input
+              type="url"
+              value={youtube}
+              onChange={(e) => setYoutube(e.target.value)}
+              placeholder="https://www.youtube.com/watch?v=..."
+              className="w-full px-3 py-2 border border-neutral-300 dark:border-neutral-700 rounded-md bg-white dark:bg-neutral-900 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-neutral-700 dark:text-neutral-300 mb-1">
+              YouTube playlist URL
+            </label>
+            <input
+              type="url"
+              value={youtubePlaylist}
+              onChange={(e) => setYoutubePlaylist(e.target.value)}
+              placeholder="https://www.youtube.com/playlist?list=..."
               className="w-full px-3 py-2 border border-neutral-300 dark:border-neutral-700 rounded-md bg-white dark:bg-neutral-900 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
           </div>

@@ -7,8 +7,9 @@ import { useTranslation } from '@/lib/i18n';
 import { setSongTitleAction, setSongKeyAction, addSongTranslationAction, removeSongTranslationAction } from '@/app/actions';
 import { EditorView } from '@/components/EditorView';
 import { ReferenceEditor } from '@/components/ReferenceEditor';
+import { MusicLinksEditor } from '@/components/MusicLinksEditor';
 import { LanguageSwitcher } from '@/components/LanguageSwitcher';
-import type { Reference } from '@/lib/content/schemas';
+import type { Reference, SpotifyLinks } from '@/lib/content/schemas';
 
 /**
  * Suggestions for the tonality field, matching the `key` value format the
@@ -25,6 +26,8 @@ export function EditPageClient({
   lang,
   initialContent,
   references,
+  spotify,
+  youtube,
   languages,
   translations,
   translationsContent,
@@ -37,6 +40,8 @@ export function EditPageClient({
   lang: string;
   initialContent: string;
   references: Reference[];
+  spotify?: SpotifyLinks;
+  youtube?: string;
   languages: string[];
   translations: string[];
   translationsContent: Record<string, string>;
@@ -48,6 +53,7 @@ export function EditPageClient({
   const { t } = useTranslation();
   const router = useRouter();
   const [showReferences, setShowReferences] = useState(initialShowReferences);
+  const [showMusicLinks, setShowMusicLinks] = useState(false);
   const [titleInput, setTitleInput] = useState(title);
   const [savingTitle, setSavingTitle] = useState(false);
   const [titleSaved, setTitleSaved] = useState(true);
@@ -212,6 +218,12 @@ export function EditPageClient({
             {t('song.status')}: {status}
           </span>
           <button
+            onClick={() => setShowMusicLinks(true)}
+            className="text-xs px-3 py-1.5 border border-neutral-300 dark:border-neutral-700 rounded-md hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors"
+          >
+            {t('song.musicLinks')}
+          </button>
+          <button
             onClick={() => setShowReferences(true)}
             className="text-xs px-3 py-1.5 border border-neutral-300 dark:border-neutral-700 rounded-md hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors"
           >
@@ -241,14 +253,22 @@ export function EditPageClient({
         translations={translationLangs}
         translationsContent={translationsContent}
       />
-      {showReferences && (
+{showReferences && (
         <ReferenceEditor
           references={references}
           songId={songId}
-languages={translations}
+          languages={translations}
           content={initialContent}
           lang={lang}
           onClose={() => setShowReferences(false)}
+        />
+      )}
+      {showMusicLinks && (
+        <MusicLinksEditor
+          songId={songId}
+          initialSpotifySong={spotify?.song}
+          initialYoutube={youtube}
+          onClose={() => setShowMusicLinks(false)}
         />
       )}
     </div>
