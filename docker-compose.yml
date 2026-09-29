@@ -13,6 +13,7 @@ services:
       - ${SONGBOOK_MUSIC_DIR:-/music}:/app/music
       - ${SONGBOOK_CONTENT_DIR:-./content}:/app/content
       - ${SONGBOOK_PARTITION_DIR:-./data}:/app/partitions
+      - ${SONGBOOK_IMPORT_DIR:-./import}:/app/import
     environment:
       - NODE_ENV=development
       - HOSTNAME=0.0.0.0

@@ -427,7 +427,8 @@ export async function createSong(
   id: string,
   title: string,
   lang: string,
-  albumId?: string
+  albumId?: string,
+  body?: string
 ): Promise<void> {
   if (!albumId) {
     // Default to "No Album" — the folder lives in library/no-album/ and is not
@@ -455,8 +456,10 @@ export async function createSong(
     status: 'draft',
     published: false,
   };
-  const body = `{title: ${title}}\n`;
-  await saveSongTranslation(id, lang, frontmatter, body, albumId);
+  // Callers that already have the ChordPro (e.g. document importers) pass it in
+  // so the placeholder body never has to be written and snapshotted as a revision.
+  const content = body?.trim() ? body.trim() : `{title: ${title}}\n`;
+  await saveSongTranslation(id, lang, frontmatter, content, albumId);
 }
 
 export async function getLanguagesConfig(): Promise<LanguagesConfig> {

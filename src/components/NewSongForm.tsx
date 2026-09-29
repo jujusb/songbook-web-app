@@ -4,6 +4,7 @@ import { useState, useCallback, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { renderVisualChordSheet } from "@/lib/chordpro/visual-render";
 import { txtToChordPro } from "@/lib/chordpro/txt-import";
+import { songIdFromTitle } from "@/lib/song-ids";
 import { useTranslation } from "@/lib/i18n";
 
 function renderPreview(source: string): string {
@@ -170,10 +171,7 @@ export function NewSongForm({
     setError(null);
 
     try {
-      const id = title
-        .toLowerCase()
-        .replace(/[^a-z0-9]+/g, "-")
-        .replace(/^-|-$/g, "");
+      const id = songIdFromTitle(title, "");
 
       // Prepend key directive if set and not already in the chordpro
       let finalChordpro = chordpro;
