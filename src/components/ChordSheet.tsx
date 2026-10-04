@@ -331,6 +331,7 @@ export function ChordSheet({
   idPrefix = "",
   lang = "en",
   inlineChords = false,
+  repeatChorus = true,
 }: {
   initialSource: string;
   songKey: string | null;
@@ -339,11 +340,13 @@ export function ChordSheet({
   idPrefix?: string;
   lang?: string;
   inlineChords?: boolean;
+  repeatChorus?: boolean;
 }) {
   const { t } = useTranslation();
   const [semitones, setSemitones] = useState(0);
   const [isMobile, setIsMobile] = useState(false);
   const [mounted, setMounted] = useState(false);
+  const [showRepeats, setShowRepeats] = useState(repeatChorus);
 
   useEffect(() => {
     setMounted(true);
@@ -496,6 +499,18 @@ export function ChordSheet({
             Capo {songCapo}
           </span>
         )}
+        <button
+          type="button"
+          onClick={() => setShowRepeats(!showRepeats)}
+          className={`px-3 py-1.5 border border-neutral-300 dark:border-neutral-700 rounded-md text-xs transition-colors ${
+            showRepeats
+              ? "bg-blue-50 text-blue-700 dark:bg-blue-950 dark:text-blue-300"
+              : "hover:bg-neutral-100 dark:hover:bg-neutral-800"
+          }`}
+          title={showRepeats ? "Show repeated sections" : "Hide repeated sections"}
+        >
+          {showRepeats ? "Hide Repeats" : "Show Repeats"}
+        </button>
       </div>
 
       {/* Chord sheet - responsive, fits screen without horizontal scroll */}

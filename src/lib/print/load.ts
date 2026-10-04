@@ -72,6 +72,7 @@ export async function loadPrintSongs(
   languages: string[],
   showRefs: boolean,
   inlineChords: boolean = false,
+  repeatChorus: boolean = true,
 ): Promise<PrintSong[]> {
   const printSongs: PrintSong[] = [];
 
@@ -103,7 +104,7 @@ export async function loadPrintSongs(
           key: resolved.meta?.key ?? meta?.key,
           capo,
           lang,
-          html: renderToHtml(body, { inlineChords }),
+          html: renderToHtml(body, { inlineChords, repeatChorus }),
           refsHtml:
             showRefs && meta?.references?.length
               ? renderReferencesHtml(meta.references, lang)

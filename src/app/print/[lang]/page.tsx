@@ -5,7 +5,7 @@ import {
 import { getSession, canEdit } from "@/lib/auth";
 import { resolveScopeSongs } from "@/lib/export/song-scope";
 import { loadPrintSongs } from "@/lib/print/load";
-import { PrintSongbook } from "@/components/PrintSongbook";
+import { PrintPageClient } from "@/components/PrintPageClient";
 import { languageLabelFor } from "@/lib/i18n/labels";
 
 export default async function PrintPage({
@@ -63,7 +63,7 @@ export default async function PrintPage({
   const scopeId = songId ?? albumId ?? artistId ?? bookId ?? null;
   const resolved = await resolveScopeSongs(scope, scopeId, { role: isEditor ? 'admin' : 'public' });
 
-  const printSongs = await loadPrintSongs(resolved.songs, languages, showRefs, true);
+  const printSongs = await loadPrintSongs(resolved.songs, languages, showRefs, true, true);
 
   const langLabel = languageLabelFor;
 
@@ -78,7 +78,7 @@ export default async function PrintPage({
     : `${siteTitle} — ${languages.map(langLabel).join(", ")}`;
 
   return (
-    <PrintSongbook
+    <PrintPageClient
       printSongs={printSongs}
       pageTitle={pageTitle}
       header={
@@ -105,14 +105,8 @@ export default async function PrintPage({
               ? "Back to Song"
               : "Back to Print Options"
       }
-      toolbarChildren={
-        <span className="text-sm text-neutral-500">
-          {printSongs.length} song{printSongs.length !== 1 ? "s" : ""}
-          {" · "}
-          {languages.map(langLabel).join(", ")}
-          {showRefs && " · with references"}
-        </span>
-      }
+      languages={languages}
+      showRefs={showRefs}
       emptyText="No songs found for the selected language(s)."
     />
   );
