@@ -14,6 +14,7 @@ import {
 } from "@/lib/content";
 import { getLocale } from "@/lib/i18n/server";
 import { getSession, canEdit, canAdmin } from "@/lib/auth";
+import { isReadOnly } from "@/lib/readonly";
 import { ChordSheet } from "@/components/ChordSheet";
 import { LanguageSwitcher } from "@/components/LanguageSwitcher";
 import { ReferencePanel } from "@/components/ReferencePanel";
@@ -115,7 +116,7 @@ export default async function SongPage({
     enableArtistPages = config.enableArtistPages;
   } catch {}
 
-  const showEditActions = canEdit(session?.role ?? null);
+  const showEditActions = !isReadOnly() && canEdit(session?.role ?? null);
   const showDeleteActions = canAdmin(session?.role ?? null);
 
   const isOriginalVersion = lang === langConfig.default;
