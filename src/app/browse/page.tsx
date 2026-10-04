@@ -49,7 +49,7 @@ export default async function BrowsePage() {
   const [artists, albums, songs, langConfig] = await Promise.all([
     listArtists(),
     listAlbums(),
-    listSongs(),
+    listSongs({ onlyPublished: true, role: session?.role ?? 'public' }),
     getLanguagesConfig(),
   ]);
 

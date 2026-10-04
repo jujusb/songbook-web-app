@@ -6,15 +6,16 @@ import { getSession, canEdit } from "@/lib/auth";
 import { T } from "@/components/Translate";
 
 export default async function SetlistsPage() {
+  const session = await getSession();
+  const showEditActions = canEdit(session?.role ?? null);
+
   const [setlists, songs, langConfig] = await Promise.all([
     listSetlists(),
-    listSongs(),
+    listSongs({ onlyPublished: true, role: session?.role ?? 'public' }),
     getLanguagesConfig(),
   ]);
   const songMap = new Map(songs.map((s) => [s.id, s]));
   const selectedLang = getLocale(await cookies(), langConfig.default);
-  const session = await getSession();
-  const showEditActions = canEdit(session?.role ?? null);
 
   // Private setlists (the default) are only visible to editors.
   const visibleSetlists = showEditActions
@@ -43,7 +44,13 @@ export default async function SetlistsPage() {
             const visibleSongs = setlist.songs.filter((s) => {
               if (selectedLang === langConfig.default) return true;
               const song = songMap.get(s.songId);
-              return song ? song.translations.includes(selectedLang) : false;
+              if (!song) return false;
+              if (!song.translations.includes(selectedLang)) return false;
+              // Filter by published status for non-admin
+              if (!showEditActions && song.published && song.published[selectedLang] === false) {
+                return false;
+              }
+              return true;
             });
             return (
               <Link

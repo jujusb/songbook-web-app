@@ -101,9 +101,20 @@ export type SongListItem = SongMeta & {
    * language is excluded — its yaml `title` is authoritative.
    */
   choTitles: Record<string, string>;
+  /** Per-language published status from translation frontmatter */
+  published?: Record<string, boolean>;
 };
 
-export async function listSongs(): Promise<SongListItem[]> {
+export interface ListSongsOptions {
+  /** If true, only include songs that have at least one published translation.
+   *  If false (default), include all songs. */
+  onlyPublished?: boolean;
+  /** Role of the requesting user. If 'admin', all songs are returned regardless of published status. */
+  role?: 'public' | 'reviewer' | 'admin';
+}
+
+export async function listSongs(options: ListSongsOptions = {}): Promise<SongListItem[]> {
+  const { onlyPublished = false, role } = options;
   const libDir = getLibraryDir();
   const songs: SongListItem[] = [];
   const langConfig = await getLanguagesConfig().catch(() => null);
@@ -125,11 +136,22 @@ export async function listSongs(): Promise<SongListItem[]> {
           const parsed = yaml.load(raw);
           const meta = SongMetaSchema.parse(parsed);
           let translations: string[] = [];
+          const publishedMap: Record<string, boolean> = {};
           try {
             const files = await readdir(songPath);
             translations = files
               .filter((f) => f.endsWith('.cho'))
               .map((f) => path.basename(f, '.cho'));
+            // Read published status from each translation
+            for (const lang of translations) {
+              try {
+                const choRaw = await readFile(path.join(songPath, `${lang}.cho`), 'utf-8');
+                const { data } = matter(choRaw);
+                publishedMap[lang] = data?.published === true;
+              } catch {
+                publishedMap[lang] = false;
+              }
+            }
           } catch {
             // no .cho files readable
           }
@@ -149,7 +171,13 @@ export async function listSongs(): Promise<SongListItem[]> {
               // skip unreadable translation file
             }
           }
-          songs.push({ ...meta, translations, choTitles });
+          // Check if song has any published translation
+          const hasPublished = Object.values(publishedMap).some(v => v);
+          // Filter based on role and published status
+          if (onlyPublished && role !== 'admin' && !hasPublished) {
+            continue; // skip unpublished songs for non-admin
+          }
+          songs.push({ ...meta, translations, choTitles, published: publishedMap });
         } catch {
           // skip invalid
         }
@@ -542,7 +570,15 @@ export async function getShareBaseUrl(): Promise<string | null> {
 // Albums live at: content/library/<album-id>/album.yaml
 // Songs are subfolders: content/library/<album-id>/<song-id>/
 
-export async function listAlbums(): Promise<Album[]> {
+export interface ListAlbumsOptions {
+  /** If true, only include albums that have published=true. */
+  onlyPublished?: boolean;
+  /** Role of the requesting user. If 'admin', all albums are returned regardless of published status. */
+  role?: 'public' | 'reviewer' | 'admin';
+}
+
+export async function listAlbums(options: ListAlbumsOptions = {}): Promise<Album[]> {
+  const { onlyPublished = false, role } = options;
   const libDir = getLibraryDir();
   const albums: Album[] = [];
 
@@ -556,6 +592,10 @@ export async function listAlbums(): Promise<Album[]> {
         const raw = await readFile(albumPath, 'utf-8');
         const parsed = yaml.load(raw);
         const album = AlbumSchema.parse(parsed);
+        // Filter based on published status and role
+        if (onlyPublished && role !== 'admin' && !album.published) {
+          continue;
+        }
         albums.push(album);
       } catch {
         // skip folders without album.yaml
@@ -600,6 +640,7 @@ export async function createAlbum(
     number,
     tags: [],
     songs: [],
+    published: false,
   };
   await saveAlbum(album);
 }

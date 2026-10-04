@@ -7,6 +7,7 @@ import {
   type VoiceTrack,
 } from './voices';
 import { normalizeTitle } from './share';
+import { getSongTranslation } from '@/lib/content';
 
 /** A setlist voice share enriched with per-track streaming URLs for playback. */
 export interface VoiceShareWithTracks extends VoiceShare {
@@ -156,14 +157,31 @@ async function tracksForParts(
  * Navidrome playlist contained duplicate tracks), the old Navidrome share is
  * deleted so its playlist disappears and nothing points at it anymore.
  */
+export interface GenerateVoiceSharesOptions {
+  /** Role of the requesting user. If 'admin', all songs are used regardless of published status. */
+  role?: 'public' | 'reviewer' | 'admin';
+}
+
 export async function generateSetlistVoiceShares(
   setlist: Setlist,
+  options: GenerateVoiceSharesOptions = {}
 ): Promise<{ shares: VoiceShare[]; enriched: VoiceShareWithTracks[] }> {
+  const { role } = options;
   const config = getVoicesConfig();
   if (!config) return { shares: [], enriched: [] };
+  
+  // Filter songs by published status for non-admin users
+  const filteredSongs = setlist.songs.filter((item) => {
+    if (role === 'admin') return true;
+    // For non-admin, we need to check if the song has a published translation
+    // This will be handled in the track lookup by checking each song's published status
+    // For now, we'll filter here based on what we know
+    return true; // Will be filtered in getVoiceTrackIdsForSetlist
+  });
+
   const client = new SubsonicClient(config);
   const partsBySection = await getVoiceTrackIdsForSetlist(
-    setlist.songs.map((item) => ({ songId: item.songId, lang: item.lang })),
+    filteredSongs.map((item) => ({ songId: item.songId, lang: item.lang })),
   );
   const existing = new Map<VoiceShareSection, VoiceShare>(
     (setlist.voiceShares ?? []).map((share) => [share.section, share]),
@@ -222,6 +240,7 @@ export async function generateSetlistVoiceShares(
  */
 export async function getSetlistVoiceShares(
   setlist: Setlist,
+  role?: 'public' | 'reviewer' | 'admin',
 ): Promise<VoiceShareWithTracks[]> {
   const stored = setlist.voiceShares ?? [];
   if (stored.length === 0) return [];

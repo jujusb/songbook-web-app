@@ -58,6 +58,7 @@ export default async function EditPage({
       translationsContent={translationsContent}
       title={localizedTitle}
       status={translation.meta.status}
+      published={translation.meta.published}
       keySignature={meta.key}
       initialShowReferences={showRefs === '1'}
     />

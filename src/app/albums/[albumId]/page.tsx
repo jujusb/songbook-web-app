@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { cookies } from "next/headers";
-import { getAlbum, getAlbumTitle, getArtist, getSong, getSongTranslations, getSongTitle, getLanguagesConfig, shouldShowSongInLanguage } from "@/lib/content";
+import { getAlbum, getAlbumTitle, getArtist, getSong, getSongTranslation, getSongTranslations, getSongTitle, getLanguagesConfig, shouldShowSongInLanguage } from "@/lib/content";
 import { getLocale } from "@/lib/i18n/server";
 import { languageLabelFor } from "@/lib/i18n/labels";
 import { getSession, canEdit, canAdmin } from "@/lib/auth";
@@ -72,6 +72,11 @@ export default async function AlbumPage({
         if (!shouldShowSongInLanguage(translations, displayLang, langConfig.default)) {
           return null;
         }
+        // Check if translation is published for non-admin users
+        const { meta: translationMeta } = await getSongTranslation(songId, displayLang);
+        if (!isAdmin && !translationMeta.published) {
+          return null;
+        }
         const localizedTitle = displayLang ? await getSongTitle(songId, displayLang) : song.title;
         return { ...song, title: localizedTitle, translations };
       } catch {
@@ -91,6 +96,7 @@ export default async function AlbumPage({
   } catch {}
 
   const session = await getSession();
+  const isAdmin = canAdmin(session?.role ?? null);
   const showEditActions = canEdit(session?.role ?? null);
   const showDeleteActions = canAdmin(session?.role ?? null);
   const navidromeEnabled = getNavidromeConfig() !== null;

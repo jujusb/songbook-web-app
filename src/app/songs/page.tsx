@@ -6,8 +6,13 @@ import { getSession, canEdit } from "@/lib/auth";
 import { isReadOnly } from "@/lib/readonly";
 
 export default async function SongsPage() {
-  const [songs, langConfig, albums, artists] = await Promise.all([listSongs(), getLanguagesConfig(), listAlbums(), listArtists()]);
   const session = await getSession();
+  const [songs, langConfig, albums, artists] = await Promise.all([
+    listSongs({ onlyPublished: true, role: session?.role ?? 'public' }),
+    getLanguagesConfig(),
+    listAlbums(),
+    listArtists()
+  ]);
   const showBulkImport = !isReadOnly() && canEdit(session?.role ?? null);
 
   return (

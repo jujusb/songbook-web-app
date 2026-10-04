@@ -9,6 +9,7 @@ export interface SetlistReadOnlySong {
   title: string;
   key?: string;
   translations: string[];
+  published?: boolean;
 }
 
 /**
@@ -26,7 +27,8 @@ export function SetlistReadOnlyView({
   defaultLang: string;
 }) {
   const visible = songs.filter((song) =>
-    shouldShowSongInLanguage(song.translations, selectedLang, defaultLang)
+    shouldShowSongInLanguage(song.translations, selectedLang, defaultLang) &&
+    song.published !== false // published is undefined for older data, treat as published
   );
 
   return (

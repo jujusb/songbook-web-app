@@ -1,7 +1,7 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import { cookies } from "next/headers";
-import { getSetlist, listSongs, getSong, getSongTranslations, getSongTitle, getLanguagesConfig, shouldShowSongInLanguage, getShareBaseUrl } from "@/lib/content";
+import { getSetlist, listSongs, getSong, getSongTranslation, getSongTranslations, getSongTitle, getLanguagesConfig, shouldShowSongInLanguage, getShareBaseUrl } from "@/lib/content";
 import { getLocale } from "@/lib/i18n/server";
 import { getSession, canEdit, canAdmin, canViewSetlist } from "@/lib/auth";
 import { SetlistEditor } from "@/components/SetlistEditor";
@@ -38,7 +38,7 @@ export default async function SetlistPage({
     notFound();
   }
 
-  const voiceShares = await getSetlistVoiceShares(setlist);
+  const voiceShares = await getSetlistVoiceShares(setlist, session?.role ?? 'public');
   const presentHref = `/setlists/${setlistId}/present${
     shareParam ? `?share=${shareParam}` : ""
   }`;
@@ -62,16 +62,31 @@ export default async function SetlistPage({
       try {
         const meta = await getSong(item.songId);
         const translations = await getSongTranslations(item.songId);
-        return { ...item, title: await getSongTitle(item.songId, item.lang), key: meta.key, translations };
+        // Check published status for the selected language
+        const { meta: translationMeta } = await getSongTranslation(item.songId, item.lang);
+        return { 
+          ...item, 
+          title: await getSongTitle(item.songId, item.lang), 
+          key: meta.key, 
+          translations,
+          published: translationMeta.published
+        };
       } catch {
-        return { ...item, title: item.songId, key: undefined, translations: [] as string[] };
+        return { ...item, title: item.songId, key: undefined, translations: [] as string[], published: false };
       }
     })
   );
 
-  const visibleSongDetails = songDetails.filter((song) =>
-    shouldShowSongInLanguage(song.translations, selectedLang, langConfig.default)
-  );
+  const visibleSongDetails = songDetails.filter((song) => {
+    if (!shouldShowSongInLanguage(song.translations, selectedLang, langConfig.default)) {
+      return false;
+    }
+    // Filter by published status for non-admin users
+    if (!showEditActions && !song.published) {
+      return false;
+    }
+    return true;
+  });
   const displayCount = showEditActions ? setlist.songs.length : visibleSongDetails.length;
 
   return (

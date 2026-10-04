@@ -105,6 +105,7 @@ export const AlbumSchema = z.object({
       message: 'YouTube playlist URL must start with https://www.youtube.com/ or https://youtu.be/',
     })
     .optional(),
+  published: z.boolean().default(false),
 });
 
 export type Album = z.infer<typeof AlbumSchema>;

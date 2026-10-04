@@ -60,7 +60,7 @@ export default async function SetlistSharePage({
     shouldShowSongInLanguage(song.translations, selectedLang, langConfig.default)
   );
 
-  const voiceShares = await getSetlistVoiceShares(setlist);
+  const voiceShares = await getSetlistVoiceShares(setlist, 'public');
   const presentHref = `/setlists/share/${encodeURIComponent(token)}/present`;
 
   return (

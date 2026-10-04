@@ -6,6 +6,7 @@ import {
   getAlbumsForArtist,
   getSiteConfig,
   getSong,
+  getSongTranslation,
   getSongTranslations,
   getSongTitle,
   getLanguagesConfig,
@@ -13,7 +14,7 @@ import {
 } from "@/lib/content";
 import { getLocale } from "@/lib/i18n/server";
 import { languageLabelFor } from "@/lib/i18n/labels";
-import { getSession, canAdmin } from "@/lib/auth";
+import { getSession, canAdmin, canEdit } from "@/lib/auth";
 import { DeleteButton } from "@/components/DeleteButton";
 import { T } from "@/components/Translate";
 
@@ -46,11 +47,18 @@ export default async function ArtistPage({
     notFound();
   }
 
+  const session = await getSession();
+  const isAdmin = canAdmin(session?.role ?? null);
+
   const albums = await getAlbumsForArtist(artistId);
 
   // Get songs for each album with translations
   const albumsWithSongs = await Promise.all(
     albums.map(async (album) => {
+      // Filter album by published status
+      if (!isAdmin && !album.published) {
+        return null;
+      }
       const songs = await Promise.all(
         album.songs.map(async (songId) => {
           try {
@@ -63,6 +71,11 @@ export default async function ArtistPage({
                 langConfig.default
               )
             ) {
+              return null;
+            }
+            // Check if translation is published for non-admin users
+            const { meta: translationMeta } = await getSongTranslation(songId, uiLang);
+            if (!isAdmin && !translationMeta.published) {
               return null;
             }
             const localizedTitle = await getSongTitle(songId, uiLang);
@@ -93,7 +106,6 @@ export default async function ArtistPage({
     0
   );
 
-  const session = await getSession();
   const showDeleteActions = canAdmin(session?.role ?? null);
 
   return (

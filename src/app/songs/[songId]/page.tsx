@@ -87,6 +87,9 @@ export default async function SongPage({
     );
   }
 
+  const session = await getSession();
+  const isAdmin = canAdmin(session?.role ?? null);
+
   const langConfig = await getLanguagesConfig();
   const selectedLang = getLocale(await cookies(), langConfig.default);
   const lang =
@@ -95,6 +98,12 @@ export default async function SongPage({
       : translations.includes(selectedLang)
         ? selectedLang
         : translations[0];
+
+  // Check if translation is published for non-admin users
+  const { meta: translationMeta } = await getSongTranslation(songId, lang);
+  if (!isAdmin && !translationMeta.published) {
+    notFound();
+  }
 
   const { body } = await getSongTranslation(songId, lang);
   const localizedTitle = await getSongTitle(songId, lang);
@@ -108,7 +117,6 @@ export default async function SongPage({
     enableArtistPages = config.enableArtistPages;
   } catch {}
 
-  const session = await getSession();
   const showEditActions = canEdit(session?.role ?? null);
   const showDeleteActions = canAdmin(session?.role ?? null);
 
@@ -120,7 +128,7 @@ export default async function SongPage({
   const partitions = meta.partitions ?? [];
   const showParts = parts === "1";
 
-  // Build action menu items
+  // Build action menu items - only for simple navigation actions
   const primaryActions = [
     {
       label: "Edit",
@@ -154,21 +162,7 @@ export default async function SongPage({
     });
   }
 
-  const adminActions = showDeleteActions ? [
-    {
-      label: "Change Album",
-      onClick: () => {}, // ChangeAlbumButton handles its own click
-    },
-    {
-      label: "Change ID",
-      onClick: () => {}, // ChangeIdButton handles its own click
-    },
-    {
-      label: "Delete",
-      variant: "destructive" as const,
-      onClick: () => {}, // DeleteButton handles its own click
-    },
-  ] : [];
+  const adminActions = showDeleteActions ? [] : [];
 
   return (
     <div className="max-w-full mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -179,19 +173,80 @@ export default async function SongPage({
             <h1 className="text-2xl font-bold truncate">{localizedTitle}</h1>
           </div>
           <div className="flex-shrink-0 w-full sm:w-auto">
-            <div className="flex justify-end sm:justify-end">
-              <ActionMenu
-                items={[
-                  ...primaryActions,
-                  ...(secondaryActions.length > 0 ? [{ label: "More", variant: "default" as const }] : []),
-                  ...(adminActions.length > 0 ? [{ label: "Admin", variant: "destructive" as const }] : []),
-                ]}
-                triggerIcon={
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z" />
-                  </svg>
-                }
-              />
+            <div className="flex flex-wrap items-center gap-2 justify-end sm:justify-end">
+              {/* Primary actions - Edit, Present, Compare */}
+              <Link
+                href={`/edit/${songId}/${lang}`}
+                className="text-sm px-3 py-1.5 border border-neutral-300 dark:border-neutral-700 rounded-md hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors hidden sm:inline-flex"
+              >
+                Edit
+              </Link>
+              <Link
+                href={`/edit/${songId}/${lang}?references=1`}
+                className="text-sm px-3 py-1.5 border border-neutral-300 dark:border-neutral-700 rounded-md hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors hidden sm:inline-flex"
+              >
+                Edit References
+              </Link>
+              <Link
+                href={`/present/${songId}?lang=${lang}`}
+                className="text-sm px-3 py-1.5 border border-neutral-300 dark:border-neutral-700 rounded-md hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors hidden sm:inline-flex"
+              >
+                Present
+              </Link>
+              <Link
+                href={`/compare/${songId}?langs=${translations.join(",")}`}
+                className="text-sm px-3 py-1.5 border border-neutral-300 dark:border-neutral-700 rounded-md hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors hidden sm:inline-flex"
+              >
+                Compare
+              </Link>
+
+              {/* Mobile: ActionMenu for primary actions */}
+              <div className="sm:hidden">
+                <ActionMenu
+                  items={primaryActions}
+                  triggerIcon={
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z" />
+                    </svg>
+                  }
+                />
+              </div>
+
+              {/* Secondary actions - Listen, Navidrome Share */}
+              {meta.audioFiles && meta.audioFiles.length > 0 && (
+                <Link
+                  href={`/music/${songId}?lang=${lang}`}
+                  className="text-sm px-3 py-1.5 border border-neutral-300 dark:border-neutral-700 rounded-md hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors"
+                >
+                  Listen
+                </Link>
+              )}
+              {showNavidrome && (
+                <NavidromeShareButton
+                  key={`${songId}:${lang}`}
+                  type="song"
+                  id={songId}
+                  lang={lang}
+                />
+              )}
+
+              {/* Admin actions - Change Album, Change ID, Delete */}
+              {showDeleteActions && (
+                <>
+                  <ChangeAlbumButton
+                    songId={songId}
+                    currentAlbumIds={albums.map((a) => a.id)}
+                    albums={allAlbums.map((a) => ({ id: a.id, title: a.title, artist: a.artist }))}
+                  />
+                  <ChangeIdButton songId={songId} lang={lang} />
+                  <DeleteButton
+                    apiEndpoint="/api/songs"
+                    id={songId}
+                    label={meta.title}
+                    redirectTo="/browse"
+                  />
+                </>
+              )}
             </div>
           </div>
         </div>

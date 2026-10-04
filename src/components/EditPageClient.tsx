@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useTranslation } from '@/lib/i18n';
-import { setSongTitleAction, setSongKeyAction, addSongTranslationAction, removeSongTranslationAction } from '@/app/actions';
+import { setSongTitleAction, setSongKeyAction, addSongTranslationAction, removeSongTranslationAction, toggleSongPublishedAction } from '@/app/actions';
 import { EditorView } from '@/components/EditorView';
 import { ReferenceEditor } from '@/components/ReferenceEditor';
 import { MusicLinksEditor } from '@/components/MusicLinksEditor';
@@ -33,6 +33,7 @@ export function EditPageClient({
   translationsContent,
   title,
   status,
+  published,
   keySignature,
   initialShowReferences = false,
 }: {
@@ -48,6 +49,7 @@ export function EditPageClient({
   title: string;
   status: string;
   keySignature: string | undefined;
+  published?: boolean;
   initialShowReferences?: boolean;
 }) {
   const { t } = useTranslation();
@@ -63,6 +65,8 @@ export function EditPageClient({
   const [translationBusy, setTranslationBusy] = useState<string | null>(null);
   const [translationError, setTranslationError] = useState<string | null>(null);
   const [translationLangs, setTranslationLangs] = useState<string[]>(translations);
+  const [isPublished, setIsPublished] = useState(published ?? false);
+  const [savingPublished, setSavingPublished] = useState(false);
 
   useEffect(() => {
     setTranslationLangs(translations);
@@ -142,6 +146,23 @@ export function EditPageClient({
     }
   };
 
+  const handleTogglePublished = async () => {
+    setSavingPublished(true);
+    try {
+      const res = await toggleSongPublishedAction(songId, lang);
+      if (res.ok) {
+        setIsPublished(res.published);
+      } else {
+        // Could show error
+        console.error('Failed to toggle published:', res.error);
+      }
+    } catch (err) {
+      console.error('Published toggle failed:', err);
+    } finally {
+      setSavingPublished(false);
+    }
+  };
+
   const availableToAdd = languages.filter((l) => !translationLangs.includes(l));
 
   return (
@@ -217,6 +238,19 @@ export function EditPageClient({
           <span className="text-xs text-neutral-500">
             {t('song.status')}: {status}
           </span>
+          {isPublished !== undefined && (
+            <button
+              onClick={handleTogglePublished}
+              disabled={savingPublished}
+              className={`text-xs px-3 py-1.5 rounded-md transition-colors ${
+                published
+                  ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200 border-green-300 dark:border-green-700'
+                  : 'bg-neutral-100 text-neutral-700 dark:bg-neutral-800 dark:text-neutral-300 border-neutral-300 dark:border-neutral-700'
+              } hover:opacity-90 disabled:opacity-50`}
+            >
+              {savingPublished ? t('common.saving') : isPublished ? t('song.published') : t('song.unpublished')}
+            </button>
+          )}
           <button
             onClick={() => setShowMusicLinks(true)}
             className="text-xs px-3 py-1.5 border border-neutral-300 dark:border-neutral-700 rounded-md hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors"

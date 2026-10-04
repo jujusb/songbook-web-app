@@ -5,7 +5,7 @@ import { SongTranslationFrontmatterSchema, type Reference, type Partition, type 
 import { revalidatePath } from "next/cache";
 import matter from "gray-matter";
 import { isReadOnly } from "@/lib/readonly";
-import { getSession, canEdit } from "@/lib/auth";
+import { getSession, canEdit, canAdmin } from "@/lib/auth";
 import { songIdFromTitle, slugifySongId, uniqueSongId } from "@/lib/song-ids";
 import { randomUUID } from "node:crypto";
 
@@ -119,6 +119,26 @@ export async function saveSongAction(songId: string, lang: string, content: stri
 
   revalidatePath(`/songs/${songId}`);
   revalidatePath(`/edit/${songId}/${lang}`);
+}
+
+export async function toggleSongPublishedAction(songId: string, lang: string) {
+  assertWritable();
+  const session = await getSession();
+  if (!canAdmin(session?.role ?? null)) {
+    return { ok: false as const, error: 'Admin required' };
+  }
+  try {
+    const { meta: frontmatter, body } = await getSongTranslation(songId, lang);
+    frontmatter.published = !frontmatter.published;
+    await saveSongTranslation(songId, lang, frontmatter, body);
+    revalidatePath(`/songs/${songId}`);
+    revalidatePath(`/edit/${songId}/${lang}`);
+    revalidatePath("/songs");
+    revalidatePath("/browse");
+    return { ok: true as const, published: frontmatter.published };
+  } catch (err) {
+    return { ok: false as const, error: err instanceof Error ? err.message : 'FAILED' };
+  }
 }
 
 export async function createSongAction(formData: FormData) {
@@ -577,7 +597,7 @@ export async function generateSetlistVoiceSharesAction(setlistId: string) {
       "@/lib/navidrome/setlist-shares"
     );
     const setlist = await getSetlist(setlistId);
-    const { shares, enriched } = await generateSetlistVoiceShares(setlist);
+    const { shares, enriched } = await generateSetlistVoiceShares(setlist, { role: session?.role ?? 'public' });
     await saveSetlist({ ...setlist, voiceShares: shares });
     revalidatePath(`/setlists/${setlistId}`);
     revalidatePath("/setlists");
