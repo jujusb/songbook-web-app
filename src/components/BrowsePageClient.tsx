@@ -93,20 +93,6 @@ export function BrowsePageClient({
       <p className="text-sm text-neutral-500 mb-4">
         <T k="browse.description" />
       </p>
-      <div className="mb-6">
-        <input
-          type="text"
-          placeholder={t('common.search') + " (ID, title, artist, album...)"}
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-          className="w-full max-w-md px-4 py-2 border border-neutral-300 dark:border-neutral-700 rounded-lg bg-white dark:bg-neutral-900 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-        />
-        {query && (
-          <p className="text-xs text-neutral-500 mt-1">
-            {t('common.search')} "{query}"
-          </p>
-        )}
-      </div>
       <BrowseTree data={filteredTreeData} canEdit={showEditActions} />
     </div>
   );
