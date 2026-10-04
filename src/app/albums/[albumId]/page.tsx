@@ -87,6 +87,16 @@ export default async function AlbumPage({
 
   const validSongs = songs.filter(Boolean);
 
+  // Compute album published status: at least one song with published translation
+  let albumPublished = false;
+  for (const songId of album.songs) {
+    const { meta: translationMeta } = await getSongTranslation(songId, displayLang);
+    if (translationMeta.published) {
+      albumPublished = true;
+      break;
+    }
+  }
+
   const localizedAlbumTitle = displayLang ? await getAlbumTitle(albumId, displayLang) : album.title;
 
   let artistName = album.artist;

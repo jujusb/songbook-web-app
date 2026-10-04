@@ -14,6 +14,7 @@ interface Album {
   number?: number;
   tags: string[];
   songs: string[];
+  published?: boolean;
 }
 
 interface Artist {
@@ -193,6 +194,11 @@ export function AlbumsPageClient({
                   {album.songCount} song
                   {album.songCount !== 1 ? "s" : ""}
                 </span>
+                {album.published !== undefined && (
+                  <span className={album.published ? 'text-green-500' : 'text-red-500'} title={album.published ? 'Published' : 'Unpublished'}>
+                    {album.published ? '✓ Published' : '✗ Unpublished'}
+                  </span>
+                )}
               </div>
               {album.tags.length > 0 && (
                 <div className="flex flex-wrap gap-1 mt-3">

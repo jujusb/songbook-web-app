@@ -24,6 +24,7 @@ export interface TreeAlbum {
   year?: number;
   number?: number;
   songs: TreeSong[];
+  published?: boolean;
 }
 
 export interface TreeArtist {
@@ -252,6 +253,11 @@ function AlbumNode({
           <span className="text-xs text-neutral-400 shrink-0">
             {t('album.count', { n: album.songs.length })}
           </span>
+          {album.published !== undefined && (
+            <span className={album.published ? 'text-green-500' : 'text-red-500'} title={album.published ? 'Published' : 'Unpublished'}>
+              {album.published ? '✓' : '✗'}
+            </span>
+          )}
         </button>
         {canEdit && (
           <div className="flex items-center gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity shrink-0 ml-2">

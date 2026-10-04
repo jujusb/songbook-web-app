@@ -582,6 +582,14 @@ export async function listAlbums(options: ListAlbumsOptions = {}): Promise<Album
   const libDir = getLibraryDir();
   const albums: Album[] = [];
 
+  // Pre-load all songs to check published status
+  const songs = await listSongs({ onlyPublished: false, role: 'admin' });
+  const songPublishedMap = new Map<string, boolean>();
+  for (const song of songs) {
+    const hasPublished = song.published ? Object.values(song.published).some(v => v === true) : false;
+    songPublishedMap.set(song.id, hasPublished);
+  }
+
   try {
     const entries = await readdir(libDir, { withFileTypes: true });
 
@@ -592,11 +600,18 @@ export async function listAlbums(options: ListAlbumsOptions = {}): Promise<Album
         const raw = await readFile(albumPath, 'utf-8');
         const parsed = yaml.load(raw);
         const album = AlbumSchema.parse(parsed);
+        
+        // Compute published status: album is published if it has at least one published song
+        const hasPublishedSong = album.songs.some(songId => songPublishedMap.get(songId) === true);
+        const computedPublished = hasPublishedSong;
+        
         // Filter based on published status and role
-        if (onlyPublished && role !== 'admin' && !album.published) {
+        if (onlyPublished && role !== 'admin' && !computedPublished) {
           continue;
         }
-        albums.push(album);
+        
+        // Add computed published status to album
+        albums.push({ ...album, published: computedPublished });
       } catch {
         // skip folders without album.yaml
       }

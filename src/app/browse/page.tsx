@@ -21,6 +21,7 @@ interface TreeSong {
   translations: string[];
   hasVoices: boolean;
   hasPartitions: boolean;
+  published?: Record<string, boolean>;
 }
 
 interface TreeAlbum {
@@ -96,6 +97,10 @@ export default async function BrowsePage() {
             } as TreeSong);
           }
 
+          // Compute album published status
+          const albumPublished = albumSongs.some(song => 
+            song.published && Object.values(song.published).some(v => v === true)
+          );
           return {
             id: album.id,
             title: album.title,
@@ -103,6 +108,7 @@ export default async function BrowsePage() {
             year: album.year,
             number: album.number,
             songs: albumSongs,
+            published: albumPublished,
           };
         })
         .filter((album) => album.songs.length > 0);
