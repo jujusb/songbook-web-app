@@ -92,7 +92,8 @@ export default async function BrowsePage() {
               translations: song.translations,
               hasVoices: voicesBySong.get(song.id) ?? false,
               hasPartitions: (song.partitions?.length ?? 0) > 0,
-            });
+              published: song.published,
+            } as TreeSong);
           }
 
           return {

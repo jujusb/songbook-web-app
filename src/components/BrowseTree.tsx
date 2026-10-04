@@ -14,6 +14,7 @@ export interface TreeSong {
   translations: string[];
   hasVoices: boolean;
   hasPartitions: boolean;
+  published?: Record<string, boolean>;
 }
 
 export interface TreeAlbum {
@@ -152,8 +153,13 @@ function SongNode({
                 ? "bg-neutral-900 dark:bg-white text-white dark:text-neutral-900 font-medium"
                 : "bg-neutral-100 dark:bg-neutral-800 text-neutral-400"
             }`}
+            style={{ opacity: song.published?.[lang] === false ? 0.5 : 1 }}
+            title={song.published?.[lang] === false ? "Unpublished" : "Published"}
           >
             {languageLabel(lang)}
+            {song.published?.[lang] === false && (
+              <span className="ml-0.5 text-red-500" aria-hidden="true">●</span>
+            )}
           </span>
         ))}
       </div>

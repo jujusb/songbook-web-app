@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useState } from "react";
+import React from "react";
 import { useTranslation } from "@/lib/i18n";
 import { resolveSongListTitle } from "@/lib/song-titles";
 
@@ -13,6 +14,7 @@ interface Song {
   key?: string;
   tags: string[];
   translations: string[];
+  published?: Record<string, boolean>;
 }
 
 interface Album {
@@ -148,9 +150,19 @@ export function SongListFilter({
                   {t('common.key')}: {song.key}
                 </span>
               )}
-              {song.translations.length > 1 && (
-                <span className="whitespace-nowrap">
-                  {song.translations.length} langs
+              <span className="whitespace-nowrap">
+                {song.translations.map((lang, i) => (
+                  <React.Fragment key={lang}>
+                    <span className={song.published?.[lang] === false ? 'text-red-500' : 'text-neutral-500'}>
+                      {lang}
+                    </span>
+                    {i < song.translations.length - 1 && <span>, </span>}
+                  </React.Fragment>
+                ))}
+              </span>
+              {song.published && Object.values(song.published).some(v => v === false) && (
+                <span className="text-red-500 whitespace-nowrap" title="Partially published">
+                  ⚠
                 </span>
               )}
             </div>
