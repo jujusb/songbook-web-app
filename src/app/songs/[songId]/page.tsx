@@ -100,12 +100,10 @@ export default async function SongPage({
         : translations[0];
 
   // Check if translation is published for non-admin users
-  const { meta: translationMeta } = await getSongTranslation(songId, lang);
+  const { meta: translationMeta, body, capo, key: bodyKey } = await getSongTranslation(songId, lang);
   if (!isAdmin && !translationMeta.published) {
     notFound();
   }
-
-  const { body } = await getSongTranslation(songId, lang);
   const localizedTitle = await getSongTitle(songId, lang);
   const albums = await getAlbumsForSong(songId);
   const artist = await getArtistForSong(songId);
@@ -357,7 +355,8 @@ export default async function SongPage({
           <div className="mt-6">
             <ChordSheet
               initialSource={body}
-              songKey={meta.key ?? null}
+              songKey={bodyKey ?? meta.key ?? null}
+              songCapo={capo ?? null}
               references={meta.references}
               lang={lang}
             />

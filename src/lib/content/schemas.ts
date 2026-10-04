@@ -58,6 +58,7 @@ export const SongMetaSchema = z.object({
   titles: z.record(z.string(), z.string()).optional(),
   tags: z.array(z.string()).default([]),
   key: z.string().optional(),
+  capo: z.number().optional(),
   tempo: z.number().optional(),
   ccli: z.string().optional(),
   created: z.union([z.string(), z.date()]).optional(),

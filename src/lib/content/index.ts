@@ -336,14 +336,19 @@ export async function getSong(id: string): Promise<SongMeta> {
 export async function getSongTranslation(
   id: string,
   lang: string
-): Promise<{ meta: SongTranslationFrontmatter; body: string }> {
+): Promise<{ meta: SongTranslationFrontmatter; body: string; capo: number | null; key: string | null }> {
   const songPath = await findSongPath(id);
   if (!songPath) throw new Error(`Song not found: ${id}`);
   const filePath = path.join(songPath, `${lang}.cho`);
   const raw = await readFile(filePath, 'utf-8');
   const { data, content } = matter(raw);
   const meta = SongTranslationFrontmatterSchema.parse(data);
-  return { meta, body: content.trim() };
+  return { 
+    meta, 
+    body: content.trim(), 
+    capo: extractBodyCapo(content),
+    key: extractBodyKey(content)
+  };
 }
 
 export async function getSongTranslations(id: string): Promise<string[]> {

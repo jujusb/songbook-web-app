@@ -326,6 +326,7 @@ function renderInlineRefText(
 export function ChordSheet({
   initialSource,
   songKey,
+  songCapo,
   references = [],
   idPrefix = "",
   lang = "en",
@@ -333,6 +334,7 @@ export function ChordSheet({
 }: {
   initialSource: string;
   songKey: string | null;
+  songCapo?: number | null;
   references?: Reference[];
   idPrefix?: string;
   lang?: string;
@@ -487,6 +489,11 @@ export function ChordSheet({
         {songKey && (
           <span className="text-sm text-neutral-400 ml-2 shrink-0">
             {t('common.originalKey', { key: songKey })}
+          </span>
+        )}
+        {songCapo !== undefined && songCapo !== null && songCapo > 0 && (
+          <span className="text-sm text-neutral-400 ml-2 shrink-0">
+            Capo {songCapo}
           </span>
         )}
       </div>
