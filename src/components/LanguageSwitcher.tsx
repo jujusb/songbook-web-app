@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import { useTranslation } from "@/lib/i18n";
 
@@ -14,6 +14,7 @@ export function LanguageSwitcher({
   availableToAdd = [],
   busy = null,
   extraTab,
+  variant = "auto", // "auto" | "tabs" | "select"
 }: {
   songId: string;
   languages: string[];
@@ -24,6 +25,7 @@ export function LanguageSwitcher({
   availableToAdd?: string[];
   busy?: string | null;
   extraTab?: { href: string; active: boolean };
+  variant?: "auto" | "tabs" | "select";
 }) {
   const router = useRouter();
   const pathname = usePathname();
@@ -31,6 +33,14 @@ export function LanguageSwitcher({
   const [confirmingRemove, setConfirmingRemove] = useState<string | null>(null);
   const [showAddForm, setShowAddForm] = useState(false);
   const [addSelection, setAddSelection] = useState("");
+  const [isMobile, setIsMobile] = useState(false);
+
+  useEffect(() => {
+    const checkMobile = () => setIsMobile(window.innerWidth < 768);
+    checkMobile();
+    window.addEventListener("resize", checkMobile);
+    return () => window.removeEventListener("resize", checkMobile);
+  }, []);
 
   const navigate = (lang: string) => {
     setConfirmingRemove(null);
@@ -43,6 +53,49 @@ export function LanguageSwitcher({
     setShowAddForm(true);
   };
 
+  const shouldUseSelect = variant === "select" || (variant === "auto" && isMobile);
+
+  if (shouldUseSelect) {
+    // Mobile: simple select dropdown
+    return (
+      <div className="flex items-center gap-2 py-2">
+        <label htmlFor={`lang-switch-${songId}`} className="text-sm font-medium text-neutral-700 dark:text-neutral-300">
+          {t("common.language")}
+        </label>
+        <select
+          id={`lang-switch-${songId}`}
+          value={currentLang}
+          onChange={(e) => navigate(e.target.value)}
+          disabled={busy !== null}
+          className="flex-1 px-3 py-2 border border-neutral-300 dark:border-neutral-700 rounded-md bg-white dark:bg-neutral-900 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+          aria-label={t("common.language")}
+        >
+          {languages.map((lang) => (
+            <option key={lang} value={lang}>
+              {languageLabel(lang)}
+            </option>
+          ))}
+          {extraTab && (
+            <option key="instrumental" value={extraTab.href}>
+              {t("partitions.title")}
+            </option>
+          )}
+        </select>
+        {onAdd && availableToAdd.length > 0 && !busy && (
+          <button
+            type="button"
+            onClick={openAddForm}
+            className="px-3 py-2 text-sm text-neutral-500 hover:text-blue-600 dark:text-neutral-500 dark:hover:text-blue-400"
+            title={t("song.addTranslation")}
+          >
+            &#43;
+          </button>
+        )}
+      </div>
+    );
+  }
+
+  // Desktop: tab bar (original behavior)
   return (
     <div className="flex gap-1 border-b border-neutral-200 dark:border-neutral-800 flex-wrap">
       {languages.map((lang) => (

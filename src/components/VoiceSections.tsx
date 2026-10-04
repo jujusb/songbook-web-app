@@ -72,7 +72,7 @@ export function VoiceSections({ id, lang }: { id: string; lang: string }) {
   const parts = currentSection?.parts ?? [];
 
   const tabClass = (active: boolean) =>
-    `px-2 py-0.5 rounded text-xs font-semibold uppercase tracking-wide transition-colors ${
+    `px-3 py-1.5 rounded text-xs font-semibold uppercase tracking-wide transition-colors min-h-[44px] touch-manipulation ${
       active
         ? 'bg-neutral-800 text-white dark:bg-neutral-200 dark:text-black'
         : 'text-neutral-500 hover:bg-neutral-100 dark:hover:bg-neutral-800 dark:text-neutral-400'
@@ -80,7 +80,7 @@ export function VoiceSections({ id, lang }: { id: string; lang: string }) {
 
   return (
     <div className="mb-6 rounded-md border border-neutral-200 dark:border-neutral-800 p-3">
-      <div className="flex flex-wrap items-center gap-1">
+      <div className="flex flex-wrap items-center gap-1 mb-3">
         <span className="mr-1 text-xs font-medium uppercase tracking-wide text-neutral-500">
           Voices
         </span>
@@ -94,6 +94,7 @@ export function VoiceSections({ id, lang }: { id: string; lang: string }) {
               if (section) setActiveSection(section.section);
             }}
             className={tabClass(group.gender === currentGroup.gender)}
+            aria-pressed={group.gender === currentGroup.gender}
           >
             {GENDER_LABELS[group.gender]}
           </button>
@@ -107,34 +108,35 @@ export function VoiceSections({ id, lang }: { id: string; lang: string }) {
             type="button"
             onClick={() => setActiveSection(section)}
             className={tabClass(section === currentSection.section)}
+            aria-pressed={section === currentSection.section}
           >
             {section}
           </button>
         ))}
       </div>
-      <div className="mt-3 flex flex-wrap gap-3">
+      <div className="space-y-3">
         {parts.map((part) => (
           <div
             key={part.streamUrl}
-            className="flex flex-col gap-1 min-w-0 flex-1 basis-44"
+            className="flex flex-col sm:flex-row gap-3 items-start sm:items-center"
           >
-            <div className="flex items-start gap-2">
-              {part.coverArtUrl && (
-                <img
-                  src={part.coverArtUrl}
-                  alt={part.title}
-                  className="h-10 w-10 shrink-0 rounded object-cover"
-                />
-              )}
-              <span className="text-xs font-medium text-neutral-700 dark:text-neutral-300 truncate">
+            {part.coverArtUrl && (
+              <img
+                src={part.coverArtUrl}
+                alt={part.title}
+                className="h-12 w-12 shrink-0 rounded object-cover sm:h-10 sm:w-10"
+              />
+            )}
+            <div className="flex-1 min-w-0">
+              <span className="text-sm font-medium text-neutral-700 dark:text-neutral-300 block truncate">
                 {part.title}
               </span>
+              <audio
+                controls
+                src={part.streamUrl}
+                className="w-full mt-1 h-10"
+              />
             </div>
-            <audio
-              controls
-              src={part.streamUrl}
-              className="h-8 w-full max-w-full"
-            />
           </div>
         ))}
       </div>

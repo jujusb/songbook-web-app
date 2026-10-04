@@ -43,7 +43,7 @@ export default async function MusicReaderPage({
   const localizedTitle = await getSongTitle(songId, lang);
 
   return (
-    <div className="max-w-4xl mx-auto px-4 py-8">
+    <div className="max-w-full mx-auto px-4 sm:px-6 lg:px-8 py-8">
       <Link
         href={`/songs/${songId}`}
         className="text-sm text-blue-600 dark:text-blue-400 hover:underline mb-4 inline-block"

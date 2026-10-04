@@ -25,6 +25,12 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "Songbook",
   description: "A self-hosted songbook with chords, translations, and presentation tools",
+  viewport: {
+    width: "device-width",
+    initialScale: 1,
+    maximumScale: 5,
+    userScalable: true,
+  },
 };
 
 export default async function RootLayout({
@@ -66,11 +72,11 @@ export default async function RootLayout({
     >
       <body className="min-h-full flex flex-col bg-background text-foreground">
         <header className="border-b border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-950 sticky top-0 z-50">
-          <nav className="max-w-6xl mx-auto px-4 h-14 flex items-center justify-between">
-            <Link href="/" className="font-bold text-lg tracking-tight">
+          <nav className="max-w-full mx-auto px-4 sm:px-6 lg:px-8 h-14 flex items-center justify-between">
+            <Link href="/" className="font-bold text-lg tracking-tight shrink-0">
               Songbook
             </Link>
-            <div className="flex items-center gap-6">
+            <div className="flex flex-wrap items-center gap-3 sm:gap-4 lg:gap-6 shrink-0">
               <Link
                 href="/browse"
                 className="text-sm text-neutral-600 dark:text-neutral-400 hover:text-foreground transition-colors"

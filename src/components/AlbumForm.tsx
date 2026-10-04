@@ -141,7 +141,7 @@ export function AlbumForm({
   }, [title, titles, artist, year, description, tags, spotify, youtube, youtubePlaylist, selectedSongs, isNew, initialAlbum.id, router]);
 
   return (
-    <div className="max-w-4xl mx-auto px-4 py-8">
+    <div className="max-w-full mx-auto px-4 sm:px-6 lg:px-8 py-8">
       <h1 className="text-2xl font-bold mb-6">
         {isNew ? "New Album" : `Edit: ${initialAlbum.title}`}
       </h1>

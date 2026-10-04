@@ -19,10 +19,17 @@
   }
 }
 
+html {
+  overflow-x: hidden;
+}
+
 body {
   background: var(--background);
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
+  overflow-x: hidden;
+  width: 100%;
+  max-width: 100vw;
 }
 
 /* ChordPro sheet rendering */
@@ -524,4 +531,216 @@ a.ref-marker:hover {
     margin: 2cm;
     size: A4;
   }
+}
+
+/* ============================================================
+   Mobile Responsive Styles for Song View
+   ============================================================ */
+
+
+/* Ensure chord sheet content doesn't get cut off */
+.visual-chord-editor.visual-chord-sheet {
+  width: max-content;
+  min-width: 100%;
+}
+
+/* Make sure the chord sheet lines don't break layout */
+.vce-line {
+  width: max-content;
+  min-width: 100%;
+}
+
+/* Prevent chords from overflowing */
+.vce-chord-row {
+  white-space: pre;
+  overflow: visible;
+}
+
+.vce-lyrics-row {
+  overflow: visible;
+}
+
+@media (max-width: 768px) {
+  /* Chord sheet - responsive layout that fits screen without horizontal scroll */
+  .visual-chord-editor.visual-chord-sheet {
+    width: 100%;
+    max-width: 100%;
+    overflow-x: hidden;
+  }
+
+  .visual-chord-sheet .vce-lines {
+    width: 100%;
+  }
+
+  .visual-chord-sheet .vce-line {
+    width: 100%;
+    min-width: 0;
+  }
+
+  /* Allow lyrics to wrap on mobile */
+  .visual-chord-sheet .vce-lyrics-text {
+    font-size: 1rem;          /* 16px */
+    line-height: 1.625rem;    /* 26px */
+    min-height: 1.625rem;
+    white-space: pre-wrap;
+    word-break: break-word;
+    overflow-wrap: anywhere;
+    padding: 0 0.25rem;
+  }
+
+  /* Chords row - allow wrapping, smaller font */
+  .visual-chord-sheet .vce-chord-row {
+    font-size: 0.875rem;      /* 14px */
+    min-height: 1.625rem;
+    line-height: 1.625rem;
+    white-space: pre-wrap;
+    word-break: break-word;
+    overflow-wrap: anywhere;
+    overflow-x: hidden;
+  }
+
+  .visual-chord-sheet .vce-chord {
+    display: inline-block;
+    white-space: nowrap;
+  }
+
+  .visual-chord-sheet .vce-chord-space {
+    display: inline-block;
+  }
+
+  .visual-chord-sheet .vce-section-label {
+    font-size: 0.75rem;       /* 12px */
+    padding: 0.125rem 0.5rem;
+    margin-top: 0.75rem;
+  }
+
+  .visual-chord-sheet .vce-empty-line {
+    height: 1rem;
+  }
+
+  /* Transpose controls - ensure minimum touch target */
+  .visual-chord-editor .touch-manipulation {
+    min-width: 44px;
+    min-height: 44px;
+  }
+
+  /* Reference markers */
+  .visual-chord-sheet .ref-marker {
+    font-size: 0.75rem;
+  }
+
+  /* Footnotes */
+  .visual-chord-sheet + .mt-6 .text-xs {
+    font-size: 0.8125rem;     /* 13px */
+  }
+
+  /* Ensure chord sheet container doesn't overflow viewport */
+  .visual-chord-editor {
+    width: 100%;
+    max-width: 100%;
+    overflow-x: hidden;
+  }
+}
+
+/* Small mobile (< 480px) - even more compact */
+@media (max-width: 479px) {
+  .visual-chord-sheet .vce-lyrics-text {
+    font-size: 0.9375rem;     /* 15px */
+    line-height: 1.5rem;      /* 24px */
+    min-height: 1.5rem;
+  }
+
+  .visual-chord-sheet .vce-chord-row {
+    font-size: 0.8125rem;     /* 13px */
+    min-height: 1.5rem;
+    line-height: 1.5rem;
+  }
+
+  .visual-chord-sheet .vce-section-label {
+    font-size: 0.6875rem;     /* 11px */
+  }
+
+  /* Transpose controls more compact */
+  .visual-chord-editor .touch-manipulation {
+    min-width: 40px;
+    min-height: 40px;
+  }
+
+  /* Stack transpose controls vertically if needed */
+  .visual-chord-editor .flex-wrap {
+    gap: 0.5rem;
+  }
+}
+
+/* Collapsible section animations */
+@media (prefers-reduced-motion: no-preference) {
+  .collapsible-content {
+    transition: max-height 0.25s ease-out, opacity 0.2s ease-out;
+  }
+}
+
+/* Action menu on mobile - ensure it stays in viewport */
+
+/* Ensure chord sheet content doesn't get cut off */
+.visual-chord-editor.visual-chord-sheet {
+  width: max-content;
+  min-width: 100%;
+}
+
+/* Make sure the chord sheet lines don't break layout */
+.vce-line {
+  width: max-content;
+  min-width: 100%;
+}
+
+/* Prevent chords from overflowing */
+.vce-chord-row {
+  white-space: pre;
+  overflow: visible;
+}
+
+.vce-lyrics-row {
+  overflow: visible;
+}
+
+@media (max-width: 768px) {
+  .fixed.bottom-4.left-1\/2.-translate-x-1\/2 {
+    left: 50%;
+    transform: translateX(-50%);
+    max-width: calc(100vw - 2rem);
+  }
+}
+
+/* Prevent horizontal overflow globally */
+* {
+  box-sizing: border-box;
+}
+
+main {
+  width: 100%;
+  max-width: 100vw;
+  overflow-x: hidden;
+}
+
+/* Ensure links and buttons don't overflow */
+a, button {
+  max-width: 100%;
+  word-break: break-word;
+}
+
+/* Fix for long text in tables/cells */
+td, th {
+  overflow-wrap: anywhere;
+  word-wrap: break-word;
+}
+
+/* Ensure form inputs don't overflow */
+input, select, textarea {
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
+/* Prevent flex/grid children from overflowing */
+[class*="flex"], [class*="grid"] {
+  min-width: 0;
 }

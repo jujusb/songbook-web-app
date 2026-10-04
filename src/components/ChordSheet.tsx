@@ -441,22 +441,24 @@ export function ChordSheet({
 
   return (
     <div>
-      <div className="flex items-center gap-3 mb-4">
-        <span className="text-sm text-neutral-500">{t('common.transpose')}:</span>
+      <div className="flex items-center gap-2 mb-4 flex-wrap">
+        <span className="text-sm text-neutral-500 shrink-0">{t('common.transpose')}:</span>
         <button
           type="button"
           onClick={() => setSemitones((s) => s - 1)}
-          className="w-8 h-8 flex items-center justify-center border border-neutral-300 dark:border-neutral-700 rounded-md hover:bg-neutral-100 dark:hover:bg-neutral-800 text-sm font-mono"
+          className="w-10 h-10 flex items-center justify-center border border-neutral-300 dark:border-neutral-700 rounded-md hover:bg-neutral-100 dark:hover:bg-neutral-800 text-base font-mono transition-colors touch-manipulation"
+          aria-label={t('common.transpose') + " down"}
         >
           &minus;
         </button>
-        <span className="text-sm font-mono w-8 text-center">
+        <span className="text-base font-mono w-10 text-center select-none">
           {semitones > 0 ? `+${semitones}` : semitones}
         </span>
         <button
           type="button"
           onClick={() => setSemitones((s) => s + 1)}
-          className="w-8 h-8 flex items-center justify-center border border-neutral-300 dark:border-neutral-700 rounded-md hover:bg-neutral-100 dark:hover:bg-neutral-800 text-sm font-mono"
+          className="w-10 h-10 flex items-center justify-center border border-neutral-300 dark:border-neutral-700 rounded-md hover:bg-neutral-100 dark:hover:bg-neutral-800 text-base font-mono transition-colors touch-manipulation"
+          aria-label={t('common.transpose') + " up"}
         >
           +
         </button>
@@ -464,23 +466,25 @@ export function ChordSheet({
           <button
             type="button"
             onClick={() => setSemitones(0)}
-            className="text-xs text-neutral-500 hover:text-foreground ml-1"
+            className="px-3 py-2 text-sm text-neutral-500 hover:text-foreground rounded-md hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors touch-manipulation"
           >
             {t('common.reset')}
           </button>
         )}
         {songKey && (
-          <span className="text-xs text-neutral-400 ml-2">
+          <span className="text-sm text-neutral-400 ml-2 shrink-0">
             {t('common.originalKey', { key: songKey })}
           </span>
         )}
       </div>
 
-      {/* Chord sheet */}
-      <div
-        className="visual-chord-editor visual-chord-sheet"
-        dangerouslySetInnerHTML={{ __html: html }}
-      />
+      {/* Chord sheet - responsive, fits screen without horizontal scroll */}
+      <div className="w-full overflow-hidden">
+        <div
+          className="visual-chord-editor visual-chord-sheet"
+          dangerouslySetInnerHTML={{ __html: html }}
+        />
+      </div>
 
       {/* Footnotes */}
       {referenceGroups.length > 0 && (

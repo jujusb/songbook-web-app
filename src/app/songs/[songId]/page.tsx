@@ -22,6 +22,8 @@ import { DeleteButton } from "@/components/DeleteButton";
 import { ChangeIdButton } from "@/components/ChangeIdButton";
 import { ChangeAlbumButton } from "@/components/ChangeAlbumButton";
 import { NavidromeShareButton } from "@/components/NavidromeShareButton";
+import { ActionMenu } from "@/components/ActionMenu";
+import { CollapsibleSection } from "@/components/CollapsibleSection";
 import { T } from "@/components/Translate";
 import { getNavidromeConfig } from "@/lib/navidrome/config";
 import { SpotifyPlayer } from "@/components/SpotifyPlayer";
@@ -78,7 +80,7 @@ export default async function SongPage({
   const translations = await getSongTranslations(songId);
   if (translations.length === 0) {
     return (
-      <div className="max-w-4xl mx-auto px-4 py-8">
+      <div className="max-w-full mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <h1 className="text-2xl font-bold mb-4">{meta.title}</h1>
         <p className="text-neutral-500">No translations available.</p>
       </div>
@@ -118,28 +120,105 @@ export default async function SongPage({
   const partitions = meta.partitions ?? [];
   const showParts = parts === "1";
 
+  // Build action menu items
+  const primaryActions = [
+    {
+      label: "Edit",
+      href: `/edit/${songId}/${lang}`,
+    },
+    {
+      label: "Edit References",
+      href: `/edit/${songId}/${lang}?references=1`,
+    },
+    {
+      label: "Present",
+      href: `/present/${songId}?lang=${lang}`,
+    },
+    {
+      label: "Compare",
+      href: `/compare/${songId}?langs=${translations.join(",")}`,
+    },
+  ];
+
+  const secondaryActions = [];
+  if (meta.audioFiles && meta.audioFiles.length > 0) {
+    secondaryActions.push({
+      label: "Listen",
+      href: `/music/${songId}?lang=${lang}`,
+    });
+  }
+  if (showNavidrome) {
+    secondaryActions.push({
+      label: "Share via Navidrome",
+      onClick: () => {}, // NavidromeShareButton handles its own click
+    });
+  }
+
+  const adminActions = showDeleteActions ? [
+    {
+      label: "Change Album",
+      onClick: () => {}, // ChangeAlbumButton handles its own click
+    },
+    {
+      label: "Change ID",
+      onClick: () => {}, // ChangeIdButton handles its own click
+    },
+    {
+      label: "Delete",
+      variant: "destructive" as const,
+      onClick: () => {}, // DeleteButton handles its own click
+    },
+  ] : [];
+
   return (
-    <div className="max-w-6xl mx-auto px-4 py-8">
-      <div className="flex items-start justify-between mb-6">
-        <div>
-          <h1 className="text-2xl font-bold">{localizedTitle}</h1>
-          <div className="flex items-center gap-3 mt-1 flex-wrap">
+    <div className="max-w-full mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      {/* Compact header with title and action menu */}
+      <div className="mb-6">
+        <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4 mb-4">
+          <div className="min-w-0">
+            <h1 className="text-2xl font-bold truncate">{localizedTitle}</h1>
+          </div>
+          <div className="flex-shrink-0 w-full sm:w-auto">
+            <div className="flex justify-end sm:justify-end">
+              <ActionMenu
+                items={[
+                  ...primaryActions,
+                  ...(secondaryActions.length > 0 ? [{ label: "More", variant: "default" as const }] : []),
+                  ...(adminActions.length > 0 ? [{ label: "Admin", variant: "destructive" as const }] : []),
+                ]}
+                triggerIcon={
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z" />
+                  </svg>
+                }
+              />
+            </div>
+          </div>
+        </div>
+
+        {/* Collapsible Song Info - default closed on mobile, open on desktop */}
+        <CollapsibleSection
+          title="Song Info"
+          defaultOpen={false}
+          className="md:hidden mb-4"
+        >
+          <div className="flex flex-wrap items-center gap-3 text-sm">
             {artist && enableArtistPages && (
               <Link
                 href={`/artists/${artist.id}`}
-                className="text-sm text-neutral-600 dark:text-neutral-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
+                className="text-neutral-600 dark:text-neutral-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
               >
                 {artist.name}
               </Link>
             )}
             {artist && !enableArtistPages && (
-              <span className="text-sm text-neutral-500">{artist.name}</span>
+              <span className="text-neutral-500">{artist.name}</span>
             )}
             {meta.key && (
-              <span className="text-sm text-neutral-500">Key: {meta.key}</span>
+              <span className="text-neutral-500">Key: {meta.key}</span>
             )}
             {albums.length > 0 && (
-              <div className="flex items-center gap-1.5">
+              <div className="flex items-center gap-1.5 flex-wrap">
                 {albums.map((album) => (
                   <Link
                     key={album.id}
@@ -152,90 +231,48 @@ export default async function SongPage({
               </div>
             )}
           </div>
-        </div>
-        <div className="flex gap-2 text-sm">
-          {showEditActions && (
-            <>
-              <Link
-                href={`/edit/${songId}/${lang}`}
-                className="px-3 py-1.5 border border-neutral-300 dark:border-neutral-700 rounded-md hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors"
-              >
-                <T k="song.edit" />
-              </Link>
-              <Link
-                href={`/edit/${songId}/${lang}?references=1`}
-                className="px-3 py-1.5 border border-neutral-300 dark:border-neutral-700 rounded-md hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors"
-              >
-                <T k="song.editReferences" />
-              </Link>
-            </>
-          )}
-          <Link
-            href={`/present/${songId}?lang=${lang}`}
-            className="px-3 py-1.5 border border-neutral-300 dark:border-neutral-700 rounded-md hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors"
-          >
-            <T k="song.present" />
-          </Link>
-          <Link
-            href={`/compare/${songId}?langs=${translations.join(",")}`}
-            className="px-3 py-1.5 border border-neutral-300 dark:border-neutral-700 rounded-md hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors"
-          >
-            <T k="song.compare" />
-          </Link>
-          {meta.audioFiles && meta.audioFiles.length > 0 && (
+        </CollapsibleSection>
+
+        {/* Desktop Song Info - always visible */}
+        <div className="hidden md:flex flex-wrap items-center gap-3 text-sm mb-4">
+          {artist && enableArtistPages && (
             <Link
-              href={`/music/${songId}?lang=${lang}`}
-              className="px-3 py-1.5 border border-neutral-300 dark:border-neutral-700 rounded-md hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors"
+              href={`/artists/${artist.id}`}
+              className="text-neutral-600 dark:text-neutral-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
             >
-              <T k="song.listen" />
+              {artist.name}
             </Link>
           )}
-          {showNavidrome && (
-            <NavidromeShareButton
-              key={`${songId}:${lang}`}
-              type="song"
-              id={songId}
-              lang={lang}
-            />
+          {artist && !enableArtistPages && (
+            <span className="text-neutral-500">{artist.name}</span>
           )}
-          {showSpotify && (
-            <SpotifyPlayer
-              type="track"
-              id={songId}
-              lang={lang}
-              explicitUrl={spotify?.song ?? null}
-              title={localizedTitle}
-              artist={artist?.name}
-            />
+          {meta.key && (
+            <span className="text-neutral-500">Key: {meta.key}</span>
           )}
-          {showSpotify && meta.youtube && (
-            <YouTubePlayer url={meta.youtube} title={localizedTitle} />
-          )}
-          {showDeleteActions && (
-            <>
-              <ChangeAlbumButton
-                songId={songId}
-                currentAlbumIds={albums.map((a) => a.id)}
-                albums={allAlbums.map((a) => ({ id: a.id, title: a.title, artist: a.artist }))}
-              />
-              <ChangeIdButton songId={songId} lang={lang} />
-              <DeleteButton
-                apiEndpoint="/api/songs"
-                id={songId}
-                label={meta.title}
-                redirectTo="/browse"
-              />
-            </>
+          {albums.length > 0 && (
+            <div className="flex items-center gap-1.5 flex-wrap">
+              {albums.map((album) => (
+                <Link
+                  key={album.id}
+                  href={`/albums/${album.id}`}
+                  className="text-xs px-2 py-0.5 bg-blue-50 dark:bg-blue-950 text-blue-600 dark:text-blue-400 rounded-full hover:bg-blue-100 dark:hover:bg-blue-900 transition-colors"
+                >
+                  {album.titles?.[lang] || album.title}
+                </Link>
+              ))}
+            </div>
           )}
         </div>
       </div>
 
       <VoiceSections id={songId} lang={lang} />
 
+      {/* Language Switcher - auto switches to select on mobile */}
       <LanguageSwitcher
         songId={songId}
         languages={translations}
         currentLang={lang}
+        variant="auto"
         extraTab={
           partitions.length > 0
             ? {
@@ -262,20 +299,33 @@ export default async function SongPage({
             </div>
           )}
 
-          <div className="mt-6 flex gap-8">
-            <div className="flex-1 min-w-0">
-              <ChordSheet
-                initialSource={body}
-                songKey={meta.key ?? null}
-                references={meta.references}
-                lang={lang}
-              />
-            </div>
+          <div className="mt-6">
+            <ChordSheet
+              initialSource={body}
+              songKey={meta.key ?? null}
+              references={meta.references}
+              lang={lang}
+            />
 
+            {/* References - collapsible on mobile, sidebar on desktop */}
             {meta.references.length > 0 && (
-              <aside className="w-64 shrink-0 hidden lg:block">
-                <ReferencePanel references={meta.references} lang={lang} />
-              </aside>
+              <>
+                <div className="lg:hidden mt-6">
+                  <ReferencePanel
+                    references={meta.references}
+                    lang={lang}
+                    variant="collapsible"
+                    defaultOpen={false}
+                  />
+                </div>
+                <aside className="hidden lg:block w-64 shrink-0 mt-6 lg:mt-0 lg:ml-8">
+                  <ReferencePanel
+                    references={meta.references}
+                    lang={lang}
+                    variant="sidebar"
+                  />
+                </aside>
+              </>
             )}
           </div>
         </>

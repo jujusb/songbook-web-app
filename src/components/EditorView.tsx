@@ -406,7 +406,7 @@ export function EditorView({
       {/* Import paste modal */}
       {showImport && (
         <div className="fixed inset-0 z-[60] flex items-start justify-center pt-16 bg-black/50">
-          <div className="bg-white dark:bg-neutral-900 rounded-lg shadow-xl border border-neutral-200 dark:border-neutral-800 w-full max-w-4xl max-h-[85vh] flex flex-col">
+          <div className="bg-white dark:bg-neutral-900 rounded-lg shadow-xl border border-neutral-200 dark:border-neutral-800 w-full max-w-full max-h-[85vh] flex flex-col">
             <div className="px-5 py-3 border-b border-neutral-200 dark:border-neutral-800 flex items-center justify-between shrink-0">
               <h2 className="font-semibold text-lg">{t('editor.importPaste')}</h2>
               <button

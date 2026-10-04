@@ -252,7 +252,7 @@ export function PresentationView({
       )}
 
       {/* Content */}
-      <div className="max-w-6xl w-full px-8 text-center">
+      <div className="max-w-full w-full px-4 sm:px-6 lg:px-8 text-center">
         <div
           className={`presentation-content ${showChords ? "" : "hide-chords"}`}
           dangerouslySetInnerHTML={{ __html: section?.rawHtml || "" }}

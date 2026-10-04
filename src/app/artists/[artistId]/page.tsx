@@ -97,7 +97,7 @@ export default async function ArtistPage({
   const showDeleteActions = canAdmin(session?.role ?? null);
 
   return (
-    <div className="max-w-6xl mx-auto px-4 py-8">
+    <div className="max-w-full mx-auto px-4 sm:px-6 lg:px-8 py-8">
       {/* Artist header */}
       <div className="mb-8">
         <Link

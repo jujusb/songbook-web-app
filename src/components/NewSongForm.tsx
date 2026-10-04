@@ -214,7 +214,7 @@ export function NewSongForm({
   }, [title, lang, key, albumId, chordpro, router]);
 
   return (
-    <div className="max-w-6xl mx-auto px-4 py-8">
+    <div className="max-w-full mx-auto px-4 sm:px-6 lg:px-8 py-8">
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-2xl font-bold">New Song</h1>
         <div className="flex items-center gap-3">

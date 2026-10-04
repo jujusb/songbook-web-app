@@ -9,7 +9,7 @@ export default async function AdminPartitionsPage() {
   if (!canAdmin(session?.role ?? null)) redirect("/login");
 
   return (
-    <div className="max-w-6xl mx-auto px-4 py-8">
+    <div className="max-w-full mx-auto px-4 sm:px-6 lg:px-8 py-8">
       <h1 className="text-2xl font-bold mb-2">Scan Partitions</h1>
       <p className="text-sm text-neutral-500 mb-6">
         Scan the partitions folder for PDF sheet music, match each file to a

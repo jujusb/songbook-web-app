@@ -1,3 +1,6 @@
+"use client";
+
+import { useState } from "react";
 import Link from "next/link";
 import { getReferenceText, getHighlight } from "@/lib/content/references";
 
@@ -114,12 +117,24 @@ function ReferenceText({
   );
 }
 
-export function ReferencePanel({ references, lang = "en" }: { references: Reference[]; lang?: string }) {
+interface ReferencePanelProps {
+  references: Reference[];
+  lang?: string;
+  variant?: "sidebar" | "collapsible";
+  defaultOpen?: boolean;
+}
+
+export function ReferencePanel({
+  references,
+  lang = "en",
+  variant = "sidebar",
+  defaultOpen = false,
+}: ReferencePanelProps) {
+  const [open, setOpen] = useState(defaultOpen);
+
   const general = references.filter((r) => !isLocated(r));
   const located = references.filter(isLocated);
 
-  // Expand each located reference into display entries — one per location
-  // Each entry carries the per-location highlight if set, falling back to the reference-level one
   const entries: { label: string; reference: Reference; highlight?: string }[] = [];
   for (const r of located) {
     if (r.locations && r.locations.length > 0) {
@@ -137,7 +152,6 @@ export function ReferencePanel({ references, lang = "en" }: { references: Refere
     }
   }
 
-  // Group entries by location label
   const byLocationMap = new Map<string, { reference: Reference; highlight?: string }[]>();
   for (const { label, reference, highlight } of entries) {
     const existing = byLocationMap.get(label) || [];
@@ -146,56 +160,97 @@ export function ReferencePanel({ references, lang = "en" }: { references: Refere
   }
   const byLocation = Array.from(byLocationMap.entries());
 
-  return (
+  const content = (
     <div className="border border-neutral-200 dark:border-neutral-800 rounded-lg p-4">
-      <h3 className="text-sm font-semibold text-neutral-500 uppercase tracking-wide mb-3">
-        References
-      </h3>
+      <div className="flex items-center justify-between mb-3">
+        <h3 className="text-sm font-semibold text-neutral-500 uppercase tracking-wide">
+          References
+        </h3>
+        {variant === "collapsible" && (
+          <button
+            type="button"
+            onClick={() => setOpen(!open)}
+            className="text-sm text-neutral-500 hover:text-neutral-700 dark:hover:text-neutral-300"
+            aria-expanded={open}
+          >
+            {open ? "Hide" : "Show"}
+          </button>
+        )}
+      </div>
 
-      {general.length > 0 && (
-        <ul className="space-y-3 mb-4">
-          {general.map((ref, i) => (
-            <li key={`g-${i}`}>
-              <ReferenceLink reference={ref} />
-              <ReferenceText reference={ref} lang={lang} />
-            </li>
-          ))}
-        </ul>
-      )}
-
-      {byLocation.length > 0 && (
-        <div className="space-y-3">
+      {open || variant === "sidebar" ? (
+        <>
           {general.length > 0 && (
-            <div className="border-t border-neutral-200 dark:border-neutral-800 pt-3">
-              <span className="text-xs font-medium text-neutral-400 uppercase tracking-wide">
-                By Section
-              </span>
+            <ul className="space-y-3 mb-4">
+              {general.map((ref, i) => (
+                <li key={`g-${i}`}>
+                  <ReferenceLink reference={ref} />
+                  <ReferenceText reference={ref} lang={lang} />
+                </li>
+              ))}
+            </ul>
+          )}
+
+          {byLocation.length > 0 && (
+            <div className="space-y-3">
+              {general.length > 0 && (
+                <div className="border-t border-neutral-200 dark:border-neutral-800 pt-3">
+                  <span className="text-xs font-medium text-neutral-400 uppercase tracking-wide">
+                    By Section
+                  </span>
+                </div>
+              )}
+              {byLocation.map(([locationName, refs]) => (
+                <div key={locationName}>
+                  <div className="text-xs font-semibold text-neutral-500 mb-1">
+                    {locationName}
+                  </div>
+                  <ul className="space-y-2 pl-2 border-l-2 border-neutral-200 dark:border-neutral-800">
+                    {refs.map((ref, i) => (
+                      <li key={i}>
+                        <div className="flex items-start gap-1">
+                          <span className="text-amber-500 text-xs mt-0.5">*</span>
+                          <ReferenceLink reference={ref.reference} />
+                        </div>
+                        <ReferenceText reference={ref.reference} highlight={ref.highlight} lang={lang} />
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              ))}
             </div>
           )}
-          {byLocation.map(([locationName, refs]) => (
-            <div key={locationName}>
-              <div className="text-xs font-semibold text-neutral-500 mb-1">
-                {locationName}
-              </div>
-              <ul className="space-y-2 pl-2 border-l-2 border-neutral-200 dark:border-neutral-800">
-                {refs.map((ref, i) => (
-                  <li key={i}>
-                    <div className="flex items-start gap-1">
-                      <span className="text-amber-500 text-xs mt-0.5">*</span>
-                      <ReferenceLink reference={ref.reference} />
-                    </div>
-                    <ReferenceText reference={ref.reference} highlight={ref.highlight} lang={lang} />
-                  </li>
-                ))}
-              </ul>
-            </div>
-          ))}
-        </div>
-      )}
 
-      {references.length === 0 && (
-        <p className="text-sm text-neutral-400">No references.</p>
-      )}
+          {references.length === 0 && (
+            <p className="text-sm text-neutral-400">No references.</p>
+          )}
+        </>
+      ) : null}
     </div>
   );
+
+  if (variant === "collapsible") {
+    return (
+      <details className="group">
+        <summary className="flex items-center justify-between cursor-pointer list-none px-4 py-3 bg-neutral-50 dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-700 rounded-lg">
+          <span className="font-medium text-sm text-neutral-900 dark:text-white">
+            References {references.length > 0 && `(${references.length})`}
+          </span>
+          <svg
+            className={`w-5 h-5 text-neutral-500 transition-transform ${open ? "rotate-180" : ""}`}
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+          </svg>
+        </summary>
+        <div className="p-4 border-t border-neutral-200 dark:border-neutral-700">
+          {content}
+        </div>
+      </details>
+    );
+  }
+
+  return content;
 }

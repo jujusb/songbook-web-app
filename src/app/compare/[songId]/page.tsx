@@ -29,7 +29,7 @@ export default async function ComparePage({
 
   if (requestedLangs.length === 0) {
     return (
-      <div className="max-w-6xl mx-auto px-4 py-8">
+      <div className="max-w-full mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <h1 className="text-2xl font-bold mb-4">{meta.title}</h1>
         <p className="text-neutral-500">No translations to compare.</p>
       </div>
@@ -46,7 +46,7 @@ export default async function ComparePage({
   const headerTitle = await getSongTitle(songId, requestedLangs[0]);
 
   return (
-    <div className="max-w-full mx-auto px-4 py-8">
+    <div className="max-w-full mx-auto px-4 sm:px-6 lg:px-8 py-8">
       <div className="mb-6">
         <h1 className="text-2xl font-bold">{headerTitle}</h1>
         <p className="text-sm text-neutral-500">

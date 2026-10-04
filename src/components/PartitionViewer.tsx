@@ -71,7 +71,7 @@ export function PartitionViewer({ partitions }: { partitions: Partition[] }) {
     : current.subs.flatMap((s) => s.parts);
 
   const tabClass = (isActive: boolean) =>
-    `px-2 py-0.5 rounded text-xs font-semibold uppercase tracking-wide transition-colors ${
+    `px-3 py-1.5 rounded text-xs font-semibold uppercase tracking-wide transition-colors min-h-[44px] touch-manipulation whitespace-nowrap ${
       isActive
         ? 'bg-neutral-800 text-white dark:bg-neutral-200 dark:text-black'
         : 'text-neutral-500 hover:bg-neutral-100 dark:hover:bg-neutral-800 dark:text-neutral-400'
@@ -79,56 +79,66 @@ export function PartitionViewer({ partitions }: { partitions: Partition[] }) {
 
   return (
     <div className="mb-6 rounded-md border border-neutral-200 dark:border-neutral-800 p-3">
-      <div className="flex flex-wrap items-center gap-1">
-        <span className="mr-1 text-xs font-medium uppercase tracking-wide text-neutral-500">
-          {t('partitions.title')}
-        </span>
-        {groups.map((group, index) => (
-          <button
-            key={group.instrument}
-            type="button"
-            onClick={() => {
-              setActive(index);
-              setActiveSub(0);
-            }}
-            className={tabClass(index === groups.indexOf(current))}
-          >
-            {group.label}
-          </button>
-        ))}
-      </div>
-
-      {showSubTabs && (
-        <div className="mt-2 flex flex-wrap items-center gap-1">
-          <span className="mr-1 text-[10px] font-medium uppercase tracking-wide text-neutral-400">
-            {t('partitions.instrument')}
+      {/* Main tabs - horizontal scroll on mobile */}
+      <div className="overflow-x-auto -mx-3 px-3 pb-2 mb-3">
+        <div className="flex flex-wrap items-center gap-1 min-w-max">
+          <span className="mr-1 text-xs font-medium uppercase tracking-wide text-neutral-500 shrink-0">
+            {t('partitions.title')}
           </span>
-          {current.subs.map((sub, index) => (
+          {groups.map((group, index) => (
             <button
-              key={sub.slug}
+              key={group.instrument}
               type="button"
-              onClick={() => setActiveSub(index)}
-              className={tabClass(index === current.subs.indexOf(currentSub))}
+              onClick={() => {
+                setActive(index);
+                setActiveSub(0);
+              }}
+              className={tabClass(index === groups.indexOf(current))}
+              aria-pressed={index === groups.indexOf(current)}
             >
-              {sub.label}
+              {group.label}
             </button>
           ))}
         </div>
+      </div>
+
+      {showSubTabs && (
+        <div className="overflow-x-auto -mx-3 px-3 pb-2 mb-3">
+          <div className="flex flex-wrap items-center gap-1 min-w-max">
+            <span className="mr-1 text-[10px] font-medium uppercase tracking-wide text-neutral-400 shrink-0">
+              {t('partitions.instrument')}
+            </span>
+            {current.subs.map((sub, index) => (
+              <button
+                key={sub.slug}
+                type="button"
+                onClick={() => setActiveSub(index)}
+                className={tabClass(index === current.subs.indexOf(currentSub))}
+                aria-pressed={index === current.subs.indexOf(currentSub)}
+              >
+                {sub.label}
+              </button>
+            ))}
+          </div>
+        </div>
       )}
 
-      <div className="mt-3">
+      <div className="mt-3 space-y-2">
         {preview && (
           <a
             href={pdfUrl(preview.file)}
             target="_blank"
             rel="noopener noreferrer"
-            className="text-xs text-blue-600 dark:text-blue-400 hover:underline"
+            className="inline-flex items-center gap-1 px-3 py-1.5 text-xs text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 rounded border border-blue-200 dark:border-blue-800 bg-blue-50 dark:bg-blue-950/30 touch-manipulation"
           >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+            </svg>
             {t('partitions.openInNewTab')}
           </a>
         )}
         {partsList.length > 1 && (
-          <ul className="mt-1.5 space-y-1">
+          <ul className="space-y-1">
             {partsList.map((part) => (
               <li key={part.file} className="text-xs text-neutral-600 dark:text-neutral-400">
                 <a
@@ -144,12 +154,14 @@ export function PartitionViewer({ partitions }: { partitions: Partition[] }) {
           </ul>
         )}
         {preview && (
-          <iframe
-            src={pdfUrl(preview.file)}
-            title={preview.title}
-            className="mt-2 h-[80vh] w-full rounded border border-neutral-200 dark:border-neutral-800 bg-white"
-            loading="lazy"
-          />
+          <div className="relative aspect-[4/3] sm:aspect-[3/4] w-full rounded border border-neutral-200 dark:border-neutral-800 bg-white overflow-hidden">
+            <iframe
+              src={pdfUrl(preview.file)}
+              title={preview.title}
+              className="absolute inset-0 w-full h-full border-0"
+              loading="lazy"
+            />
+          </div>
         )}
       </div>
     </div>

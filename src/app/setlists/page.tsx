@@ -22,7 +22,7 @@ export default async function SetlistsPage() {
     : setlists.filter((s) => s.public);
 
   return (
-    <div className="max-w-6xl mx-auto px-4 py-8">
+    <div className="max-w-full mx-auto px-4 sm:px-6 lg:px-8 py-8">
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-2xl font-bold"><T k="setlist.title" /></h1>
         {showEditActions && (

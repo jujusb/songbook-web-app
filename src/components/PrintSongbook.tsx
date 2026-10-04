@@ -36,7 +36,7 @@ export function PrintSongbook({
       <style dangerouslySetInnerHTML={{ __html: printStyles }} />
 
       {/* Toolbar (screen only) */}
-      <div className="no-print max-w-4xl mx-auto px-4 py-4 mb-8 bg-neutral-100 dark:bg-neutral-900 rounded-lg flex items-center gap-4 flex-wrap">
+      <div className="no-print max-w-full mx-auto px-4 sm:px-6 lg:px-8 py-4 mb-8 bg-neutral-100 dark:bg-neutral-900 rounded-lg flex items-center gap-4 flex-wrap">
         <PrintButton />
         {toolbarChildren}
         <Link
@@ -47,7 +47,7 @@ export function PrintSongbook({
         </Link>
       </div>
 
-      <div className="max-w-4xl mx-auto px-4">
+      <div className="max-w-full mx-auto px-4 sm:px-6 lg:px-8">
         {/* Title page (visible in print) */}
         <div className="toc-print mb-12">
           <h1 className="text-3xl font-bold mb-2">{pageTitle}</h1>

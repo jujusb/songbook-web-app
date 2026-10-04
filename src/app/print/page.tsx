@@ -29,7 +29,7 @@ export default async function PrintConfigPage({
   }));
 
   return (
-    <div className="max-w-2xl mx-auto px-4 py-8">
+    <div className="max-w-full mx-auto px-4 sm:px-6 lg:px-8 py-8">
       <h1 className="text-2xl font-bold mb-6">Print Songbook</h1>
       <PrintConfigForm
         albums={albumOptions}
