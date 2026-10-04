@@ -7,25 +7,40 @@ export const printStyles = `
   @media print {
     .no-print { display: none !important; }
     header { display: none !important; }
-    .song-page { page-break-after: always; }
+    .song-page { page-break-after: auto; break-inside: avoid; }
     .song-page:last-child { page-break-after: auto; }
     .toc-print { page-break-after: always; }
-    @page { margin: 2cm; size: A4; }
+    @page { margin: 1.5cm; size: A4; }
     /* Two-column layout for book mode */
     .print-columns {
       column-count: 2;
-      column-gap: 2cm;
+      column-gap: 1.5cm;
       column-fill: auto;
     }
     .print-columns .song-page {
       page-break-after: auto;
       break-inside: avoid;
       column-break-inside: avoid;
+      border: none;
     }
     .print-columns .album-header {
       column-span: all;
       page-break-before: always;
       break-before: column;
+    }
+    /* Remove borders from song pages */
+    .song-page {
+      border: none;
+      padding: 0;
+      margin-bottom: 1em;
+    }
+    .song-page h2 {
+      border-bottom: 1px solid #ccc;
+      padding-bottom: 0.3em;
+      margin-bottom: 0.5em;
+    }
+    .song-page:last-child {
+      page-break-after: auto;
     }
     /* Chord sheet - responsive like mobile web version */
     .visual-chord-editor.visual-chord-sheet {
@@ -39,6 +54,7 @@ export const printStyles = `
     .visual-chord-sheet .vce-line {
       width: 100%;
       min-width: 0;
+      border: none;
     }
     /* Allow lyrics to wrap in print */
     .visual-chord-sheet .vce-lyrics-text {
@@ -49,6 +65,8 @@ export const printStyles = `
       word-break: break-word;
       overflow-wrap: anywhere;
       padding: 0 0.15em;
+      border: none;
+      background: transparent;
     }
     /* Chords row - allow wrapping, smaller font */
     .visual-chord-sheet .vce-chord-row {
@@ -59,6 +77,7 @@ export const printStyles = `
       word-break: break-word;
       overflow-wrap: anywhere;
       overflow-x: hidden;
+      border: none;
     }
     .visual-chord-sheet .vce-chord {
       display: inline-block;

@@ -56,40 +56,89 @@ export function PrintSongbook({
         <div className="toc-print mb-12">
           <h1 className="text-3xl font-bold mb-2">{pageTitle}</h1>
           {header}
-          <h2 className="text-xl font-bold mb-4 mt-8">
-            {tocTitle ?? "Table of Contents"}
-          </h2>
-          <ol className="list-decimal pl-6 space-y-1">
-            {printSongs.map((song, i) => {
-              if (isAlbumHeader(song)) {
-                return (
-                  <li key={`toc-${i}`} className="font-bold text-neutral-900 dark:text-white">
-                    {song.title}
-                  </li>
-                );
-              }
-              return (
-                <li key={`toc-${i}`}>
-                  <a
-                    href={`#song-${song.id}-${song.lang}`}
-                    className="text-blue-600 hover:underline print:text-black print:no-underline"
-                  >
-                    {song.title}
-                    {showLangLabels && (
-                      <span className="text-neutral-400 ml-1 text-xs">
-                        ({languageLabelFor(song.lang)})
+
+          {/* TOC 1: Alphabetical (A-Z) */}
+          <section className="mb-12">
+            <h2 className="text-xl font-bold mb-4 mt-8">
+              {tocTitle ?? "Table of Contents"} - Alphabetical (A-Z)
+            </h2>
+            <ol className="list-decimal pl-6 space-y-1">
+              {printSongs
+                .filter((song) => !isAlbumHeader(song))
+                .sort((a, b) => a.title.localeCompare(b.title))
+                .map((song, i) => (
+                  <li key={`toc-alpha-${song.id}-${song.lang}`}>
+                    <a
+                      href={`#song-${song.id}-${song.lang}`}
+                      className="text-blue-600 hover:underline print:text-black print:no-underline"
+                    >
+                      {song.title}
+                      {showLangLabels && (
+                        <span className="text-neutral-400 ml-1 text-xs">
+                          ({languageLabelFor(song.lang)})
+                        </span>
+                      )}
+                    </a>
+                    {song.key && (
+                      <span className="text-xs text-neutral-400 ml-2">
+                        {song.key}
                       </span>
                     )}
-                  </a>
-                  {song.key && (
-                    <span className="text-xs text-neutral-400 ml-2">
-                      {song.key}
-                    </span>
-                  )}
-                </li>
-              );
-            })}
-          </ol>
+                  </li>
+                ))}
+            </ol>
+          </section>
+
+          {/* TOC 2: By Album */}
+          <section className="mb-12">
+            <h2 className="text-xl font-bold mb-4 mt-8">
+              {tocTitle ?? "Table of Contents"} - By Album
+            </h2>
+            {(() => {
+              const albumGroups = new Map<string, { title: string; songs: typeof printSongs }>();
+              let currentAlbumTitle = "";
+              
+              printSongs.forEach((song) => {
+                if (isAlbumHeader(song)) {
+                  currentAlbumTitle = song.title;
+                  if (!albumGroups.has(currentAlbumTitle)) {
+                    albumGroups.set(currentAlbumTitle, { title: currentAlbumTitle, songs: [] });
+                  }
+                } else if (currentAlbumTitle) {
+                  const group = albumGroups.get(currentAlbumTitle);
+                  if (group) group.songs.push(song);
+                }
+              });
+              
+              return Array.from(albumGroups.entries()).map(([albumTitle, group], albumIndex) => (
+                <div key={`toc-album-${albumIndex}`} className="mb-4">
+                  <h3 className="font-bold text-neutral-900 dark:text-white mb-2">{albumTitle}</h3>
+                  <ol className="list-decimal pl-6 space-y-1">
+                    {group.songs.map((song, songIndex) => (
+                      <li key={`toc-album-${albumIndex}-${song.id}-${song.lang}`}>
+                        <a
+                          href={`#song-${song.id}-${song.lang}`}
+                          className="text-blue-600 hover:underline print:text-black print:no-underline"
+                        >
+                          [{song.id}] {song.title}
+                          {showLangLabels && (
+                            <span className="text-neutral-400 ml-1 text-xs">
+                              ({languageLabelFor(song.lang)})
+                            </span>
+                          )}
+                        </a>
+                        {song.key && (
+                          <span className="text-xs text-neutral-400 ml-2">
+                            {song.key}
+                          </span>
+                        )}
+                      </li>
+                    ))}
+                  </ol>
+                </div>
+              ));
+            })()}
+          </section>
         </div>
 
         {/* Songs */}

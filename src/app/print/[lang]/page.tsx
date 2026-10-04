@@ -2,6 +2,7 @@ import {
   getLanguagesConfig,
   getSiteConfig,
 } from "@/lib/content";
+import { getSession, canEdit } from "@/lib/auth";
 import { resolveScopeSongs } from "@/lib/export/song-scope";
 import { loadPrintSongs } from "@/lib/print/load";
 import { PrintSongbook } from "@/components/PrintSongbook";
@@ -31,6 +32,9 @@ export default async function PrintPage({
     langs: langsParam,
   } = await searchParams;
 
+  const session = await getSession();
+  const isEditor = canEdit(session?.role ?? null);
+
   const showRefs = showRefsParam === "1" || showRefsParam === "true";
 
   // Determine which languages to include
@@ -57,7 +61,7 @@ export default async function PrintPage({
   // Determine scope — song, album, artist, book, or full songbook
   const scope = songId ? "song" : albumId ? "album" : artistId ? "artist" : bookId ? "book" : "all";
   const scopeId = songId ?? albumId ?? artistId ?? bookId ?? null;
-  const resolved = await resolveScopeSongs(scope, scopeId);
+  const resolved = await resolveScopeSongs(scope, scopeId, { role: isEditor ? 'admin' : 'public' });
 
   const printSongs = await loadPrintSongs(resolved.songs, languages, showRefs, true);
 
