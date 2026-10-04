@@ -46,8 +46,8 @@ interface Footnote {
   highlight?: string; // per-location override
 }
 
-function renderSource(source: string, options?: { inlineChords?: boolean }): string {
-  return renderVisualChordSheet(source, { repeatChorus: true, inlineChords: options?.inlineChords });
+function renderSource(source: string, options?: { inlineChords?: boolean; repeatChorus?: boolean }): string {
+  return renderVisualChordSheet(source, { repeatChorus: options?.repeatChorus ?? true, inlineChords: options?.inlineChords });
 }
 
 function transposeSource(source: string, semitones: number): string {
@@ -416,7 +416,7 @@ export function ChordSheet({
   const html = useMemo(() => {
     const transposed = transposeSource(initialSource, semitones);
     const withMarkers = injectMarkersIntoSource(transposed, footnotesByLine);
-    let rendered = renderSource(withMarkers, { inlineChords: useInlineChords });
+    let rendered = renderSource(withMarkers, { inlineChords: useInlineChords, repeatChorus: showRepeats });
 
     // Post-process: turn plain-text (1), (2) etc. into clickable anchor links
     if (footnotes.length > 0) {
@@ -446,7 +446,7 @@ export function ChordSheet({
     }
 
     return rendered;
-  }, [initialSource, semitones, footnotesByLine, footnotes.length, idPrefix, referenceGroups, useInlineChords]);
+  }, [initialSource, semitones, footnotesByLine, footnotes.length, idPrefix, referenceGroups, useInlineChords, showRepeats]);
 
   // General (non-line) references
   const generalRefs = references.filter(

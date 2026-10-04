@@ -161,14 +161,15 @@ export function renderVisualChordSheet(
 
       if (labeledRepeat) {
         finalizeAll();
+        const type = labeledRepeat[1].toLowerCase() as RepeatType;
+        const { primary, aliases } = splitSectionAliases(labeledRepeat[2]);
+        const display = aliases[0] ?? null;
+        
         if (repeatChorus) {
-          const type = labeledRepeat[1].toLowerCase() as RepeatType;
-          const { primary, aliases } = splitSectionAliases(labeledRepeat[2]);
           const html = lookup(type, primary);
           if (html) {
             // A replayed section adopts its alternate name when one is given:
             // "{verse: 1. : 4.}" replays verse 1 but displays as "4.".
-            const display = aliases[0] ?? null;
             const relabeled = display
               ? html.replace(
                   /<div class="vce-section-label">([^<]*)<\/div>/,
@@ -190,6 +191,10 @@ export function renderVisualChordSheet(
               st.byLabel.set(`${type} ${norm}`, relabeled);
             }
           }
+        } else {
+          // Show only the section label when repeatChorus is false
+          const label = display || primary;
+          out.push(`  <div class="vce-section-label vce-section-label--repeat">${escapeHtml(label)}</div>`);
         }
         continue;
       }
@@ -199,6 +204,12 @@ export function renderVisualChordSheet(
         if (repeatChorus) {
           const html = repeats[bareRepeat].lastHtml;
           if (html) out.push(`  ${html}`);
+        } else {
+          // Show section label for bare repeat when repeatChorus is false
+          const st = repeats[bareRepeat];
+          if (st && st.label) {
+            out.push(`  <div class="vce-section-label vce-section-label--repeat">${escapeHtml(st.label)}</div>`);
+          }
         }
         continue;
       }

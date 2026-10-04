@@ -129,14 +129,16 @@ export default async function SongPage({
 
   // Build action menu items - only for simple navigation actions
   const primaryActions = [
-    {
-      label: "Edit",
-      href: `/edit/${songId}/${lang}`,
-    },
-    {
-      label: "Edit References",
-      href: `/edit/${songId}/${lang}?references=1`,
-    },
+    ...(showEditActions ? [
+      {
+        label: "Edit",
+        href: `/edit/${songId}/${lang}`,
+      },
+      {
+        label: "Edit References",
+        href: `/edit/${songId}/${lang}?references=1`,
+      },
+    ] : []),
     {
       label: "Present",
       href: `/present/${songId}?lang=${lang}`,
@@ -174,18 +176,22 @@ export default async function SongPage({
           <div className="flex-shrink-0 w-full sm:w-auto">
             <div className="flex flex-wrap items-center gap-2 justify-end sm:justify-end">
               {/* Primary actions - Edit, Present, Compare */}
-              <Link
-                href={`/edit/${songId}/${lang}`}
-                className="text-sm px-3 py-1.5 border border-neutral-300 dark:border-neutral-700 rounded-md hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors hidden sm:inline-flex"
-              >
-                Edit
-              </Link>
-              <Link
-                href={`/edit/${songId}/${lang}?references=1`}
-                className="text-sm px-3 py-1.5 border border-neutral-300 dark:border-neutral-700 rounded-md hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors hidden sm:inline-flex"
-              >
-                Edit References
-              </Link>
+              {showEditActions && (
+                <>
+                  <Link
+                    href={`/edit/${songId}/${lang}`}
+                    className="text-sm px-3 py-1.5 border border-neutral-300 dark:border-neutral-700 rounded-md hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors hidden sm:inline-flex"
+                  >
+                    Edit
+                  </Link>
+                  <Link
+                    href={`/edit/${songId}/${lang}?references=1`}
+                    className="text-sm px-3 py-1.5 border border-neutral-300 dark:border-neutral-700 rounded-md hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors hidden sm:inline-flex"
+                  >
+                    Edit References
+                  </Link>
+                </>
+              )}
               <Link
                 href={`/present/${songId}?lang=${lang}`}
                 className="text-sm px-3 py-1.5 border border-neutral-300 dark:border-neutral-700 rounded-md hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors hidden sm:inline-flex"
