@@ -628,6 +628,19 @@ a.ref-marker:hover {
   .visual-chord-sheet .vce-inline-chords-line {
     display: block;
   }
+
+  /* Song card improvements for responsive grid */
+  .song-card-title {
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+
+  /* Ensure grid items don't shrink below minimum */
+  .grid > * {
+    min-width: 0;
+  }
   .visual-chord-sheet .vce-inline-chord {
     color: #2563eb;
     font-weight: 700;

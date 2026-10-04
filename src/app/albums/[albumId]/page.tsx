@@ -142,60 +142,62 @@ export default async function AlbumPage({
             ))}
           </div>
         )}
-        <div className="flex gap-2 mt-4">
-          {showEditActions && (
-            <>
-              <Link
-                href={`/albums/${albumId}/edit`}
-                className="text-sm px-3 py-1.5 border border-neutral-300 dark:border-neutral-700 rounded-md hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors"
-              >
-                Edit Album
-              </Link>
-              <ChangeAlbumIdButton albumId={albumId} />
-            </>
-          )}
-          <Link
-            href={`/pdf?scope=album&id=${albumId}`}
-            className="text-sm px-3 py-1.5 border border-neutral-300 dark:border-neutral-700 rounded-md hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors"
-          >
-            Export PDF for this Album
-          </Link>
-          {isOriginalLanguage && album.spotify ? (
-            <SpotifyPlayer
-              type="album"
-              id={albumId}
-              lang={displayLang}
-              explicitUrl={album.spotify ?? null}
-              title={localizedAlbumTitle}
-              artist={artistName}
-            />
-          ) : null}
-          {isOriginalLanguage && album.youtube ? (
-            <YouTubePlayer url={album.youtube} title={localizedAlbumTitle} />
-          ) : null}
-          {isOriginalLanguage && album.youtubePlaylist ? (
-            <YouTubePlayer
-              url={album.youtubePlaylist}
-              title={localizedAlbumTitle}
-              isPlaylist
-            />
-          ) : null}
-          {showEditActions && (
+        <div className="flex flex-wrap gap-2 mt-4">
+          <div className="flex flex-wrap gap-2 w-full sm:w-auto">
+            {showEditActions && (
+              <>
+                <Link
+                  href={`/albums/${albumId}/edit`}
+                  className="text-sm px-3 py-1.5 border border-neutral-300 dark:border-neutral-700 rounded-md hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors"
+                >
+                  Edit Album
+                </Link>
+                <ChangeAlbumIdButton albumId={albumId} />
+              </>
+            )}
             <Link
-              href={`/songs/new?album=${albumId}`}
-              className="text-sm px-3 py-1.5 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
+              href={`/pdf?scope=album&id=${albumId}`}
+              className="text-sm px-3 py-1.5 border border-neutral-300 dark:border-neutral-700 rounded-md hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors"
             >
-              + Add Song
+              Export PDF
             </Link>
-          )}
-          {showDeleteActions && (
-            <DeleteButton
-              apiEndpoint="/api/albums"
-              id={albumId}
-              label={album.title}
-              redirectTo="/browse"
-            />
-          )}
+            {isOriginalLanguage && album.spotify ? (
+              <SpotifyPlayer
+                type="album"
+                id={albumId}
+                lang={displayLang}
+                explicitUrl={album.spotify ?? null}
+                title={localizedAlbumTitle}
+                artist={artistName}
+              />
+            ) : null}
+            {isOriginalLanguage && album.youtube ? (
+              <YouTubePlayer url={album.youtube} title={localizedAlbumTitle} />
+            ) : null}
+            {isOriginalLanguage && album.youtubePlaylist ? (
+              <YouTubePlayer
+                url={album.youtubePlaylist}
+                title={localizedAlbumTitle}
+                isPlaylist
+              />
+            ) : null}
+            {showEditActions && (
+              <Link
+                href={`/songs/new?album=${albumId}`}
+                className="text-sm px-3 py-1.5 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
+              >
+                + Add Song
+              </Link>
+            )}
+            {showDeleteActions && (
+              <DeleteButton
+                apiEndpoint="/api/albums"
+                id={albumId}
+                label={album.title}
+                redirectTo="/browse"
+              />
+            )}
+          </div>
         </div>
       </div>
 
@@ -216,24 +218,24 @@ export default async function AlbumPage({
               song && (
                 <li
                   key={song.id}
-                  className="flex items-center gap-4 px-4 py-3 hover:bg-neutral-50 dark:hover:bg-neutral-900 transition-colors"
+                  className="flex flex-col sm:flex-row items-start sm:items-center gap-2 sm:gap-4 px-4 py-3 hover:bg-neutral-50 dark:hover:bg-neutral-900 transition-colors"
                 >
                   <Link
                     href={`/songs/${song.id}?lang=${displayLang}`}
-                    className="flex items-center gap-4 flex-1 min-w-0"
+                    className="flex items-center gap-3 sm:gap-4 flex-1 min-w-0 w-full"
                   >
-                    <span className="text-sm text-neutral-400 w-8 text-right font-mono">
-                      {index + 1}
+                    <span className="text-sm font-mono text-neutral-400 w-8 sm:w-10 text-right shrink-0">
+                      {index + 1}.
                     </span>
                     <div className="flex-1 min-w-0">
-                      <span className="font-medium">{song.title}</span>
+                      <span className="font-medium block truncate">{song.title}</span>
                       {song.key && (
-                        <span className="ml-2 text-xs text-neutral-400">
-                          {song.key}
+                        <span className="text-xs text-neutral-400">
+                          Key: {song.key}
                         </span>
                       )}
                     </div>
-                    <div className="flex gap-1">
+                    <div className="flex flex-wrap gap-1 shrink-0">
                       {song.translations.map((lang: string) => (
                         <span
                           key={lang}
@@ -244,7 +246,7 @@ export default async function AlbumPage({
                       ))}
                     </div>
                     {song.tags.length > 0 && (
-                      <div className="hidden sm:flex gap-1">
+                      <div className="flex flex-wrap gap-1 shrink-0">
                         {song.tags.slice(0, 3).map((tag: string) => (
                           <span
                             key={tag}
@@ -256,30 +258,32 @@ export default async function AlbumPage({
                       </div>
                     )}
                   </Link>
-                  {(() => {
-                    if (isOriginalLanguage) {
-                      return (
-                        <SpotifyPlayer
+                  <div className="flex items-center gap-2 w-full sm:w-auto mt-2 sm:mt-0">
+                    {(() => {
+                      if (isOriginalLanguage) {
+                        return (
+                          <SpotifyPlayer
+                            variant="compact"
+                            type="track"
+                            id={song.id}
+                            lang={displayLang}
+                            explicitUrl={song.spotify?.song ?? null}
+                            title={song.title}
+                            artist={artistName}
+                          />
+                        );
+                      }
+                      return navidromeEnabled ? (
+                        <NavidromeShareButton
+                          key={`${song.id}:${displayLang}`}
                           variant="compact"
-                          type="track"
+                          type="song"
                           id={song.id}
                           lang={displayLang}
-                          explicitUrl={song.spotify?.song ?? null}
-                          title={song.title}
-                          artist={artistName}
                         />
-                      );
-                    }
-                    return navidromeEnabled ? (
-                      <NavidromeShareButton
-                        key={`${song.id}:${displayLang}`}
-                        variant="compact"
-                        type="song"
-                        id={song.id}
-                        lang={displayLang}
-                      />
-                    ) : null;
-                  })()}
+                      ) : null;
+                    })()}
+                  </div>
                 </li>
               )
             ))}

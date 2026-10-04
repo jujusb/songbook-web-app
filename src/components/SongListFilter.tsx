@@ -132,31 +132,43 @@ export function SongListFilter({
           ))}
         </select>
       </div>
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
         {sorted.map((song) => (
           <Link
             key={song.id}
             href={`/songs/${song.id}`}
-            className="block p-4 border border-neutral-200 dark:border-neutral-800 rounded-lg hover:border-blue-500 dark:hover:border-blue-500 transition-colors"
+            className="block p-3 border border-neutral-200 dark:border-neutral-800 rounded-lg hover:border-blue-500 dark:hover:border-blue-500 transition-colors min-h-[120px]"
           >
-            <h2 className="font-semibold mb-1">
+            <h2 className="font-semibold mb-1 line-clamp-2 text-base leading-snug">
               {resolveSongListTitle(song, activeLang)}
             </h2>
-            {song.key && (
-              <span className="text-sm text-neutral-500 mr-3">
-                {t('common.key')}: {song.key}
-              </span>
-            )}
+            <div className="flex flex-wrap gap-1.5 text-xs text-neutral-500">
+              {song.key && (
+                <span className="whitespace-nowrap">
+                  {t('common.key')}: {song.key}
+                </span>
+              )}
+              {song.translations.length > 1 && (
+                <span className="whitespace-nowrap">
+                  {song.translations.length} langs
+                </span>
+              )}
+            </div>
             {song.tags.length > 0 && (
               <div className="flex flex-wrap gap-1 mt-2">
-                {song.tags.map((tag) => (
+                {song.tags.slice(0, 3).map((tag) => (
                   <span
                     key={tag}
-                    className="text-xs px-2 py-0.5 bg-neutral-100 dark:bg-neutral-800 rounded-full text-neutral-600 dark:text-neutral-400"
+                    className="text-[11px] px-1.5 py-0.5 bg-neutral-100 dark:bg-neutral-800 rounded-full text-neutral-600 dark:text-neutral-400 whitespace-nowrap"
                   >
                     {tag}
                   </span>
                 ))}
+                {song.tags.length > 3 && (
+                  <span className="text-[11px] text-neutral-400 px-1 whitespace-nowrap">
+                    +{song.tags.length - 3}
+                  </span>
+                )}
               </div>
             )}
           </Link>
