@@ -591,10 +591,12 @@ export interface ListAlbumsOptions {
   onlyPublished?: boolean;
   /** Role of the requesting user. If 'admin', all albums are returned regardless of published status. */
   role?: 'public' | 'reviewer' | 'admin';
+  /** Language to filter by for published status. If provided, only albums with at least one song published in this language are included. */
+  lang?: string;
 }
 
 export async function listAlbums(options: ListAlbumsOptions = {}): Promise<Album[]> {
-  const { onlyPublished = false, role } = options;
+  const { onlyPublished = false, role, lang } = options;
   const libDir = getLibraryDir();
   const albums: Album[] = [];
 
@@ -602,7 +604,13 @@ export async function listAlbums(options: ListAlbumsOptions = {}): Promise<Album
   const songs = await listSongs({ onlyPublished: false, role: 'admin' });
   const songPublishedMap = new Map<string, boolean>();
   for (const song of songs) {
-    const hasPublished = song.published ? Object.values(song.published).some(v => v === true) : false;
+    // Check published status per language if lang is provided
+    let hasPublished = false;
+    if (lang) {
+      hasPublished = song.published ? song.published[lang] === true : false;
+    } else {
+      hasPublished = song.published ? Object.values(song.published).some(v => v === true) : false;
+    }
     songPublishedMap.set(song.id, hasPublished);
   }
 

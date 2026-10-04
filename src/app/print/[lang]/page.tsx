@@ -61,7 +61,7 @@ export default async function PrintPage({
   // Determine scope — song, album, artist, book, or full songbook
   const scope = songId ? "song" : albumId ? "album" : artistId ? "artist" : bookId ? "book" : "all";
   const scopeId = songId ?? albumId ?? artistId ?? bookId ?? null;
-  const resolved = await resolveScopeSongs(scope, scopeId, { role: isEditor ? 'admin' : 'public' });
+  const resolved = await resolveScopeSongs(scope, scopeId, { role: isEditor ? 'admin' : 'public', lang: primaryLang });
 
   const printSongs = await loadPrintSongs(resolved.songs, languages, showRefs, true, true);
 

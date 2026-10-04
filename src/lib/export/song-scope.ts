@@ -36,6 +36,7 @@ function hasPublishedTranslation(meta: SongListItem | SongMeta | null | undefine
 /** Check if a specific language is published for a song meta. */
 function isLanguagePublished(meta: SongListItem | SongMeta | null | undefined, lang: string): boolean {
   if (!meta) return false;
+  if (!lang) return false;
   if ('published' in meta && meta.published) {
     return meta.published[lang] === true;
   }
@@ -65,6 +66,8 @@ function toResolved(
 export interface ResolveScopeOptions {
   /** Role of the requesting user. If 'admin', all songs are included regardless of published status. */
   role?: 'public' | 'reviewer' | 'admin';
+  /** Language to filter by for published status. If provided, only songs with this language published are included. */
+  lang?: string;
 }
 
 export async function resolveScopeSongs(
@@ -72,7 +75,7 @@ export async function resolveScopeSongs(
   id: string | null,
   options: ResolveScopeOptions = {}
 ): Promise<ResolvedScope> {
-  const { role } = options;
+  const { role, lang } = options;
   const allSongs = await listSongs({ onlyPublished: false, role: 'admin' });
   const allById = new Map(allSongs.map((s) => [s.id, s]));
 
@@ -98,7 +101,7 @@ export async function resolveScopeSongs(
       // Add songs
       for (const songId of album.songs) {
         const meta = allById.get(songId);
-        if (meta && (role === 'admin' || hasPublishedTranslation(meta))) {
+        if (meta && (role === 'admin' || (lang ? isLanguagePublished(meta, lang) : hasPublishedTranslation(meta)))) {
           songs.push({ songId, meta, lang: null });
         }
       }
@@ -122,7 +125,7 @@ export async function resolveScopeSongs(
         // Add songs in album order
         for (const songId of album.songs) {
           const meta = allById.get(songId);
-          if (meta && (role === 'admin' || hasPublishedTranslation(meta))) {
+          if (meta && (role === 'admin' || (lang ? isLanguagePublished(meta, lang) : hasPublishedTranslation(meta)))) {
             songs.push({ songId, meta, lang: null });
           }
         }
@@ -147,7 +150,7 @@ export async function resolveScopeSongs(
       // Book mode: all songs grouped by album, ordered by album ID,
       // with album title as section header. Songs within each album
       // keep their album-defined order (which is the track order).
-      const albums = await listAlbums({ onlyPublished: true, role });
+      const albums = await listAlbums({ onlyPublished: true, role, lang });
       const albumsById = new Map(albums.map((a) => [a.id, a]));
       const allSongsById = new Map(allSongs.map((s) => [s.id, s]));
       let title = 'Songbook';
@@ -168,7 +171,7 @@ export async function resolveScopeSongs(
         // Add songs in album order (already filtered by published)
         for (const songId of album.songs) {
           const meta = allSongsById.get(songId);
-          if (meta && (role === 'admin' || (meta.published && Object.values(meta.published).some(v => v === true)))) {
+          if (meta && (role === 'admin' || (lang ? isLanguagePublished(meta, lang) : (meta.published && Object.values(meta.published).some(v => v === true))))) {
             bookSongs.push({ songId, meta, lang: null });
           }
         }
@@ -181,7 +184,7 @@ export async function resolveScopeSongs(
         const config = await getSiteConfig();
         title = config.title || 'Songbook';
       } catch {}
-      const albums = await listAlbums({ onlyPublished: true, role });
+      const albums = await listAlbums({ onlyPublished: true, role, lang });
       const albumsById = new Map(albums.map((a) => [a.id, a]));
       const allSongsById = new Map(allSongs.map((s) => [s.id, s]));
       const bookSongs: ResolvedScopeSong[] = [];
@@ -197,7 +200,7 @@ export async function resolveScopeSongs(
         // Add songs in album order (already filtered by published)
         for (const songId of album.songs) {
           const meta = allSongsById.get(songId);
-          if (meta && (role === 'admin' || (meta.published && Object.values(meta.published).some(v => v === true)))) {
+          if (meta && (role === 'admin' || (lang ? isLanguagePublished(meta, lang) : (meta.published && Object.values(meta.published).some(v => v === true))))) {
             bookSongs.push({ songId, meta, lang: null });
           }
         }
