@@ -219,6 +219,17 @@ export function extractBodyTitle(body: string): string | null {
   const match = body.match(/\{title:\s*([^}\n\r]+)\}/i);
   return match ? match[1].trim() : null;
 }
+export function extractBodyCapo(body: string): number | null {
+  const match = body.match(/\{capo:\s*(\d+)\}/i);
+  return match ? parseInt(match[1], 10) : null;
+}
+
+export function extractBodyKey(body: string): string | null {
+  const match = body.match(/\{key:\s*([^}\n\r]+)\}/i);
+  return match ? match[1].trim() : null;
+}
+
+
 
 /**
  * Get the localized title for a song in a given language.

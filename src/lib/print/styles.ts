@@ -55,6 +55,10 @@ export const printStyles = `
       width: 100%;
       min-width: 0;
       border: none;
+      break-inside: avoid;
+      page-break-inside: avoid;
+      display: flex;
+      flex-direction: column;
     }
     /* Allow lyrics to wrap in print */
     .visual-chord-sheet .vce-lyrics-text {

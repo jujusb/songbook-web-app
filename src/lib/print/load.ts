@@ -3,6 +3,7 @@ import {
   getSongTranslations,
   getSongTranslation,
   getSongTitle,
+  extractBodyCapo,
 } from '@/lib/content';
 import { renderToHtml, renderReferencesHtml } from '@/lib/chordpro';
 import type { PrintSong } from '@/lib/print/types';
@@ -89,10 +90,9 @@ export async function loadPrintSongs(
     for (const lang of requested) {
       if (!langs.includes(lang)) continue;
       try {
-        const { meta: translationMeta } = await getSongTranslation(songId, lang);
+        const { meta: translationMeta, body, capo } = await getSongTranslation(songId, lang);
         // Skip unpublished translations
         if (!translationMeta.published) continue;
-        const { body } = await getSongTranslation(songId, lang);
         const title = resolved.meta?.titles?.[lang]
           ?? (resolved.meta as { choTitles?: Record<string, string> } | null | undefined)?.choTitles?.[lang]
           ?? resolved.meta?.title
@@ -101,6 +101,7 @@ export async function loadPrintSongs(
           id: songId,
           title,
           key: resolved.meta?.key ?? meta?.key,
+          capo,
           lang,
           html: renderToHtml(body, { inlineChords }),
           refsHtml:
