@@ -35,6 +35,7 @@ export function AlbumForm({
     spotify?: string;
     youtube?: string;
     youtubePlaylist?: string;
+    number?: number;
   };
   allSongs: Song[];
   allArtists: ArtistOption[];
@@ -56,6 +57,7 @@ export function AlbumForm({
   const [spotify, setSpotify] = useState(initialAlbum.spotify ?? "");
   const [youtube, setYoutube] = useState(initialAlbum.youtube ?? "");
   const [youtubePlaylist, setYoutubePlaylist] = useState(initialAlbum.youtubePlaylist ?? "");
+  const [number, setNumber] = useState(initialAlbum.number?.toString() ?? "");
   const [selectedSongs, setSelectedSongs] = useState<string[]>(initialAlbum.songs);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -119,6 +121,7 @@ export function AlbumForm({
           spotify: spotify.trim() || undefined,
           youtube: youtube.trim() || undefined,
           youtubePlaylist: youtubePlaylist.trim() || undefined,
+          number: number ? parseInt(number) : undefined,
           songs: selectedSongs,
         }),
       });
@@ -221,6 +224,18 @@ export function AlbumForm({
               value={year}
               onChange={(e) => setYear(e.target.value)}
               placeholder="2024"
+              className="w-full px-3 py-2 border border-neutral-300 dark:border-neutral-700 rounded-md bg-white dark:bg-neutral-900 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-neutral-700 dark:text-neutral-300 mb-1">
+              Number
+            </label>
+            <input
+              type="number"
+              value={number}
+              onChange={(e) => setNumber(e.target.value)}
+              placeholder="1"
               className="w-full px-3 py-2 border border-neutral-300 dark:border-neutral-700 rounded-md bg-white dark:bg-neutral-900 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
           </div>

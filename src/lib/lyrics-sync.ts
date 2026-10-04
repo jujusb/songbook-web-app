@@ -15,7 +15,7 @@ function extractLyricsFromChordPro(body: string): string {
     for (const line of song.lines) {
       if (line.type === "verse") {
         const text = line.items
-          .map((item) =>
+          .map((item: any) =>
             item instanceof ChordSheetJS.ChordLyricsPair ? item.lyrics ?? "" : "",
           )
           .join("");

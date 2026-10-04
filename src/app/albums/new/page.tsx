@@ -29,6 +29,7 @@ export default async function NewAlbumPage({
         titles: {},
         artist: preselectedArtist || "various-artists",
         year: "",
+        number: undefined,
         description: "",
         tags: "",
         songs: [],

@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useTranslation } from "@/lib/i18n";
 
-interface TreeSong {
+export interface TreeSong {
   id: string;
   title: string;
   titles?: Record<string, string>;
@@ -16,15 +16,16 @@ interface TreeSong {
   hasPartitions: boolean;
 }
 
-interface TreeAlbum {
+export interface TreeAlbum {
   id: string;
   title: string;
   titles?: Record<string, string>;
   year?: number;
+  number?: number;
   songs: TreeSong[];
 }
 
-interface TreeArtist {
+export interface TreeArtist {
   id: string;
   name: string;
   albums: TreeAlbum[];
@@ -232,6 +233,11 @@ function AlbumNode({
           <span className="text-sm font-medium flex-1 min-w-0 truncate">
             {album.titles?.[locale] || album.title}
           </span>
+          {album.number !== undefined && (
+            <span className="px-1.5 py-0.5 bg-blue-50 dark:bg-blue-950 text-blue-600 dark:text-blue-400 rounded text-[10px] font-mono">
+              No. {album.number}
+            </span>
+          )}
           {album.year && (
             <span className="text-xs text-neutral-400 shrink-0">
               {album.year}

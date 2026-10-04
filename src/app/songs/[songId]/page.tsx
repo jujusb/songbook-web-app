@@ -29,6 +29,35 @@ import { YouTubePlayer } from "@/components/YouTubePlayer";
 import { VoiceSections } from "@/components/VoiceSections";
 import { PartitionViewer } from "@/components/PartitionViewer";
 
+export async function generateMetadata({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ songId: string }>;
+  searchParams: Promise<{ lang?: string }>;
+}) {
+  const { songId } = await params;
+  const { lang } = await searchParams;
+  try {
+    const meta = await getSong(songId);
+    const langConfig = await getLanguagesConfig();
+    const translations = await getSongTranslations(songId);
+    const selectedLang = lang && translations.includes(lang)
+      ? lang
+      : translations[0] ?? langConfig.default;
+    const localizedTitle = await getSongTitle(songId, selectedLang);
+    const albums = await getAlbumsForSong(songId);
+    const albumPart = albums[0] ? `${albums[0].title} · ` : "";
+    return {
+      title: `${localizedTitle} · ${albumPart}Songbook`,
+    };
+  } catch {
+    return {
+      title: "Songbook",
+    };
+  }
+}
+
 export default async function SongPage({
   params,
   searchParams,

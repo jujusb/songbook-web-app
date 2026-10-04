@@ -36,6 +36,7 @@ export default async function EditAlbumPage({
         titles: album.titles ?? {},
         artist: album.artist,
         year: album.year?.toString() || "",
+        number: album.number,
         description: album.description || "",
         tags: album.tags.join(", "),
         songs: album.songs,

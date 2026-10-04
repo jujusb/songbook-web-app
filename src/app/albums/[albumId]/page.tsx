@@ -10,6 +10,36 @@ import { NavidromeShareButton } from "@/components/NavidromeShareButton";
 import { getNavidromeConfig } from "@/lib/navidrome/config";
 import { SpotifyPlayer } from "@/components/SpotifyPlayer";
 import { YouTubePlayer } from "@/components/YouTubePlayer";
+import { ChangeAlbumIdButton } from "@/components/ChangeAlbumIdButton";
+
+export async function generateMetadata({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ albumId: string }>;
+  searchParams: Promise<{ lang?: string }>;
+}) {
+  const { albumId } = await params;
+  const { lang } = await searchParams;
+  try {
+    const langConfig = await getLanguagesConfig();
+    const selectedLang = lang ?? langConfig.default;
+    const localizedTitle = await getAlbumTitle(albumId, selectedLang);
+    const album = await getAlbum(albumId);
+    let artistName = album.artist;
+    try {
+      const artistData = await getArtist(album.artist);
+      artistName = artistData.name;
+    } catch {}
+    return {
+      title: `${localizedTitle} · ${artistName} · Songbook`,
+    };
+  } catch {
+    return {
+      title: "Songbook",
+    };
+  }
+}
 
 export default async function AlbumPage({
   params,
@@ -114,12 +144,15 @@ export default async function AlbumPage({
         )}
         <div className="flex gap-2 mt-4">
           {showEditActions && (
-            <Link
-              href={`/albums/${albumId}/edit`}
-              className="text-sm px-3 py-1.5 border border-neutral-300 dark:border-neutral-700 rounded-md hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors"
-            >
-              Edit Album
-            </Link>
+            <>
+              <Link
+                href={`/albums/${albumId}/edit`}
+                className="text-sm px-3 py-1.5 border border-neutral-300 dark:border-neutral-700 rounded-md hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors"
+              >
+                Edit Album
+              </Link>
+              <ChangeAlbumIdButton albumId={albumId} />
+            </>
           )}
           <Link
             href={`/pdf?scope=album&id=${albumId}`}

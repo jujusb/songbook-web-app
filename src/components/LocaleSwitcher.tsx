@@ -18,8 +18,14 @@ export function LocaleSwitcher() {
     } catch {
       // cookies unavailable
     }
-    // Re-render server components so list pages filter songs by the new language
-    router.refresh();
+    // Update URL to include lang param and re-render server components
+    try {
+      const url = new URL(window.location.href);
+      url.searchParams.set('lang', value);
+      router.push(url.pathname + url.search);
+    } catch {
+      router.refresh();
+    }
   };
 
   return (

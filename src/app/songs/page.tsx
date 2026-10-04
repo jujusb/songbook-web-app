@@ -1,12 +1,12 @@
 import Link from "next/link";
-import { listSongs, getLanguagesConfig } from "@/lib/content";
+import { listSongs, getLanguagesConfig, listAlbums, listArtists } from "@/lib/content";
 import { SongListFilter } from "@/components/SongListFilter";
 import { T } from "@/components/Translate";
 import { getSession, canEdit } from "@/lib/auth";
 import { isReadOnly } from "@/lib/readonly";
 
 export default async function SongsPage() {
-  const [songs, langConfig] = await Promise.all([listSongs(), getLanguagesConfig()]);
+  const [songs, langConfig, albums, artists] = await Promise.all([listSongs(), getLanguagesConfig(), listAlbums(), listArtists()]);
   const session = await getSession();
   const showBulkImport = !isReadOnly() && canEdit(session?.role ?? null);
 
@@ -31,7 +31,7 @@ export default async function SongsPage() {
           </Link>
         </div>
       </div>
-      <SongListFilter songs={songs} defaultLang={langConfig.default} />
+      <SongListFilter songs={songs} defaultLang={langConfig.default} albums={albums} artists={artists} />
     </div>
   );
 }

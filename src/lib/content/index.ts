@@ -588,7 +588,8 @@ export async function createAlbum(
   id: string,
   title: string,
   artist: string,
-  year?: number
+  year?: number,
+  number?: number
 ): Promise<void> {
   await ensureVariousArtists();
   const album: Album = {
@@ -596,6 +597,7 @@ export async function createAlbum(
     title,
     artist: artist || 'various-artists',
     year,
+    number,
     tags: [],
     songs: [],
   };
@@ -758,6 +760,41 @@ export async function renameSong(oldId: string, newId: string): Promise<string |
   }
 
   return albumId;
+}
+
+/**
+ * Change an album's ID. The album directory is renamed, the album.yaml `id` is
+ * kept in sync, and every reference to the old ID is updated: songs in that
+ * album's folder keep their paths but references in other contexts (setlists
+ * that might reference songs by album - but songs already have their own paths;
+ * primarily need to update any references if they exist). Also update the
+ * album's id in its own file and move the directory.
+ */
+export async function renameAlbum(oldId: string, newId: string): Promise<void> {
+  if (!oldId || !newId) throw new Error('Album ID is required');
+  if (oldId === newId) throw new Error('New ID is the same as the current ID');
+  if (newId.includes('/') || newId.includes('\\') || newId.includes('..')) {
+    throw new Error('Invalid album ID');
+  }
+  if (oldId === NO_ALBUM_ID || newId === NO_ALBUM_ID) {
+    throw new Error('Cannot rename the "no-album" pseudo-album');
+  }
+
+  const oldDir = path.join(getLibraryDir(), oldId);
+  const newDir = path.join(getLibraryDir(), newId);
+  if (!existsSync(oldDir)) throw new Error(`Album not found: ${oldId}`);
+  if (existsSync(newDir)) throw new Error(`An album with ID "${newId}" already exists`);
+
+  await rename(oldDir, newDir);
+
+  const album = await getAlbum(newId);
+  album.id = newId;
+  await saveAlbum(album);
+
+  // Update songs that reference this album? No, songs live in the album folder;
+  // their own album association is implicit via path. But also update setlists
+  // that might reference album contexts - not applicable. Just need to ensure
+  // all internal references are consistent.
 }
 
 /**

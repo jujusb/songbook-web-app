@@ -1,5 +1,4 @@
 import { cookies } from "next/headers";
-import Link from "next/link";
 import {
   listArtists,
   listAlbums,
@@ -10,7 +9,7 @@ import {
 import { getLocale } from "@/lib/i18n/server";
 import { getSession, canEdit } from "@/lib/auth";
 import { hasVoiceSections } from "@/lib/navidrome/voices";
-import { BrowseTree, type TreeData } from "@/components/BrowseTree";
+import { BrowsePageClient } from "@/components/BrowsePageClient";
 import { T } from "@/components/Translate";
 
 interface TreeSong {
@@ -29,6 +28,7 @@ interface TreeAlbum {
   title: string;
   titles?: Record<string, string>;
   year?: number;
+  number?: number;
   songs: TreeSong[];
 }
 
@@ -36,6 +36,10 @@ interface TreeArtist {
   id: string;
   name: string;
   albums: TreeAlbum[];
+}
+
+interface TreeData {
+  artists: TreeArtist[];
 }
 
 export default async function BrowsePage() {
@@ -96,6 +100,7 @@ export default async function BrowsePage() {
             title: album.title,
             titles: album.titles,
             year: album.year,
+            number: album.number,
             songs: albumSongs,
           };
         })
@@ -115,22 +120,9 @@ export default async function BrowsePage() {
   };
 
   return (
-    <div className="max-w-6xl mx-auto px-4 py-8">
-      <div className="flex items-center justify-between mb-2">
-        <h1 className="text-2xl font-bold"><T k="browse.title" /></h1>
-        {showEditActions && (
-          <Link
-            href="/artists/new"
-            className="text-sm px-3 py-1.5 bg-neutral-900 dark:bg-white text-white dark:text-neutral-900 rounded-md font-medium hover:opacity-90 transition-opacity"
-          >
-            <T k="artist.newArtist" />
-          </Link>
-        )}
-      </div>
-      <p className="text-sm text-neutral-500 mb-6">
-        <T k="browse.description" />
-      </p>
-      <BrowseTree data={treeData} canEdit={showEditActions} />
-    </div>
+    <BrowsePageClient
+      initialTreeData={treeData}
+      showEditActions={showEditActions}
+    />
   );
 }

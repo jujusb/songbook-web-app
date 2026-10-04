@@ -81,6 +81,7 @@ export const AlbumSchema = z.object({
   title: z.string(),
   artist: z.string(),                  // required — artist ID
   year: z.number().optional(),
+  number: z.number().optional(),       // album number for ordering/sorting
   description: z.string().optional(),
   tags: z.array(z.string()).default([]),
   songs: z.array(z.string()).default([]),

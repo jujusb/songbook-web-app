@@ -1,6 +1,6 @@
 "use server";
 
-import { saveSongTranslation, saveSongMeta, createSong, getSong, getSongTranslation, getSiteConfig, extractBodyTitle, addSongTranslation, deleteSongTranslation, renameSong, changeSongAlbum, getSetlist, saveSetlist, listSongs, getAlbum, saveAlbum, createAlbum, getLanguagesConfig, NO_ALBUM_ID, getAlbumsForSong } from "@/lib/content";
+import { saveSongTranslation, saveSongMeta, createSong, getSong, getSongTranslation, getSiteConfig, extractBodyTitle, addSongTranslation, deleteSongTranslation, renameSong, renameAlbum, changeSongAlbum, getSetlist, saveSetlist, listSongs, getAlbum, saveAlbum, createAlbum, getLanguagesConfig, NO_ALBUM_ID, getAlbumsForSong } from "@/lib/content";
 import { SongTranslationFrontmatterSchema, type Reference, type Partition, type Album } from "@/lib/content/schemas";
 import { revalidatePath } from "next/cache";
 import matter from "gray-matter";
@@ -375,6 +375,30 @@ export async function changeSongIdAction(oldId: string, newId: string) {
     revalidatePath("/browse");
     if (albumId) revalidatePath(`/albums/${albumId}`);
     return { ok: true as const, songId: newId, albumId };
+  } catch (err) {
+    return {
+      ok: false as const,
+      error: err instanceof Error ? err.message : 'FAILED',
+    };
+  }
+}
+
+export async function changeAlbumIdAction(oldId: string, newId: string) {
+  if (isReadOnly()) {
+    return {
+      ok: false as const,
+      error: 'READ_ONLY',
+    };
+  }
+  try {
+    await renameAlbum(oldId, newId);
+    revalidatePath(`/albums/${oldId}`);
+    revalidatePath(`/albums/${newId}`);
+    revalidatePath(`/albums/${newId}/edit`, "page");
+    revalidatePath("/albums");
+    revalidatePath("/songs");
+    revalidatePath("/browse");
+    return { ok: true as const, albumId: newId };
   } catch (err) {
     return {
       ok: false as const,
