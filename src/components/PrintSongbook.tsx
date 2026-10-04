@@ -4,6 +4,10 @@ import { printStyles } from "@/lib/print/styles";
 import { languageLabelFor } from "@/lib/i18n/labels";
 import type { PrintSong } from "@/lib/print/types";
 
+function isAlbumHeader(song: PrintSong): boolean {
+  return song.id.startsWith("__album_");
+}
+
 /**
  * Shared printable layout (toolbar + title/TOC page + song chapters) used by
  * every "book" render: the songbook print page, setlist print page, and the
@@ -56,54 +60,80 @@ export function PrintSongbook({
             {tocTitle ?? "Table of Contents"}
           </h2>
           <ol className="list-decimal pl-6 space-y-1">
-            {printSongs.map((song, i) => (
-              <li key={`toc-${i}`}>
-                <a
-                  href={`#song-${song.id}-${song.lang}`}
-                  className="text-blue-600 hover:underline print:text-black print:no-underline"
-                >
-                  {song.title}
-                  {showLangLabels && (
-                    <span className="text-neutral-400 ml-1 text-xs">
-                      ({languageLabelFor(song.lang)})
+            {printSongs.map((song, i) => {
+              if (isAlbumHeader(song)) {
+                return (
+                  <li key={`toc-${i}`} className="font-bold text-neutral-900 dark:text-white">
+                    {song.title}
+                  </li>
+                );
+              }
+              return (
+                <li key={`toc-${i}`}>
+                  <a
+                    href={`#song-${song.id}-${song.lang}`}
+                    className="text-blue-600 hover:underline print:text-black print:no-underline"
+                  >
+                    {song.title}
+                    {showLangLabels && (
+                      <span className="text-neutral-400 ml-1 text-xs">
+                        ({languageLabelFor(song.lang)})
+                      </span>
+                    )}
+                  </a>
+                  {song.key && (
+                    <span className="text-xs text-neutral-400 ml-2">
+                      {song.key}
                     </span>
                   )}
-                </a>
-                {song.key && (
-                  <span className="text-xs text-neutral-400 ml-2">
-                    {song.key}
-                  </span>
-                )}
-              </li>
-            ))}
+                </li>
+              );
+            })}
           </ol>
         </div>
 
         {/* Songs */}
-        {printSongs.map((song, i) => (
-          <div
-            key={`${song.id}-${song.lang}-${i}`}
-            id={`song-${song.id}-${song.lang}`}
-            className="song-page mb-12"
-          >
-            <div className="mb-4 pb-2 border-b border-neutral-200 dark:border-neutral-800 flex items-baseline justify-between">
-              <h2 className="text-2xl font-bold">{song.title}</h2>
-              <div className="flex items-center gap-3 text-xs text-neutral-400">
-                {song.key && <span>Key: {song.key}</span>}
-                {showLangLabels && (
-                  <span>{languageLabelFor(song.lang)}</span>
+        <div className="print-columns">
+          {printSongs.map((song, i) => {
+            if (isAlbumHeader(song)) {
+              return (
+                <div
+                  key={`album-header-${song.id}`}
+                  id={`song-${song.id}-${song.lang}`}
+                  className="album-header mb-8 mt-12 print:page-break-before-auto"
+                >
+                  <h2 className="text-3xl font-bold border-b-2 border-neutral-800 dark:border-neutral-200 pb-2 mb-4">
+                    {song.title}
+                  </h2>
+                </div>
+              );
+            }
+            return (
+              <div
+                key={`${song.id}-${song.lang}-${i}`}
+                id={`song-${song.id}-${song.lang}`}
+                className="song-page mb-12 break-inside-avoid"
+              >
+                <div className="mb-4 pb-2 border-b border-neutral-200 dark:border-neutral-800 flex items-baseline justify-between">
+                  <h2 className="text-2xl font-bold">{song.title}</h2>
+                  <div className="flex items-center gap-3 text-xs text-neutral-400">
+                    {song.key && <span>Key: {song.key}</span>}
+                    {showLangLabels && (
+                      <span>{languageLabelFor(song.lang)}</span>
+                    )}
+                  </div>
+                </div>
+                <div
+                  className="visual-chord-editor visual-chord-sheet"
+                  dangerouslySetInnerHTML={{ __html: song.html }}
+                />
+                {song.refsHtml && (
+                  <div dangerouslySetInnerHTML={{ __html: song.refsHtml }} />
                 )}
               </div>
-            </div>
-            <div
-              className="visual-chord-editor visual-chord-sheet"
-              dangerouslySetInnerHTML={{ __html: song.html }}
-            />
-            {song.refsHtml && (
-              <div dangerouslySetInnerHTML={{ __html: song.refsHtml }} />
-            )}
-          </div>
-        ))}
+            );
+          })}
+        </div>
 
         {printSongs.length === 0 && (
           <p className="text-neutral-500 py-8">{emptyText}</p>

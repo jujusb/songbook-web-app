@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import ChordSheetJS from "chordsheetjs";
 import { renderVisualChordSheet } from "@/lib/chordpro/visual-render";
 import { SECTION_TYPES, splitSectionAliases } from "@/lib/chordpro/chord-utils";
@@ -46,8 +46,8 @@ interface Footnote {
   highlight?: string; // per-location override
 }
 
-function renderSource(source: string): string {
-  return renderVisualChordSheet(source, { repeatChorus: true });
+function renderSource(source: string, options?: { inlineChords?: boolean }): string {
+  return renderVisualChordSheet(source, { repeatChorus: true, inlineChords: options?.inlineChords });
 }
 
 function transposeSource(source: string, semitones: number): string {
@@ -329,15 +329,27 @@ export function ChordSheet({
   references = [],
   idPrefix = "",
   lang = "en",
+  inlineChords = false,
 }: {
   initialSource: string;
   songKey: string | null;
   references?: Reference[];
   idPrefix?: string;
   lang?: string;
+  inlineChords?: boolean;
 }) {
   const { t } = useTranslation();
   const [semitones, setSemitones] = useState(0);
+  const [isMobile, setIsMobile] = useState(false);
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+    const checkMobile = () => setIsMobile(window.innerWidth < 768);
+    checkMobile();
+    window.addEventListener("resize", checkMobile);
+    return () => window.removeEventListener("resize", checkMobile);
+  }, []);
 
   // Build section map from the original source
   const sectionMap = useMemo(
@@ -395,10 +407,11 @@ export function ChordSheet({
   }, [references, footnotes, sectionNames]);
 
   // Transpose first, then inject markers, then render, then linkify markers
+  const useInlineChords = inlineChords || (mounted && isMobile);
   const html = useMemo(() => {
     const transposed = transposeSource(initialSource, semitones);
     const withMarkers = injectMarkersIntoSource(transposed, footnotesByLine);
-    let rendered = renderSource(withMarkers);
+    let rendered = renderSource(withMarkers, { inlineChords: useInlineChords });
 
     // Post-process: turn plain-text (1), (2) etc. into clickable anchor links
     if (footnotes.length > 0) {
@@ -428,7 +441,7 @@ export function ChordSheet({
     }
 
     return rendered;
-  }, [initialSource, semitones, footnotesByLine, footnotes.length, idPrefix, referenceGroups]);
+  }, [initialSource, semitones, footnotesByLine, footnotes.length, idPrefix, referenceGroups, useInlineChords]);
 
   // General (non-line) references
   const generalRefs = references.filter(

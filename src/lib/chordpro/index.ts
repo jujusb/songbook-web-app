@@ -14,8 +14,8 @@ export function parseChordPro(source: string) {
  * Render a ChordPro source string to HTML using the same
  * character-aligned layout as the visual editor.
  */
-export function renderToHtml(source: string): string {
-  return renderVisualChordSheet(source, { repeatChorus: true });
+export function renderToHtml(source: string, options?: { inlineChords?: boolean }): string {
+  return renderVisualChordSheet(source, { repeatChorus: true, inlineChords: options?.inlineChords });
 }
 
 /**

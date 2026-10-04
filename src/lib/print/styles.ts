@@ -11,6 +11,90 @@ export const printStyles = `
     .song-page:last-child { page-break-after: auto; }
     .toc-print { page-break-after: always; }
     @page { margin: 2cm; size: A4; }
+    /* Two-column layout for book mode */
+    .print-columns {
+      column-count: 2;
+      column-gap: 2cm;
+      column-fill: auto;
+    }
+    .print-columns .song-page {
+      page-break-after: auto;
+      break-inside: avoid;
+      column-break-inside: avoid;
+    }
+    .print-columns .album-header {
+      column-span: all;
+      page-break-before: always;
+      break-before: column;
+    }
+    /* Chord sheet - responsive like mobile web version */
+    .visual-chord-editor.visual-chord-sheet {
+      width: 100%;
+      max-width: 100%;
+      overflow-x: hidden;
+    }
+    .visual-chord-sheet .vce-lines {
+      width: 100%;
+    }
+    .visual-chord-sheet .vce-line {
+      width: 100%;
+      min-width: 0;
+    }
+    /* Allow lyrics to wrap in print */
+    .visual-chord-sheet .vce-lyrics-text {
+      font-size: 9pt;
+      line-height: 1.5;
+      min-height: 1.5em;
+      white-space: pre-wrap;
+      word-break: break-word;
+      overflow-wrap: anywhere;
+      padding: 0 0.15em;
+    }
+    /* Chords row - allow wrapping, smaller font */
+    .visual-chord-sheet .vce-chord-row {
+      font-size: 8pt;
+      min-height: 1.5em;
+      line-height: 1.5em;
+      white-space: pre-wrap;
+      word-break: break-word;
+      overflow-wrap: anywhere;
+      overflow-x: hidden;
+    }
+    .visual-chord-sheet .vce-chord {
+      display: inline-block;
+      white-space: nowrap;
+    }
+    .visual-chord-sheet .vce-chord-space {
+      display: inline-block;
+    }
+    .visual-chord-sheet .vce-section-label {
+      font-size: 7pt;
+      padding: 0.1em 0.4em;
+      margin-top: 0.5em;
+    }
+    .visual-chord-sheet .vce-empty-line {
+      height: 0.75em;
+    }
+    /* Inline chords (mobile/PDF responsive) */
+    .visual-chord-sheet .vce-inline-chords-line {
+      display: block;
+    }
+    .visual-chord-sheet .vce-inline-chord {
+      color: #2563eb;
+      font-weight: 700;
+      font-size: 0.9em;
+      background: #eff6ff;
+      padding: 0 0.15em;
+      border-radius: 2px;
+      margin-right: 0.1em;
+      white-space: nowrap;
+    }
+    @media (prefers-color-scheme: dark) {
+      .visual-chord-sheet .vce-inline-chord {
+        color: #60a5fa;
+        background: #1e3a5f;
+      }
+    }
     .song-references { margin-top: 1em; padding-top: 0.75em; border-top: 1px solid #ccc; }
     .song-references .ref-header { font-size: 0.7em; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; color: #666; margin-bottom: 0.3em; }
     .song-references ul { list-style: disc; padding-left: 1.2em; font-size: 0.85em; }

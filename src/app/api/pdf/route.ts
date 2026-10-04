@@ -54,6 +54,7 @@ function buildChordsPrintUrl({
   if (scope === "album" && id) params.set("album", id);
   if (scope === "artist" && id) params.set("artist", id);
   if (scope === "song" && id) params.set("song", id);
+  if (scope === "book" && id) params.set("book", id);
   if (refs) params.set("refs", "1");
   if (langs.length === 1) {
     const qs = params.toString();

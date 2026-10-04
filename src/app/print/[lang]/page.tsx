@@ -16,6 +16,7 @@ export default async function PrintPage({
     song?: string;
     album?: string;
     artist?: string;
+    book?: string;
     refs?: string;
     langs?: string;
   }>;
@@ -25,6 +26,7 @@ export default async function PrintPage({
     song: songId,
     album: albumId,
     artist: artistId,
+    book: bookId,
     refs: showRefsParam,
     langs: langsParam,
   } = await searchParams;
@@ -52,12 +54,12 @@ export default async function PrintPage({
     }
   }
 
-  // Determine scope — song, album, artist, or full songbook
-  const scope = songId ? "song" : albumId ? "album" : artistId ? "artist" : "all";
-  const scopeId = songId ?? albumId ?? artistId ?? null;
+  // Determine scope — song, album, artist, book, or full songbook
+  const scope = songId ? "song" : albumId ? "album" : artistId ? "artist" : bookId ? "book" : "all";
+  const scopeId = songId ?? albumId ?? artistId ?? bookId ?? null;
   const resolved = await resolveScopeSongs(scope, scopeId);
 
-  const printSongs = await loadPrintSongs(resolved.songs, languages, showRefs);
+  const printSongs = await loadPrintSongs(resolved.songs, languages, showRefs, true);
 
   const langLabel = languageLabelFor;
 

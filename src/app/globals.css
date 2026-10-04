@@ -624,6 +624,27 @@ a.ref-marker:hover {
     min-height: 44px;
   }
 
+  /* Inline chords (mobile/PDF responsive) */
+  .visual-chord-sheet .vce-inline-chords-line {
+    display: block;
+  }
+  .visual-chord-sheet .vce-inline-chord {
+    color: #2563eb;
+    font-weight: 700;
+    font-size: 0.9em;
+    background: #eff6ff;
+    padding: 0 0.15em;
+    border-radius: 2px;
+    margin-right: 0.1em;
+    white-space: nowrap;
+  }
+  @media (prefers-color-scheme: dark) {
+    .visual-chord-sheet .vce-inline-chord {
+      color: #60a5fa;
+      background: #1e3a5f;
+    }
+  }
+
   /* Reference markers */
   .visual-chord-sheet .ref-marker {
     font-size: 0.75rem;

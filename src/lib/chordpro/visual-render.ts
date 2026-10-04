@@ -24,6 +24,9 @@ export interface VisualRenderOptions {
   highlightRange?: { line: number; start: number; end: number };
   /** Replay repeated sections where `{chorus}` / `{verse}` / `{instrumental}` or their `: label` variants appear (read-only sheets). */
   repeatChorus?: boolean;
+  /** Render chords inline with lyrics (in brackets) instead of on a separate row.
+   * Useful for responsive layouts (mobile, PDF) where separate rows wrap independently. */
+  inlineChords?: boolean;
 }
 
 function renderMetadataDirective(raw: string): string | null {
@@ -63,6 +66,7 @@ export function renderVisualChordSheet(
     dataContentLine = false,
     highlightRange,
     repeatChorus = false,
+    inlineChords = false,
   } = options;
   const lines = parseChordProSource(source);
   const out: string[] = ['<div class="vce-lines">'];

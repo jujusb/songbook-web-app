@@ -1,5 +1,6 @@
 import {
   listSongs,
+  listAlbums,
   getSong,
   getAlbum,
   getArtist,
@@ -11,7 +12,7 @@ import {
 import type { SongListItem } from '@/lib/content';
 import type { SongMeta } from '@/lib/content/schemas';
 
-export type ExportScope = 'song' | 'album' | 'artist' | 'setlist' | 'all';
+export type ExportScope = 'song' | 'album' | 'artist' | 'setlist' | 'all' | 'book';
 
 export interface ResolvedScopeSong {
   songId: string;
@@ -93,6 +94,38 @@ export async function resolveScopeSongs(
         }))
         .filter((s) => s.meta);
       return toResolved(scope, id, setlist.title, songs);
+    }
+    case 'book': {
+      // Book mode: all songs grouped by album, ordered by album ID,
+      // with album title as section header. Songs within each album
+      // keep their album-defined order (which is the track order).
+      const albums = await listAlbums();
+      const albumsById = new Map(albums.map((a) => [a.id, a]));
+      const allSongsById = new Map(allSongs.map((s) => [s.id, s]));
+      let title = 'Songbook';
+      try {
+        const config = await getSiteConfig();
+        title = config.title || 'Songbook';
+      } catch {}
+      const bookSongs: ResolvedScopeSong[] = [];
+      // Sort albums by ID
+      const sortedAlbums = [...albums].sort((a: { id: string }, b: { id: string }) => a.id.localeCompare(b.id));
+      for (const album of sortedAlbums) {
+        // Add album header as a special entry
+        bookSongs.push({
+          songId: `__album_${album.id}`,
+          meta: { ...album, __isAlbumHeader: true } as unknown as SongListItem & { __isAlbumHeader: boolean },
+          lang: null,
+        });
+        // Add songs in album order
+        for (const songId of album.songs) {
+          const meta = allSongsById.get(songId);
+          if (meta) {
+            bookSongs.push({ songId, meta, lang: null });
+          }
+        }
+      }
+      return toResolved(scope, null, title, bookSongs);
     }
     case 'all': {
       let title = 'Songbook';
