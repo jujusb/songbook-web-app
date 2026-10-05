@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { listSetlists, getSetlist, saveSetlist, deleteSetlist } from "@/lib/content";
-import { getSession, canEdit, canAdmin } from "@/lib/auth";
-import { isReadOnly } from "@/lib/readonly";
+import { getSession, canEdit, canAdmin, canCreateSetlist } from "@/lib/auth";
+import { isReadOnlyFor } from "@/lib/readonly";
 import type { Setlist } from "@/lib/content/schemas";
 
 export async function GET() {
@@ -11,14 +11,14 @@ export async function GET() {
   return NextResponse.json(showAll ? all : all.filter((s) => s.public));
 }
 
-function readonlyResponse() {
-  return NextResponse.json({ error: "Read-only mode" }, { status: 403 });
+function readonlyResponse(operation: string) {
+  return NextResponse.json({ error: `Read-only mode: ${operation} disabled` }, { status: 403 });
 }
 
 export async function POST(request: Request) {
-  if (isReadOnly()) return readonlyResponse();
+  if (isReadOnlyFor('setlist_write')) return readonlyResponse("create setlist");
   const session = await getSession();
-  if (!canEdit(session?.role ?? null)) {
+  if (!canCreateSetlist(session?.role ?? null)) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
@@ -37,6 +37,7 @@ export async function POST(request: Request) {
       songs: data.songs || [],
       voiceShares: data.voiceShares || [],
       public: false,
+      ownerId: session?.userId,
       created: new Date().toISOString(),
     };
 
@@ -49,9 +50,12 @@ export async function POST(request: Request) {
 }
 
 export async function PUT(request: Request) {
-  if (isReadOnly()) return readonlyResponse();
+  if (isReadOnlyFor('setlist_write')) return readonlyResponse("update setlist");
   const session = await getSession();
-  if (!canEdit(session?.role ?? null)) {
+  const userId = session?.userId;
+  const role = session?.role ?? null;
+
+  if (!canCreateSetlist(role)) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
@@ -61,11 +65,20 @@ export async function PUT(request: Request) {
       return NextResponse.json({ error: "id is required" }, { status: 400 });
     }
 
-    // Load existing to preserve created date
+    // Load existing to preserve created date and check ownership
     let existing: Setlist | null = null;
     try {
       existing = await getSetlist(data.id);
-    } catch {}
+    } catch {
+      return NextResponse.json({ error: "Setlist not found" }, { status: 404 });
+    }
+
+    // Check ownership for setlist_creator role
+    const isOwner = existing.ownerId === userId;
+    const canEditAll = canEdit(role);
+    if (!isOwner && !canEditAll) {
+      return NextResponse.json({ error: "Forbidden: not the owner" }, { status: 403 });
+    }
 
     const setlist: Setlist = {
       id: data.id,
@@ -77,6 +90,7 @@ export async function PUT(request: Request) {
       public: existing?.public ?? false,
       shareToken: existing?.shareToken,
       shareSlug: existing?.shareSlug,
+      ownerId: existing.ownerId,
       created: existing?.created || new Date().toISOString(),
     };
 
@@ -89,9 +103,12 @@ export async function PUT(request: Request) {
 }
 
 export async function DELETE(request: Request) {
-  if (isReadOnly()) return readonlyResponse();
+  if (isReadOnlyFor('setlist_write')) return readonlyResponse("delete setlist");
   const session = await getSession();
-  if (!canAdmin(session?.role ?? null)) {
+  const userId = session?.userId;
+  const role = session?.role ?? null;
+
+  if (!canCreateSetlist(role)) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
@@ -102,6 +119,13 @@ export async function DELETE(request: Request) {
   }
 
   try {
+    const existing = await getSetlist(id);
+    const isOwner = existing.ownerId === userId;
+    const canEditAll = canAdmin(role);
+    if (!isOwner && !canEditAll) {
+      return NextResponse.json({ error: "Forbidden: not the owner" }, { status: 403 });
+    }
+
     await deleteSetlist(id);
     return NextResponse.json({ success: true });
   } catch (err: unknown) {

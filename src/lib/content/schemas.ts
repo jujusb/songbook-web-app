@@ -208,6 +208,7 @@ export const SetlistSchema = z.object({
   public: z.boolean().default(false),        // browsable by anyone (private by default)
   shareToken: z.string().optional(),         // grants view access via ?share=<token>
   shareSlug: z.string().optional(),          // optional custom slug for the share link
+  ownerId: z.string().optional(),            // user who created the setlist
   created: z.union([z.string(), z.date()]).optional(),
   modified: z.union([z.string(), z.date()]).optional(),
 });

@@ -4,7 +4,7 @@ export const UserSchema = z.object({
   id: z.string(),
   username: z.string(),
   passwordHash: z.string().optional(),       // absent for OIDC-only users
-  role: z.enum(['public', 'reviewer', 'admin']),
+  role: z.enum(['public', 'reviewer', 'admin', 'setlist_creator']),
   displayName: z.string().optional(),
   email: z.string().optional(),
   authProvider: z.enum(['local', 'oidc']).default('local'),
@@ -14,10 +14,11 @@ export const UserSchema = z.object({
 
 export type User = z.infer<typeof UserSchema>;
 
-export const roles = ['public', 'reviewer', 'admin'] as const;
+export const roles = ['public', 'reviewer', 'admin', 'setlist_creator'] as const;
 export type Role = (typeof roles)[number];
 
 // What each role can do:
 // public: read songs, albums, artists, browse, compare, present, print
+// setlist_creator: all public + create/edit own setlists, manage share links
 // reviewer: all public + edit songs, create translations
 // admin: all reviewer + create/delete songs/albums/artists, manage users

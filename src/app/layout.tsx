@@ -4,7 +4,7 @@ import { cookies } from "next/headers";
 import Link from "next/link";
 import { getSiteConfig, getLanguagesConfig } from "@/lib/content";
 import { getLocale } from "@/lib/i18n/server";
-import { getSession, canEdit, canAdmin } from "@/lib/auth";
+import { getSession, canEdit, canAdmin, canCreateSetlist } from "@/lib/auth";
 import { isReadOnly } from "@/lib/readonly";
 import { UserMenu } from "@/components/UserMenu";
 import { LocaleSwitcher } from "@/components/LocaleSwitcher";
@@ -41,6 +41,7 @@ export default async function RootLayout({
   let enableArtistPages = false;
   let showEditActions = false;
   let showAdminActions = false;
+  let showCreateSetlist = false;
   const cookieStore = await cookies();
   let fallbackLocale = 'en';
   let songLanguages: string[] | undefined;
@@ -62,6 +63,7 @@ export default async function RootLayout({
     const session = await getSession();
     showEditActions = canEdit(session?.role ?? null);
     showAdminActions = canAdmin(session?.role ?? null);
+    showCreateSetlist = canCreateSetlist(session?.role ?? null);
   } catch {}
 
   return (
@@ -125,6 +127,14 @@ export default async function RootLayout({
                   <T k="nav.admin" />
                 </Link>
               )}
+              {(showEditActions || showCreateSetlist) && (
+                <Link
+                  href="/setlists/new"
+                  className="text-sm px-3 py-1.5 bg-neutral-900 dark:bg-white text-white dark:text-neutral-900 rounded-md font-medium hover:opacity-90 transition-opacity"
+                >
+                  <T k="nav.newSetlist" />
+                </Link>
+              )}
               <Link
                 href="/pdf"
                 className="text-sm px-3 py-1.5 border border-neutral-300 dark:border-neutral-700 rounded-md font-medium hover:bg-neutral-100 dark:hover:bg-neutral-800 hover:text-foreground transition-colors"
@@ -133,7 +143,7 @@ export default async function RootLayout({
                 Convert to PDF
               </Link>
               <LocaleSwitcher />
-              {!isReadOnly() && <UserMenu />}
+              <UserMenu />
             </div>
           </nav>
         </header>

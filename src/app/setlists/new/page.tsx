@@ -1,13 +1,13 @@
 import { notFound, redirect } from "next/navigation";
-import { getSession, canEdit } from "@/lib/auth";
-import { isReadOnly } from "@/lib/readonly";
+import { getSession, canCreateSetlist } from "@/lib/auth";
+import { isReadOnlyFor } from "@/lib/readonly";
 import { listSongs, getSongTranslations } from "@/lib/content";
 import { SetlistEditor } from "@/components/SetlistEditor";
 
 export default async function NewSetlistPage() {
-  if (isReadOnly()) notFound();
+  if (isReadOnlyFor('setlist_write')) notFound();
   const session = await getSession();
-  if (!canEdit(session?.role ?? null)) redirect("/login");
+  if (!canCreateSetlist(session?.role ?? null)) redirect("/login");
 
   const songs = await listSongs();
   const songsWithLangs = await Promise.all(

@@ -4,14 +4,26 @@ import { saveSongTranslation, saveSongMeta, createSong, getSong, getSongTranslat
 import { SongTranslationFrontmatterSchema, type Reference, type Partition, type Album } from "@/lib/content/schemas";
 import { revalidatePath } from "next/cache";
 import matter from "gray-matter";
-import { isReadOnly } from "@/lib/readonly";
-import { getSession, canEdit, canAdmin } from "@/lib/auth";
+import { isReadOnly, isReadOnlyFor } from "@/lib/readonly";
+import { getSession, canEdit, canAdmin, canCreateSetlist, canManageSetlistShares } from "@/lib/auth";
 import { songIdFromTitle, slugifySongId, uniqueSongId } from "@/lib/song-ids";
 import { randomUUID } from "node:crypto";
 
 function assertWritable() {
   if (isReadOnly()) {
     throw new Error("Read-only mode");
+  }
+}
+
+function assertSetlistWrite() {
+  if (isReadOnlyFor('setlist_write')) {
+    throw new Error("Read-only mode: setlist writes disabled");
+  }
+}
+
+function assertSetlistShare() {
+  if (isReadOnlyFor('setlist_share')) {
+    throw new Error("Read-only mode: setlist sharing disabled");
   }
 }
 
@@ -587,16 +599,22 @@ export type { VoiceShareWithTracks } from "@/lib/navidrome/setlist-shares";
  * and persist the share links on the setlist.
  */
 export async function generateSetlistVoiceSharesAction(setlistId: string) {
-  assertWritable();
+  assertSetlistWrite();
   const session = await getSession();
-  if (!canEdit(session?.role ?? null)) {
+  if (!canCreateSetlist(session?.role ?? null)) {
     return { ok: false as const, error: "Unauthorized" };
   }
   try {
+    const setlist = await getSetlist(setlistId);
+    // Check ownership for setlist_creator
+    const isOwner = setlist.ownerId === session?.userId;
+    const canEditAll = canEdit(session?.role ?? null);
+    if (!isOwner && !canEditAll) {
+      return { ok: false as const, error: "Forbidden: not the owner" };
+    }
     const { generateSetlistVoiceShares } = await import(
       "@/lib/navidrome/setlist-shares"
     );
-    const setlist = await getSetlist(setlistId);
     const { shares, enriched } = await generateSetlistVoiceShares(setlist, { role: session?.role ?? 'public' });
     await saveSetlist({ ...setlist, voiceShares: shares });
     revalidatePath(`/setlists/${setlistId}`);
@@ -623,13 +641,19 @@ export async function generateSetlistVoiceSharesAction(setlistId: string) {
  * and holders of the share token (private, the default).
  */
 export async function setSetlistPublicAction(setlistId: string, isPublic: boolean) {
-  assertWritable();
+  assertSetlistShare();
   const session = await getSession();
-  if (!canEdit(session?.role ?? null)) {
+  if (!canManageSetlistShares(session?.role ?? null)) {
     return { ok: false as const, error: "Unauthorized" };
   }
   try {
     const setlist = await getSetlist(setlistId);
+    // Check ownership for setlist_creator
+    const isOwner = setlist.ownerId === session?.userId;
+    const canEditAll = canEdit(session?.role ?? null);
+    if (!isOwner && !canEditAll) {
+      return { ok: false as const, error: "Forbidden: not the owner" };
+    }
     await saveSetlist({ ...setlist, public: isPublic });
     revalidatePath(`/setlists/${setlistId}`);
     revalidatePath("/setlists");
@@ -648,13 +672,19 @@ export async function setSetlistPublicAction(setlistId: string, isPublic: boolea
  * holding it.
  */
 export async function createSetlistShareAction(setlistId: string) {
-  assertWritable();
+  assertSetlistShare();
   const session = await getSession();
-  if (!canEdit(session?.role ?? null)) {
+  if (!canManageSetlistShares(session?.role ?? null)) {
     return { ok: false as const, error: "Unauthorized" };
   }
   try {
     const setlist = await getSetlist(setlistId);
+    // Check ownership for setlist_creator
+    const isOwner = setlist.ownerId === session?.userId;
+    const canEditAll = canEdit(session?.role ?? null);
+    if (!isOwner && !canEditAll) {
+      return { ok: false as const, error: "Forbidden: not the owner" };
+    }
     const token = setlist.shareToken || randomUUID();
     await saveSetlist({ ...setlist, shareToken: token });
     revalidatePath(`/setlists/${setlistId}`);
@@ -673,13 +703,19 @@ export async function createSetlistShareAction(setlistId: string) {
  * access.
  */
 export async function deleteSetlistShareAction(setlistId: string) {
-  assertWritable();
+  assertSetlistShare();
   const session = await getSession();
-  if (!canEdit(session?.role ?? null)) {
+  if (!canManageSetlistShares(session?.role ?? null)) {
     return { ok: false as const, error: "Unauthorized" };
   }
   try {
     const setlist = await getSetlist(setlistId);
+    // Check ownership for setlist_creator
+    const isOwner = setlist.ownerId === session?.userId;
+    const canEditAll = canEdit(session?.role ?? null);
+    if (!isOwner && !canEditAll) {
+      return { ok: false as const, error: "Forbidden: not the owner" };
+    }
     await saveSetlist({ ...setlist, shareToken: undefined });
     revalidatePath(`/setlists/${setlistId}`);
     revalidatePath("/setlists");
@@ -700,9 +736,9 @@ const SHARE_SLUG_PATTERN = /^[a-zA-Z0-9][a-zA-Z0-9_-]{0,59}$/;
  * An empty value removes the slug so the link falls back to the share token.
  */
 export async function setSetlistShareSlugAction(setlistId: string, slug: string) {
-  assertWritable();
+  assertSetlistShare();
   const session = await getSession();
-  if (!canEdit(session?.role ?? null)) {
+  if (!canManageSetlistShares(session?.role ?? null)) {
     return { ok: false as const, error: "Unauthorized" };
   }
   const value = slug.trim();
@@ -712,6 +748,12 @@ export async function setSetlistShareSlugAction(setlistId: string, slug: string)
   try {
     const { listSetlists } = await import("@/lib/content");
     const setlist = await getSetlist(setlistId);
+    // Check ownership for setlist_creator
+    const isOwner = setlist.ownerId === session?.userId;
+    const canEditAll = canEdit(session?.role ?? null);
+    if (!isOwner && !canEditAll) {
+      return { ok: false as const, error: "Forbidden: not the owner" };
+    }
     if (value) {
       const all = await listSetlists();
       const taken = all.some(

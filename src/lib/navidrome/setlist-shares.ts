@@ -159,7 +159,7 @@ async function tracksForParts(
  */
 export interface GenerateVoiceSharesOptions {
   /** Role of the requesting user. If 'admin', all songs are used regardless of published status. */
-  role?: 'public' | 'reviewer' | 'admin';
+  role?: 'public' | 'reviewer' | 'admin' | 'setlist_creator';
 }
 
 export async function generateSetlistVoiceShares(
@@ -240,7 +240,7 @@ export async function generateSetlistVoiceShares(
  */
 export async function getSetlistVoiceShares(
   setlist: Setlist,
-  role?: 'public' | 'reviewer' | 'admin',
+  role?: 'public' | 'reviewer' | 'admin' | 'setlist_creator',
 ): Promise<VoiceShareWithTracks[]> {
   const stored = setlist.voiceShares ?? [];
   if (stored.length === 0) return [];

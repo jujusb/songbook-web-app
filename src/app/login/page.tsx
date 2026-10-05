@@ -1,15 +1,17 @@
 import { LoginForm } from "@/components/LoginForm";
 import { getSession } from "@/lib/auth";
 import { getSiteConfig } from "@/lib/content";
-import { isReadOnly } from "@/lib/readonly";
+import { isReadOnlyFor } from "@/lib/readonly";
 import { notFound, redirect } from "next/navigation";
+import Link from "next/link";
+import { useTranslation } from "@/lib/i18n";
 
 export default async function LoginPage({
   searchParams,
 }: {
   searchParams: Promise<{ error?: string }>;
 }) {
-  if (isReadOnly()) notFound();
+  if (isReadOnlyFor('login')) notFound();
   const session = await getSession();
   if (session) redirect("/browse");
 
@@ -25,6 +27,8 @@ export default async function LoginPage({
     redirect("/api/auth/oidc");
   }
 
+  const canRegister = !isReadOnlyFor('user_write');
+
   return (
     <div className="max-w-sm mx-auto px-4 py-16">
       <h1 className="text-2xl font-bold mb-6 text-center">Sign In</h1>
@@ -37,6 +41,14 @@ export default async function LoginPage({
         oidcEnabled={oidcEnabled}
         oidcButtonLabel={oidcButtonLabel}
       />
+      {canRegister && (
+        <p className="mt-4 text-center text-sm text-neutral-500">
+          Don't have an account?{" "}
+          <Link href="/register" className="text-blue-600 dark:text-blue-400 hover:underline">
+            Create one
+          </Link>
+        </p>
+      )}
     </div>
   );
 }

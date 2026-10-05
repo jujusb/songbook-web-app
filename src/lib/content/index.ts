@@ -110,7 +110,7 @@ export interface ListSongsOptions {
    *  If false (default), include all songs. */
   onlyPublished?: boolean;
   /** Role of the requesting user. If 'admin', all songs are returned regardless of published status. */
-  role?: 'public' | 'reviewer' | 'admin';
+  role?: 'public' | 'reviewer' | 'admin' | 'setlist_creator';
 }
 
 export async function listSongs(options: ListSongsOptions = {}): Promise<SongListItem[]> {
@@ -590,7 +590,7 @@ export interface ListAlbumsOptions {
   /** If true, only include albums that have published=true. */
   onlyPublished?: boolean;
   /** Role of the requesting user. If 'admin', all albums are returned regardless of published status. */
-  role?: 'public' | 'reviewer' | 'admin';
+  role?: 'public' | 'reviewer' | 'admin' | 'setlist_creator';
   /** Language to filter by for published status. If provided, only albums with at least one song published in this language are included. */
   lang?: string;
 }

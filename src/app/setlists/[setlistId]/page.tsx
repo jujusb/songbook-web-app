@@ -3,7 +3,7 @@ import Link from "next/link";
 import { cookies } from "next/headers";
 import { getSetlist, listSongs, getSong, getSongTranslation, getSongTranslations, getSongTitle, getLanguagesConfig, shouldShowSongInLanguage, getShareBaseUrl } from "@/lib/content";
 import { getLocale } from "@/lib/i18n/server";
-import { getSession, canEdit, canAdmin, canViewSetlist } from "@/lib/auth";
+import { getSession, canEdit, canAdmin, canViewSetlist, canCreateSetlist, canManageSetlistShares } from "@/lib/auth";
 import { SetlistEditor } from "@/components/SetlistEditor";
 import { SetlistVoicePlaylists } from "@/components/SetlistVoicePlaylists";
 import { SetlistShareControls } from "@/components/SetlistShareControls";
@@ -31,10 +31,18 @@ export default async function SetlistPage({
   }
 
   const session = await getSession();
-  const showEditActions = canEdit(session?.role ?? null);
-  const showDeleteActions = canAdmin(session?.role ?? null);
+  const userId = session?.userId;
+  const role = session?.role ?? null;
+  const showEditActions = canEdit(role);
+  const showDeleteActions = canAdmin(role);
+  const canCreate = canCreateSetlist(role);
+  const canManageShares = canManageSetlistShares(role);
+  const isOwner = setlist.ownerId === userId;
+  const showEditor = showEditActions || (canCreate && isOwner);
+  const showShareControls = showEditActions || (canManageShares && isOwner);
+  const showVoiceShares = showEditActions || (canCreate && isOwner);
 
-  if (!canViewSetlist(setlist, shareParam, showEditActions)) {
+  if (!canViewSetlist(setlist, shareParam, showEditor)) {
     notFound();
   }
 
@@ -82,12 +90,12 @@ export default async function SetlistPage({
       return false;
     }
     // Filter by published status for non-admin users
-    if (!showEditActions && !song.published) {
+    if (!showEditor && !song.published) {
       return false;
     }
     return true;
   });
-  const displayCount = showEditActions ? setlist.songs.length : visibleSongDetails.length;
+  const displayCount = showEditor ? setlist.songs.length : visibleSongDetails.length;
 
   return (
     <div className="max-w-full mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -137,7 +145,7 @@ export default async function SetlistPage({
         </div>
       </div>
 
-      {showEditActions && (
+      {showShareControls && (
         <SetlistShareControls
           setlistId={setlist.id}
           isPublic={setlist.public ?? false}
@@ -150,10 +158,10 @@ export default async function SetlistPage({
       <SetlistVoicePlaylists
         setlistId={setlist.id}
         shares={voiceShares}
-        canGenerate={showEditActions}
+        canGenerate={showVoiceShares}
       />
 
-      {showEditActions ? (
+      {showEditor ? (
         <SetlistEditor
           availableSongs={songsWithLangs}
           initialSetlist={{
