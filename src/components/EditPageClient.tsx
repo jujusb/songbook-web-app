@@ -57,6 +57,7 @@ export function EditPageClient({
   const router = useRouter();
   const [showReferences, setShowReferences] = useState(initialShowReferences);
   const [showMusicLinks, setShowMusicLinks] = useState(false);
+  const [showRevisions, setShowRevisions] = useState(true);
   const [titleInput, setTitleInput] = useState(title);
   const [savingTitle, setSavingTitle] = useState(false);
   const [titleSaved, setTitleSaved] = useState(true);
@@ -264,6 +265,12 @@ export function EditPageClient({
           >
             {t('song.referencesEditor')}
           </button>
+          <button
+            onClick={() => setShowRevisions(!showRevisions)}
+            className="text-xs px-3 py-1.5 border border-neutral-300 dark:border-neutral-700 rounded-md hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors"
+          >
+            {showRevisions ? t('revisions.hide') : t('revisions.view')}
+          </button>
         </div>
       </div>
 <LanguageSwitcher
@@ -288,7 +295,7 @@ export function EditPageClient({
         translations={translationLangs}
         translationsContent={translationsContent}
       />
-      <RevisionPanel songId={songId} lang={lang} />
+      {showRevisions && <RevisionPanel songId={songId} lang={lang} />}
       {showReferences && (
         <ReferenceEditor
           references={references}

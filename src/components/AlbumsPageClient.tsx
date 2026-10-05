@@ -55,7 +55,7 @@ export function AlbumsPageClient({
   const [query, setQuery] = useState("");
   const [sortBy, setSortBy] = useState<
     "title-asc" | "title-desc" | "year-asc" | "year-desc" | "number-asc" | "number-desc" | "id-asc" | "id-desc"
-  >("title-asc");
+  >("number-asc");
   const [filterArtist, setFilterArtist] = useState<string>("");
 
   const uiLang = locale;

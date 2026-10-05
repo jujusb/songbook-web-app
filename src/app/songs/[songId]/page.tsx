@@ -325,6 +325,25 @@ export default async function SongPage({
         </div>
       </div>
 
+      {/* Spotify & YouTube Players - shown above VoiceSections */}
+      {(isOriginalVersion && spotify?.song) && (
+        <div className="mb-4">
+          <SpotifyPlayer
+            type="track"
+            id={songId}
+            lang={lang}
+            explicitUrl={spotify.song}
+            title={localizedTitle}
+            artist={artist?.name}
+          />
+        </div>
+      )}
+      {meta.youtube && (
+        <div className="mb-4">
+          <YouTubePlayer url={meta.youtube} title={localizedTitle} />
+        </div>
+      )}
+
       <VoiceSections id={songId} lang={lang} />
 
       {/* Language Switcher - auto switches to select on mobile */}
