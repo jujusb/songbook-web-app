@@ -32,11 +32,21 @@ export function UserManagement() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [editingUser, setEditingUser] = useState<User | null>(null);
+  const [creatingUser, setCreatingUser] = useState(false);
   const [selectedPermissions, setSelectedPermissions] = useState<PermissionItem[]>([]);
   const [availableSongs, setAvailableSongs] = useState<{ id: string; title: string; translations: string[] }[]>([]);
   const [availableAlbums, setAvailableAlbums] = useState<{ id: string; title: string }[]>([]);
   const [languages, setLanguages] = useState<string[]>([]);
   const [searchUser, setSearchUser] = useState("");
+  
+  const [newUserForm, setNewUserForm] = useState({
+    username: '',
+    password: '',
+    displayName: '',
+    email: '',
+    role: 'reviewer',
+  });
+  const [newUserLoading, setNewUserLoading] = useState(false);
 
   useEffect(() => {
     fetchUsers();
@@ -154,6 +164,37 @@ export function UserManagement() {
     }
   };
 
+  const createUser = async () => {
+    if (!newUserForm.username || !newUserForm.password) {
+      setError("Username and password are required");
+      return;
+    }
+    if (newUserForm.password.length < 8) {
+      setError("Password must be at least 8 characters");
+      return;
+    }
+    setNewUserLoading(true);
+    setError(null);
+    try {
+      const res = await fetch("/api/admin/users", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(newUserForm),
+      });
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.error || "Failed to create user");
+      }
+      setCreatingUser(false);
+      setNewUserForm({ username: '', password: '', displayName: '', email: '', role: 'reviewer' });
+      await fetchUsers();
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : "Failed to create user");
+    } finally {
+      setNewUserLoading(false);
+    }
+  };
+
   const getSongTitle = (songId: string) => {
     const song = availableSongs.find(s => s.id === songId);
     return song ? song.title : songId;
@@ -181,8 +222,8 @@ export function UserManagement() {
         </div>
       )}
 
-      {/* Search */}
-      <div className="mb-6">
+      {/* Search and Create User */}
+      <div className="mb-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <input
           type="text"
           value={searchUser}
@@ -190,6 +231,12 @@ export function UserManagement() {
           placeholder={t('admin.searchUsers')}
           className="w-full max-w-md px-3 py-2 border border-neutral-300 dark:border-neutral-700 rounded-md bg-white dark:bg-neutral-900 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
         />
+        <button
+          onClick={() => setCreatingUser(true)}
+          className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 text-sm font-medium"
+        >
+          + {t('admin.createUser')}
+        </button>
       </div>
 
       {/* Users Table */}
@@ -356,6 +403,96 @@ export function UserManagement() {
                   className="flex-1 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
                 >
                   {t('common.save')}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Create User Modal */}
+      {creatingUser && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+          <div className="bg-white dark:bg-neutral-900 rounded-lg shadow-xl max-w-md w-full">
+            <div className="p-4 border-b border-neutral-200 dark:border-neutral-800 flex items-center justify-between">
+              <h2 className="text-lg font-semibold">{t('admin.createUser')}</h2>
+              <button onClick={() => setCreatingUser(false)} className="text-neutral-400 hover:text-neutral-600">×</button>
+            </div>
+            <div className="p-4 space-y-4">
+              {error && (
+                <div className="px-4 py-2 bg-red-50 dark:bg-red-950 border border-red-200 dark:border-red-800 rounded-md text-red-700 dark:text-red-300 text-sm">
+                  {error}
+                </div>
+              )}
+              <div>
+                <label className="block text-sm font-medium mb-1">{t('auth.username')}</label>
+                <input
+                  type="text"
+                  value={newUserForm.username}
+                  onChange={(e) => setNewUserForm({...newUserForm, username: e.target.value})}
+                  className="w-full px-3 py-2 border border-neutral-300 dark:border-neutral-700 rounded-md bg-white dark:bg-neutral-900 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  disabled={newUserLoading}
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-1">{t('auth.password')}</label>
+                <input
+                  type="password"
+                  value={newUserForm.password}
+                  onChange={(e) => setNewUserForm({...newUserForm, password: e.target.value})}
+                  className="w-full px-3 py-2 border border-neutral-300 dark:border-neutral-700 rounded-md bg-white dark:bg-neutral-900 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  disabled={newUserLoading}
+                  minLength={8}
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-1">{t('admin.displayName')}</label>
+                <input
+                  type="text"
+                  value={newUserForm.displayName}
+                  onChange={(e) => setNewUserForm({...newUserForm, displayName: e.target.value})}
+                  className="w-full px-3 py-2 border border-neutral-300 dark:border-neutral-700 rounded-md bg-white dark:bg-neutral-900 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  disabled={newUserLoading}
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-1">{t('admin.email')}</label>
+                <input
+                  type="email"
+                  value={newUserForm.email}
+                  onChange={(e) => setNewUserForm({...newUserForm, email: e.target.value})}
+                  className="w-full px-3 py-2 border border-neutral-300 dark:border-neutral-700 rounded-md bg-white dark:bg-neutral-900 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  disabled={newUserLoading}
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-1">{t('admin.role')}</label>
+                <select
+                  value={newUserForm.role}
+                  onChange={(e) => setNewUserForm({...newUserForm, role: e.target.value})}
+                  className="w-full px-3 py-2 border border-neutral-300 dark:border-neutral-700 rounded-md bg-white dark:bg-neutral-900 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  disabled={newUserLoading}
+                >
+                  <option value="public">{t('auth.public')}</option>
+                  <option value="setlist_creator">{t('auth.setlist_creator')}</option>
+                  <option value="reviewer">{t('auth.reviewer')}</option>
+                  <option value="admin">{t('auth.admin')}</option>
+                </select>
+              </div>
+              <div className="flex gap-2 pt-4">
+                <button
+                  onClick={() => setCreatingUser(false)}
+                  className="flex-1 px-4 py-2 border border-neutral-300 dark:border-neutral-700 rounded hover:bg-neutral-100 dark:hover:bg-neutral-800"
+                  disabled={newUserLoading}
+                >
+                  {t('common.cancel')}
+                </button>
+                <button
+                  onClick={createUser}
+                  className="flex-1 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+                  disabled={newUserLoading}
+                >
+                  {newUserLoading ? t('common.saving') : t('admin.createUser')}
                 </button>
               </div>
             </div>

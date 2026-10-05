@@ -19,6 +19,47 @@ export async function GET() {
   return NextResponse.json(safeUsers);
 }
 
+export async function POST(request: Request) {
+  if (isReadOnlyFor('user_write')) {
+    return NextResponse.json({ error: "Read-only mode" }, { status: 403 });
+  }
+  const session = await getSession();
+  if (!session || !canAdmin(session.role)) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  try {
+    const body = await request.json();
+    const { username, password, displayName, email, role = 'reviewer' } = body;
+
+    if (!username || !password) {
+      return NextResponse.json({ error: "Username and password required" }, { status: 400 });
+    }
+
+    if (username.length < 3) {
+      return NextResponse.json({ error: "Username must be at least 3 characters" }, { status: 400 });
+    }
+
+    if (password.length < 8) {
+      return NextResponse.json({ error: "Password must be at least 8 characters" }, { status: 400 });
+    }
+
+    const { getUserByUsername, createUser } = await import("@/lib/auth");
+    const existing = await getUserByUsername(username);
+    if (existing) {
+      return NextResponse.json({ error: "Username already taken" }, { status: 409 });
+    }
+
+    const user = await createUser(username, password, role, displayName);
+
+    const { passwordHash, ...safeUser } = user;
+    return NextResponse.json(safeUser, { status: 201 });
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : "Failed to create user";
+    return NextResponse.json({ error: message }, { status: 500 });
+  }
+}
+
 export async function PUT(request: Request) {
   if (isReadOnlyFor('user_write')) {
     return NextResponse.json({ error: "Read-only mode" }, { status: 403 });

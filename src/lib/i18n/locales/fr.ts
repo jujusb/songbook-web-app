@@ -371,6 +371,8 @@ const fr: Translations = {
     allSongsInLanguage: 'Tous les chants dans cette langue',
     noPermissions: 'Aucune permission spécifique',
     selectLanguage: 'Langue',
+    createUser: 'Créer un utilisateur',
+    email: 'E-mail',
   },
 };
 

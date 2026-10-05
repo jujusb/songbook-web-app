@@ -371,6 +371,8 @@ print: {
     allSongsInLanguage: 'Todas las canciones en este idioma',
     noPermissions: 'Sin permisos específicos',
     selectLanguage: 'Idioma',
+    createUser: 'Crear Usuario',
+    email: 'Correo electrónico',
   },
 };
 

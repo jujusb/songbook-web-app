@@ -369,6 +369,8 @@ const en = {
     allSongsInLanguage: 'All songs in this language',
     noPermissions: 'No specific permissions',
     selectLanguage: 'Language',
+    createUser: 'Create User',
+    email: 'Email',
   },
 };
 
