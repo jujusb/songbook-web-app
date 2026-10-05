@@ -44,8 +44,16 @@ export async function POST(
       : currentMeta;
     const body = parsed.content.trim();
 
+    // Set published status and track which revision is published
+    const updatedFrontmatter = {
+      ...frontmatter,
+      published: true,
+      publishedRevision: timestamp,
+      lastModified: new Date().toISOString(),
+    };
+
     // Apply the revision as current WITHOUT creating a revision of current
-    await saveSongTranslation(id, lang, frontmatter, body);
+    await saveSongTranslation(id, lang, updatedFrontmatter, body);
 
     return NextResponse.json({ success: true, timestamp, message: "Published revision" });
   } catch (err: unknown) {

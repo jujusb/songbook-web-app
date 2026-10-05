@@ -128,6 +128,7 @@ export const SongTranslationFrontmatterSchema = z.object({
   translator: z.string().nullable().optional(),
   status: z.enum(['draft', 'review', 'final']).default('draft'),
   published: z.boolean().default(false),
+  publishedRevision: z.string().optional(), // timestamp of the published revision
   lastModified: z.string().optional(),
   modifiedBy: z.string().optional(),
 });

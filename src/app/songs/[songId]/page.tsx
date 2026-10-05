@@ -325,7 +325,7 @@ export default async function SongPage({
         </div>
       </div>
 
-      {/* Spotify & YouTube Players - shown above VoiceSections */}
+      {/* Spotify & YouTube Players (original) / Navidrome Player (translations) - shown above VoiceSections */}
       {(isOriginalVersion && spotify?.song) && (
         <div className="mb-4">
           <SpotifyPlayer
@@ -343,8 +343,6 @@ export default async function SongPage({
           <YouTubePlayer url={meta.youtube} title={localizedTitle} variant="large" />
         </div>
       )}
-
-      {/* Navidrome Player - shown above VoiceSections for non-original versions */}
       {showNavidrome && (
         <div className="mb-4">
           <NavidromeShareButton

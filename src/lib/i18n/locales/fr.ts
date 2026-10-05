@@ -385,6 +385,7 @@ const fr: Translations = {
     reverting: 'Restauration...',
     publish: 'Publier',
     publishing: 'Publication...',
+    published: 'Publié',
     confirmRevert: 'Restaurer cette révision ? Les modifications actuelles seront sauvegardées comme nouvelle révision d\'abord.',
     confirmPublish: 'Publier cette révision comme version actuelle ?',
     noRevisions: 'Aucune révision pour l\'instant. Les révisions sont créées automatiquement à chaque sauvegarde.',
