@@ -373,6 +373,8 @@ print: {
     selectLanguage: 'Idioma',
     createUser: 'Crear Usuario',
     email: 'Correo electrónico',
+    permissionsReviewerOnly: 'Los permisos solo se pueden asignar a Revisores',
+    currentUser: 'Usuario actual',
   },
 };
 

@@ -371,6 +371,8 @@ const en = {
     selectLanguage: 'Language',
     createUser: 'Create User',
     email: 'Email',
+    permissionsReviewerOnly: 'Permissions can only be set for Reviewers',
+    currentUser: 'Current User',
   },
 };
 

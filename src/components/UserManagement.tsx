@@ -38,6 +38,7 @@ export function UserManagement() {
   const [availableAlbums, setAvailableAlbums] = useState<{ id: string; title: string }[]>([]);
   const [languages, setLanguages] = useState<string[]>([]);
   const [searchUser, setSearchUser] = useState("");
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   
   const [newUserForm, setNewUserForm] = useState({
     username: '',
@@ -50,8 +51,19 @@ export function UserManagement() {
 
   useEffect(() => {
     fetchUsers();
+    fetchCurrentUser();
     fetchOptions();
   }, []);
+
+  const fetchCurrentUser = async () => {
+    try {
+      const res = await fetch("/api/auth/me");
+      if (res.ok) {
+        const data = await res.json();
+        if (data.user) setCurrentUserId(data.user.id);
+      }
+    } catch {}
+  };
 
   const fetchUsers = async () => {
     try {
@@ -252,66 +264,82 @@ export function UserManagement() {
             </tr>
           </thead>
           <tbody className="divide-y divide-neutral-200 dark:divide-neutral-800">
-            {filteredUsers.map(user => (
-              <tr key={user.id} className="hover:bg-neutral-50 dark:hover:bg-neutral-800">
-                <td className="px-4 py-3 text-sm font-mono">{user.username}</td>
-                <td className="px-4 py-3 text-sm">{user.displayName || '-'}</td>
-                <td className="px-4 py-3 text-sm">
-                  <select
-                    value={user.role}
-                    onChange={(e) => updateUserRole(user.id, e.target.value)}
-                    className="px-2 py-1 border border-neutral-300 dark:border-neutral-700 rounded bg-white dark:bg-neutral-900 text-sm"
-                  >
-                    <option value="public">{t('auth.public')}</option>
-                    <option value="setlist_creator">{t('auth.setlist_creator')}</option>
-                    <option value="reviewer">{t('auth.reviewer')}</option>
-                    <option value="admin">{t('auth.admin')}</option>
-                  </select>
-                </td>
-                <td className="px-4 py-3 text-sm">
-                  {user.permissions && (
-                    <div className="flex flex-wrap gap-1">
-                      {user.permissions.editLanguage.map(lang => (
-                        <span key={lang} className="px-2 py-0.5 bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300 rounded text-xs">
-                          {t('admin.fullLanguage')}: {lang}
-                        </span>
-                      ))}
-                      {user.permissions.editSong.map(p => (
-                        <span key={`${p.songId}-${p.lang}`} className="px-2 py-0.5 bg-green-100 dark:bg-green-900 text-green-700 dark:text-green-300 rounded text-xs">
-                          {t('admin.song')}: {getSongTitle(p.songId)} ({p.lang})
-                        </span>
-                      ))}
-                      {user.permissions.editAlbum.map(p => (
-                        <span key={`${p.albumId}-${p.lang}`} className="px-2 py-0.5 bg-yellow-100 dark:bg-yellow-900 text-yellow-700 dark:text-yellow-300 rounded text-xs">
-                          {t('admin.album')}: {getAlbumTitle(p.albumId)} ({p.lang})
-                        </span>
-                      ))}
-                      {!user.permissions.editLanguage.length && !user.permissions.editSong.length && !user.permissions.editAlbum.length && (
-                        <span className="text-neutral-400 text-xs">{t('admin.noPermissions')}</span>
+            {filteredUsers.map(user => {
+              const isCurrentUser = user.id === currentUserId;
+              const isReviewer = user.role === 'reviewer';
+              
+              return (
+                <tr key={user.id} className="hover:bg-neutral-50 dark:hover:bg-neutral-800">
+                  <td className="px-4 py-3 text-sm font-mono">{user.username}</td>
+                  <td className="px-4 py-3 text-sm">{user.displayName || '-'}</td>
+                  <td className="px-4 py-3 text-sm">
+                    <select
+                      value={user.role}
+                      onChange={(e) => !isCurrentUser && updateUserRole(user.id, e.target.value)}
+                      disabled={isCurrentUser}
+                      className="px-2 py-1 border border-neutral-300 dark:border-neutral-700 rounded bg-white dark:bg-neutral-900 text-sm"
+                    >
+                      <option value="public">{t('auth.public')}</option>
+                      <option value="setlist_creator">{t('auth.setlist_creator')}</option>
+                      <option value="reviewer">{t('auth.reviewer')}</option>
+                      <option value="admin">{t('auth.admin')}</option>
+                    </select>
+                    {isCurrentUser && <span className="ml-2 text-xs text-neutral-400">({t('admin.currentUser')})</span>}
+                  </td>
+                  {isReviewer && (
+                    <td className="px-4 py-3 text-sm">
+                      {user.permissions && (
+                        <div className="flex flex-wrap gap-1">
+                          {user.permissions.editLanguage.map(lang => (
+                            <span key={lang} className="px-2 py-0.5 bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300 rounded text-xs">
+                              {t('admin.fullLanguage')}: {lang}
+                            </span>
+                          ))}
+                          {user.permissions.editSong.map(p => (
+                            <span key={`${p.songId}-${p.lang}`} className="px-2 py-0.5 bg-green-100 dark:bg-green-900 text-green-700 dark:text-green-300 rounded text-xs">
+                              {t('admin.song')}: {getSongTitle(p.songId)} ({p.lang})
+                            </span>
+                          ))}
+                          {user.permissions.editAlbum.map(p => (
+                            <span key={`${p.albumId}-${p.lang}`} className="px-2 py-0.5 bg-yellow-100 dark:bg-yellow-900 text-yellow-700 dark:text-yellow-300 rounded text-xs">
+                              {t('admin.album')}: {getAlbumTitle(p.albumId)} ({p.lang})
+                            </span>
+                          ))}
+                          {!user.permissions.editLanguage.length && !user.permissions.editSong.length && !user.permissions.editAlbum.length && (
+                            <span className="text-neutral-400 text-xs">{t('admin.noPermissions')}</span>
+                          )}
+                        </div>
+                      )}
+                    </td>
+                  )}
+                  {!isReviewer && (
+                    <td className="px-4 py-3 text-sm text-neutral-400">
+                      {t('admin.permissionsReviewerOnly')}
+                    </td>
+                  )}
+                  <td className="px-4 py-3 text-sm">
+                    <div className="flex gap-2">
+                      {isReviewer && (
+                        <button
+                          onClick={() => openEditPermissions(user)}
+                          className="text-blue-600 dark:text-blue-400 hover:underline text-xs"
+                        >
+                          {t('admin.editPermissions')}
+                        </button>
+                      )}
+                      {user.id !== users.find(u => u.role === 'admin')?.id && !isCurrentUser && (
+                        <button
+                          onClick={() => deleteUser(user.id)}
+                          className="text-red-600 dark:text-red-400 hover:underline text-xs"
+                        >
+                          {t('common.delete')}
+                        </button>
                       )}
                     </div>
-                  )}
-                </td>
-                <td className="px-4 py-3 text-sm">
-                  <div className="flex gap-2">
-                    <button
-                      onClick={() => openEditPermissions(user)}
-                      className="text-blue-600 dark:text-blue-400 hover:underline text-xs"
-                    >
-                      {t('admin.editPermissions')}
-                    </button>
-                    {user.id !== users.find(u => u.role === 'admin')?.id && (
-                      <button
-                        onClick={() => deleteUser(user.id)}
-                        className="text-red-600 dark:text-red-400 hover:underline text-xs"
-                      >
-                        {t('common.delete')}
-                      </button>
-                    )}
-                  </div>
-                </td>
-              </tr>
-            ))}
+                  </td>
+                </tr>
+              );
+            })}
           </tbody>
         </table>
       </div>

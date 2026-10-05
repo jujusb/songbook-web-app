@@ -373,6 +373,8 @@ const fr: Translations = {
     selectLanguage: 'Langue',
     createUser: 'Créer un utilisateur',
     email: 'E-mail',
+    permissionsReviewerOnly: 'Les permissions ne peuvent être attribuées qu\'aux Réviseurs',
+    currentUser: 'Utilisateur actuel',
   },
 };
 
