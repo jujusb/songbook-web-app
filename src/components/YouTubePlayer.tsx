@@ -8,7 +8,7 @@ export function YouTubePlayer({
 }: {
   url: string;
   title?: string;
-  variant?: "full" | "compact";
+  variant?: "full" | "compact" | "large";
   isPlaylist?: boolean;
 }) {
   const playlistId = isPlaylist ? youtubePlaylistIdFromUrl(url) : null;
@@ -17,11 +17,12 @@ export function YouTubePlayer({
   const src = playlistId
     ? `https://www.youtube.com/embed/videoseries?list=${playlistId}`
     : `https://www.youtube.com/embed/${videoId}`;
+  const height = variant === "compact" ? 112 : variant === "large" ? 360 : 180;
   return (
     <iframe
       src={src}
       width="100%"
-      height={variant === "compact" ? 112 : 180}
+      height={height}
       frameBorder="0"
       allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
       allowFullScreen

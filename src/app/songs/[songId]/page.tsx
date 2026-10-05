@@ -338,9 +338,22 @@ export default async function SongPage({
           />
         </div>
       )}
-      {meta.youtube && (
+      {meta.youtube && isOriginalVersion && (
         <div className="mb-4">
-          <YouTubePlayer url={meta.youtube} title={localizedTitle} />
+          <YouTubePlayer url={meta.youtube} title={localizedTitle} variant="large" />
+        </div>
+      )}
+
+      {/* Navidrome Player - shown above VoiceSections for non-original versions */}
+      {showNavidrome && (
+        <div className="mb-4">
+          <NavidromeShareButton
+            key={`${songId}:${lang}`}
+            type="song"
+            id={songId}
+            lang={lang}
+            variant="compact"
+          />
         </div>
       )}
 
