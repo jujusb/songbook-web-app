@@ -63,6 +63,13 @@ export default async function AlbumPage({
     notFound();
   }
 
+  const session = await getSession();
+  const isAdmin = canAdmin(session?.role ?? null);
+  const showEditActions = canEdit(session?.role ?? null);
+  const showDeleteActions = canAdmin(session?.role ?? null);
+  const navidromeEnabled = getNavidromeConfig() !== null;
+  const isOriginalLanguage = displayLang === langConfig.default;
+
   // Load song metadata for each song in the album (in order)
   const songs = await Promise.all(
     album.songs.map(async (songId) => {
@@ -72,9 +79,10 @@ export default async function AlbumPage({
         if (!shouldShowSongInLanguage(translations, displayLang, langConfig.default)) {
           return null;
         }
-        // Check if translation is published for non-admin users
+        // Check if translation is published for non-editor users (public, setlist_creator)
+        // Editors (reviewer, admin) can see unpublished songs
         const { meta: translationMeta } = await getSongTranslation(songId, displayLang);
-        if (!isAdmin && !translationMeta.published) {
+        if (!showEditActions && !translationMeta.published) {
           return null;
         }
         const localizedTitle = displayLang ? await getSongTitle(songId, displayLang) : song.title;
@@ -104,13 +112,6 @@ export default async function AlbumPage({
     const artistData = await getArtist(album.artist);
     artistName = artistData.name;
   } catch {}
-
-  const session = await getSession();
-  const isAdmin = canAdmin(session?.role ?? null);
-  const showEditActions = canEdit(session?.role ?? null);
-  const showDeleteActions = canAdmin(session?.role ?? null);
-  const navidromeEnabled = getNavidromeConfig() !== null;
-  const isOriginalLanguage = displayLang === langConfig.default;
 
   return (
     <div className="max-w-full mx-auto px-4 sm:px-6 lg:px-8 py-8">
