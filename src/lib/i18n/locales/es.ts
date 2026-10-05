@@ -225,6 +225,8 @@ const es: Translations = {
     username: 'Usuario',
     password: 'Contraseña',
     adminPassword: 'Contraseña de administrador',
+    noAccount: '¿No tienes cuenta?',
+    signUp: 'Regístrate',
   },
   editor: {
     visual: 'Visual',

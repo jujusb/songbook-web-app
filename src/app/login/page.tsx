@@ -4,7 +4,9 @@ import { getSiteConfig } from "@/lib/content";
 import { isReadOnlyFor } from "@/lib/readonly";
 import { notFound, redirect } from "next/navigation";
 import Link from "next/link";
-import { useTranslation } from "@/lib/i18n";
+import { cookies } from "next/headers";
+import { getLocale } from "@/lib/i18n/server";
+import { createT } from "@/lib/i18n/server";
 
 export default async function LoginPage({
   searchParams,
@@ -28,10 +30,14 @@ export default async function LoginPage({
   }
 
   const canRegister = !isReadOnlyFor('user_write');
+  
+  const cookieStore = await cookies();
+  const uiLocale = getLocale(cookieStore, 'en');
+  const t = createT(uiLocale);
 
   return (
     <div className="max-w-sm mx-auto px-4 py-16">
-      <h1 className="text-2xl font-bold mb-6 text-center">Sign In</h1>
+      <h1 className="text-2xl font-bold mb-6 text-center">{t('auth.login')}</h1>
       {params.error && (
         <div className="mb-4 px-4 py-2 bg-red-50 dark:bg-red-950 border border-red-200 dark:border-red-800 rounded-md text-red-700 dark:text-red-300 text-sm">
           {params.error}
@@ -43,9 +49,9 @@ export default async function LoginPage({
       />
       {canRegister && (
         <p className="mt-4 text-center text-sm text-neutral-500">
-          Don't have an account?{" "}
-          <Link href="/register" className="text-blue-600 dark:text-blue-400 hover:underline">
-            Create one
+          {t('auth.noAccount')}{" "}
+          <Link href="/register" className="text-blue-600 dark:text-blue-400 hover:underline font-medium">
+            {t('auth.signUp')}
           </Link>
         </p>
       )}
