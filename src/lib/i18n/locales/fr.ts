@@ -8,7 +8,28 @@ const fr: Translations = {
     setlists: 'Listes',
     artists: 'Artistes',
     newSong: '+ Nouvelle Chanson',
+    newSetlist: '+ Nouvelle Liste',
     admin: 'Admin',
+  },
+  home: {
+    title: 'Recueil',
+    subtitle: 'Un recueil de chants collaboratif avec accords, traductions et outils de présentation.',
+    browseSongs: 'Parcourir les Chansons',
+    newSetlist: 'Nouvelle Liste',
+    features: {
+      chords: 'Accords',
+      chordsDesc: 'Format ChordPro avec accords au-dessus des paroles et contrôle de transposition',
+      translations: 'Multilingue',
+      translationsDesc: 'Un fichier par langue par chant ; changez de langue instantanément dans le visuel',
+      presentation: 'Présentation en Direct',
+      presentationDesc: 'Plein écran, haut contraste pour le direct avec navigation clavier',
+      pdf: 'Export PDF',
+      pdfDesc: 'Génération côté serveur avec support Unicode et polices complètes',
+      setlists: 'Listes de Chants',
+      setlistsDesc: 'Créez et partagez des listes avec playlists de voix et liens publics',
+      selfhosted: 'Auto-hébergé',
+      selfhostedDesc: 'Sans base de données — tout le contenu vit dans des fichiers YAML et ChordPro sur disque',
+    },
   },
   common: {
     save: 'Enregistrer',
@@ -312,6 +333,10 @@ const fr: Translations = {
     notFound: 'Page non trouvée',
     pageNotFound: 'La page que vous cherchez n\'existe pas.',
     generic: 'Une erreur est survenue.',
+  },
+  footer: {
+    contact: 'Si vous avez un problème ou une suggestion, contactez-nous par e-mail :',
+    github: 'Voir sur GitHub',
   },
 };
 

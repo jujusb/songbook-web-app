@@ -6,7 +6,28 @@ const en = {
     setlists: 'Setlists',
     artists: 'Artists',
     newSong: '+ New Song',
+    newSetlist: '+ New Setlist',
     admin: 'Admin',
+  },
+  home: {
+    title: 'Songbook',
+    subtitle: 'A collaborative songbook with chord sheets, translations, and presentation tools.',
+    browseSongs: 'Browse Songs',
+    newSetlist: 'New Setlist',
+    features: {
+      chords: 'Chord Sheets',
+      chordsDesc: 'ChordPro format with chords displayed above lyrics and transposition controls',
+      translations: 'Multi-language',
+      translationsDesc: 'One file per language per song; switch languages instantly in the viewer',
+      presentation: 'Live Presentation',
+      presentationDesc: 'Fullscreen, high-contrast display for live settings with keyboard navigation',
+      pdf: 'PDF Export',
+      pdfDesc: 'Server-side generation with proper Unicode and font support',
+      setlists: 'Setlists',
+      setlistsDesc: 'Create and share setlists with voice playlists and public links',
+      selfhosted: 'Self-hosted',
+      selfhostedDesc: 'No database — all content lives as YAML and ChordPro files on disk',
+    },
   },
   common: {
     save: 'Save',
@@ -310,6 +331,10 @@ const en = {
     notFound: 'Not found',
     pageNotFound: 'The page you are looking for does not exist.',
     generic: 'Something went wrong.',
+  },
+  footer: {
+    contact: 'If you have any problems or any suggestions, contact us via this email address:',
+    github: 'View on GitHub',
   },
 };
 

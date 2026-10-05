@@ -22,8 +22,12 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
+const APP_NAME = process.env.SONGBOOK_APP_NAME || "Songbook";
+const CONTACT_EMAIL = process.env.SONGBOOK_CONTACT_EMAIL || "";
+const GITHUB_URL = process.env.SONGBOOK_GITHUB_URL || "https://github.com/anomalyco/songbook-web-app";
+
 export const metadata: Metadata = {
-  title: "Songbook",
+  title: APP_NAME,
   description: "A self-hosted songbook with chords, translations, and presentation tools",
   viewport: {
     width: "device-width",
@@ -76,7 +80,7 @@ export default async function RootLayout({
         <header className="border-b border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-950 sticky top-0 z-50">
           <nav className="max-w-full mx-auto px-4 sm:px-6 lg:px-8 h-14 flex items-center justify-between">
             <Link href="/" className="font-bold text-lg tracking-tight shrink-0">
-              Songbook
+              {APP_NAME}
             </Link>
             <div className="flex flex-wrap items-center gap-3 sm:gap-4 lg:gap-6 shrink-0">
               <Link
@@ -147,7 +151,36 @@ export default async function RootLayout({
             </div>
           </nav>
         </header>
-        <main className="flex-1">{children}</main>
+        <main className="flex-1 flex-grow">{children}</main>
+        {(CONTACT_EMAIL || GITHUB_URL) && (
+          <footer className="border-t border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-950 py-4 mt-auto">
+            <div className="max-w-full mx-auto px-4 sm:px-6 lg:px-8 text-center text-sm text-neutral-500 dark:text-neutral-400">
+              {CONTACT_EMAIL && (
+                <p className="mb-2">
+                  <T k="footer.contact" />{" "}
+                  <a
+                    href={`mailto:${CONTACT_EMAIL}`}
+                    className="text-blue-600 dark:text-blue-400 hover:underline"
+                  >
+                    {CONTACT_EMAIL}
+                  </a>
+                </p>
+              )}
+              {GITHUB_URL && (
+                <p>
+                  <a
+                    href={GITHUB_URL}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-blue-600 dark:text-blue-400 hover:underline"
+                  >
+                    <T k="footer.github" />
+                  </a>
+                </p>
+              )}
+            </div>
+          </footer>
+        )}
       </body>
     </html>
     </RootClientLayout>

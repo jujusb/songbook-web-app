@@ -36,6 +36,10 @@ services:
       - SONGBOOK_VOICES_NAVIDROME_PASSWORD=${SONGBOOK_VOICES_NAVIDROME_PASSWORD:-}
       # --- Public/read-only instance base URL (used in setlist share links) ---
       - SONGBOOK_PUBLIC_URL=${SONGBOOK_PUBLIC_URL:-}
+      # --- Branding & Contact (optional) ---
+      - SONGBOOK_APP_NAME=${SONGBOOK_APP_NAME:-Songbook}
+      - SONGBOOK_CONTACT_EMAIL=${SONGBOOK_CONTACT_EMAIL:-}
+      - SONGBOOK_GITHUB_URL=${SONGBOOK_GITHUB_URL:-https://github.com/anomalyco/songbook-web-app}
       # --- OIDC / SSO (all optional — set OIDC_ISSUER to enable) ---
       # - OIDC_ISSUER=https://auth.example.com/realms/main
       # - OIDC_CLIENT_ID=songbook
@@ -84,4 +88,8 @@ services:
       - SONGBOOK_VOICES_NAVIDROME_PASSWORD=${SONGBOOK_VOICES_NAVIDROME_PASSWORD:-}
       # --- Public/read-only instance base URL (used in setlist share links) ---
       - SONGBOOK_PUBLIC_URL=${SONGBOOK_PUBLIC_URL:-}
+      # --- Branding & Contact (optional) ---
+      - SONGBOOK_APP_NAME=${SONGBOOK_APP_NAME:-Songbook}
+      - SONGBOOK_CONTACT_EMAIL=${SONGBOOK_CONTACT_EMAIL:-}
+      - SONGBOOK_GITHUB_URL=${SONGBOOK_GITHUB_URL:-https://github.com/anomalyco/songbook-web-app}
     restart: unless-stopped

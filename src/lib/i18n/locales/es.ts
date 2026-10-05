@@ -8,7 +8,28 @@ const es: Translations = {
     setlists: 'Listas',
     artists: 'Artistas',
     newSong: '+ Nueva Canción',
+    newSetlist: '+ Nueva Lista',
     admin: 'Admin',
+  },
+  home: {
+    title: 'Cancionero',
+    subtitle: 'Un cancionero colaborativo con acordes, traducciones y herramientas de presentación.',
+    browseSongs: 'Explorar Canciones',
+    newSetlist: 'Nueva Lista',
+    features: {
+      chords: 'Acordes',
+      chordsDesc: 'Formato ChordPro con acordes sobre la letra y control de transposición',
+      translations: 'Multilenguaje',
+      translationsDesc: 'Un archivo por idioma por canción; cambia de idioma al instante en el visor',
+      presentation: 'Presentación en Vivo',
+      presentationDesc: 'Pantalla completa, alto contraste para directo con navegación por teclado',
+      pdf: 'Exportar a PDF',
+      pdfDesc: 'Generación en servidor con soporte Unicode y fuentes completas',
+      setlists: 'Listas de Canciones',
+      setlistsDesc: 'Crea y comparte listas con playlists de voces y enlaces públicos',
+      selfhosted: 'Autoalojado',
+      selfhostedDesc: 'Sin base de datos — todo el contenido vive en archivos YAML y ChordPro en disco',
+    },
   },
   common: {
     save: 'Guardar',
@@ -312,6 +333,10 @@ print: {
     notFound: 'No encontrado',
     pageNotFound: 'La página que buscas no existe.',
     generic: 'Algo salió mal.',
+  },
+  footer: {
+    contact: 'Si tienes algún problema o sugerencia, contáctanos por correo electrónico:',
+    github: 'Ver en GitHub',
   },
 };
 
