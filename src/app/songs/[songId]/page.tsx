@@ -217,23 +217,6 @@ export default async function SongPage({
                 />
               </div>
 
-              {/* Secondary actions - Listen, Navidrome Share */}
-              {meta.audioFiles && meta.audioFiles.length > 0 && (
-                <Link
-                  href={`/music/${songId}?lang=${lang}`}
-                  className="text-sm px-3 py-1.5 border border-neutral-300 dark:border-neutral-700 rounded-md hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors"
-                >
-                  Listen
-                </Link>
-              )}
-              {showNavidrome && (
-                <NavidromeShareButton
-                  key={`${songId}:${lang}`}
-                  type="song"
-                  id={songId}
-                  lang={lang}
-                />
-              )}
 
               {/* Admin actions - Change Album, Change ID, Delete */}
               {showDeleteActions && (
@@ -350,7 +333,7 @@ export default async function SongPage({
             type="song"
             id={songId}
             lang={lang}
-            variant="compact"
+            variant="full"
           />
         </div>
       )}

@@ -118,13 +118,13 @@ export function VoiceSections({ id, lang }: { id: string; lang: string }) {
         {parts.map((part) => (
           <div
             key={part.streamUrl}
-            className="flex flex-col sm:flex-row gap-3 items-start sm:items-center"
+            className="flex items-start gap-3 p-3 rounded-md border border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-900"
           >
             {part.coverArtUrl && (
               <img
                 src={part.coverArtUrl}
                 alt={part.title}
-                className="h-12 w-12 shrink-0 rounded object-cover sm:h-10 sm:w-10"
+                className="h-16 w-16 shrink-0 rounded object-cover"
               />
             )}
             <div className="flex-1 min-w-0">
@@ -134,7 +134,7 @@ export function VoiceSections({ id, lang }: { id: string; lang: string }) {
               <audio
                 controls
                 src={part.streamUrl}
-                className="w-full mt-1 h-10"
+                className="w-full mt-2 h-10"
               />
             </div>
           </div>

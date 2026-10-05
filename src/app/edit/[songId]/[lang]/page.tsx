@@ -14,9 +14,8 @@ export default async function EditPage({
   if (isReadOnly()) notFound();
   const session = await getSession();
   const user = await getCurrentUser();
-  if (!canEdit(session?.role ?? null) && !canEditSong(user, (await params).songId, (await params).lang)) redirect("/login");
-
   const { songId, lang } = await params;
+  if (!canEdit(session?.role ?? null) && !canEditSong(user, songId, lang)) redirect("/login");
   const { references: showRefs } = await searchParams;
 
   let meta;
