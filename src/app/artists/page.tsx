@@ -9,7 +9,7 @@ export default async function ArtistsPage() {
     redirect("/songs");
   }
 
-  const artists = await listArtists();
+  const artists = (await listArtists()).sort((a, b) => a.id.localeCompare(b.id));
 
   return (
     <div className="max-w-full mx-auto px-4 sm:px-6 lg:px-8 py-8">

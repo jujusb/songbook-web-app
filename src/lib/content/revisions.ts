@@ -48,13 +48,15 @@ export async function listRevisions(
       .filter((f) => f.endsWith('.cho'))
       .sort()
       .reverse()
-      .map((f) => ({
-        timestamp: f.replace('.cho', '').replace(/-/g, (m, i) => {
-          // Restore ISO format: first 2 dashes are date separators, T separator, then time colons
-          return m;
-        }),
-        file: f,
-      }));
+      .map((f) => {
+        const ts = f.replace('.cho', '');
+        // Convert from stored format (2024-03-01T12-00-00) back to ISO (2024-03-01T12:00:00)
+        const isoTimestamp = ts.replace(/-/g, (match, offset) => {
+          if (offset > 13) return ':'; // time part separators
+          return '-'; // date part separators
+        });
+        return { timestamp: isoTimestamp, file: f };
+      });
   } catch {
     return [];
   }

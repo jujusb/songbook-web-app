@@ -28,8 +28,8 @@ export async function POST(
       return NextResponse.json({ error: "Song not found" }, { status: 404 });
     }
 
-    // Convert timestamp to filename
-    const file = timestamp.replace(/[-T:]/g, '-').replace(/--/g, '-') + '.cho';
+    // Convert timestamp to filename (ISO with colons replaced by dashes)
+    const file = timestamp.replace(/:/g, '-').replace(/\./g, '-') + '.cho';
     
     // Get the revision content
     const revisionContent = await getRevision(songPath, lang, file);

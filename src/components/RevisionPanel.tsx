@@ -28,6 +28,13 @@ export function RevisionPanel({ songId, lang }: RevisionPanelProps) {
     loadRevisions();
   }, [songId, lang]);
 
+  // Auto-load the most recent revision on mount
+  useEffect(() => {
+    if (revisions.length > 0 && !showContent) {
+      loadRevisionContent(revisions[0].timestamp);
+    }
+  }, [revisions]);
+
   const loadRevisions = async () => {
     setLoading(true);
     setError(null);
@@ -62,9 +69,10 @@ export function RevisionPanel({ songId, lang }: RevisionPanelProps) {
   };
 
   const formatTimestamp = (ts: string) => {
-    // Convert 2024-03-01T12-00-00 to readable format
+    // ts is in ISO format like "2024-03-01T12:00:00.000Z"
     try {
-      const date = new Date(ts.replace(/-/g, (m, i) => i < 2 ? '-' : i === 2 ? 'T' : ':'));
+      const date = new Date(ts);
+      if (isNaN(date.getTime())) return ts;
       return date.toLocaleString();
     } catch {
       return ts;

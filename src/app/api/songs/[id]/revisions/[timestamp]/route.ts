@@ -27,8 +27,9 @@ export async function GET(
       return NextResponse.json({ error: "Song not found" }, { status: 404 });
     }
 
-    // Convert timestamp back to filename format
-    const file = timestamp.replace(/[-T:]/g, '-').replace(/--/g, '-') + '.cho';
+    // Convert timestamp to filename format (ISO with colons replaced by dashes)
+    // timestamp comes in as ISO format like "2024-03-01T12:00:00.000Z"
+    const file = timestamp.replace(/:/g, '-').replace(/\./g, '-') + '.cho';
     const content = await getRevision(songPath, lang, file);
     return NextResponse.json({ content, timestamp, songId: id, lang });
   } catch (err: unknown) {

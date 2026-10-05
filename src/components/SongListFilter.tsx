@@ -42,7 +42,7 @@ export function SongListFilter({
 }) {
   const { t, locale } = useTranslation();
   const [query, setQuery] = useState("");
-  const [sortBy, setSortBy] = useState<"title-asc" | "title-desc" | "id-asc" | "id-desc">("title-asc");
+  const [sortBy, setSortBy] = useState<"title-asc" | "title-desc" | "id-asc" | "id-desc">("id-asc");
   const [filterAlbum, setFilterAlbum] = useState<string>("");
   const [filterArtist, setFilterArtist] = useState<string>("");
 
