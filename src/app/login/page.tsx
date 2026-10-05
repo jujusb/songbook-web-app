@@ -29,7 +29,7 @@ export default async function LoginPage({
     redirect("/api/auth/oidc");
   }
 
-  const canRegister = !isReadOnlyFor('user_write');
+  const canRegister = !isReadOnlyFor('register');
   
   const cookieStore = await cookies();
   const uiLocale = getLocale(cookieStore, 'en');

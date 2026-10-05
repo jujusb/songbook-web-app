@@ -4,7 +4,7 @@ import { isReadOnlyFor } from "@/lib/readonly";
 import { notFound, redirect } from "next/navigation";
 
 export default async function RegisterPage() {
-  if (isReadOnlyFor('user_write')) notFound();
+  if (isReadOnlyFor('register')) notFound();
   const session = await getSession();
   if (session) redirect("/setlists/new");
 

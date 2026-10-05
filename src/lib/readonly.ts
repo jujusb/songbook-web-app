@@ -1,6 +1,7 @@
 export type ReadOnlyOperation =
   | 'login'
   | 'logout'
+  | 'register'
   | 'setlist_write'
   | 'setlist_share'
   | 'user_write'
@@ -15,10 +16,11 @@ export function isReadOnly(): boolean {
 
 export function isReadOnlyFor(operation: ReadOnlyOperation): boolean {
   if (!isReadOnly()) return false;
-  // In read-only mode, allow login/logout and setlist operations for setlist_creators
+  // In read-only mode, allow login/logout, registration, and setlist operations for setlist_creators
   const allowedInReadOnly: ReadOnlyOperation[] = [
     'login',
     'logout',
+    'register',
     'setlist_write',
     'setlist_share',
   ];

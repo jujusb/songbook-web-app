@@ -3,7 +3,7 @@ import { getUserByUsername, createUser, createSession } from "@/lib/auth";
 import { isReadOnlyFor } from "@/lib/readonly";
 
 export async function POST(request: Request) {
-  if (isReadOnlyFor('user_write')) {
+  if (isReadOnlyFor('register')) {
     return NextResponse.json({ error: "Registration disabled" }, { status: 403 });
   }
 
