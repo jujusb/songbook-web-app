@@ -20,17 +20,17 @@ export function RegisterForm() {
     setError(null);
 
     if (password !== confirmPassword) {
-      setError("Passwords do not match");
+      setError(t('auth.passwordsDoNotMatch'));
       return;
     }
 
     if (username.length < 3) {
-      setError("Username must be at least 3 characters");
+      setError(t('auth.usernameMinLength'));
       return;
     }
 
     if (password.length < 8) {
-      setError("Password must be at least 8 characters");
+      setError(t('auth.passwordMinLength'));
       return;
     }
 
@@ -43,12 +43,12 @@ export function RegisterForm() {
       });
       const data = await res.json();
       if (!res.ok) {
-        throw new Error(data.error || "Registration failed");
+        throw new Error(data.error || t('auth.registrationFailed'));
       }
       router.push("/setlists/new");
       router.refresh();
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "Registration failed");
+      setError(err instanceof Error ? err.message : t('auth.registrationFailed'));
     } finally {
       setLoading(false);
     }
@@ -56,9 +56,9 @@ export function RegisterForm() {
 
   return (
     <div className="max-w-sm mx-auto px-4 py-16">
-      <h1 className="text-2xl font-bold mb-6 text-center">Create Account</h1>
+      <h1 className="text-2xl font-bold mb-6 text-center">{t('auth.createAccount')}</h1>
       <p className="text-center text-neutral-500 mb-6 text-sm">
-        Create an account to create and manage your own setlists.
+        {t('auth.createAccountDesc')}
       </p>
       {error && (
         <div className="mb-4 px-4 py-2 bg-red-50 dark:bg-red-950 border border-red-200 dark:border-red-800 rounded-md text-red-700 dark:text-red-300 text-sm">
@@ -68,7 +68,7 @@ export function RegisterForm() {
       <form onSubmit={handleSubmit} className="space-y-4">
         <div>
           <label htmlFor="username" className="block text-sm font-medium mb-1">
-            Username *
+            {t('auth.username')} *
           </label>
           <input
             id="username"
@@ -84,7 +84,7 @@ export function RegisterForm() {
         </div>
         <div>
           <label htmlFor="displayName" className="block text-sm font-medium mb-1">
-            Display Name (optional)
+            {t('auth.displayName')}
           </label>
           <input
             id="displayName"
@@ -99,7 +99,7 @@ export function RegisterForm() {
         </div>
         <div>
           <label htmlFor="password" className="block text-sm font-medium mb-1">
-            Password *
+            {t('auth.password')} *
           </label>
           <input
             id="password"
@@ -116,7 +116,7 @@ export function RegisterForm() {
         </div>
         <div>
           <label htmlFor="confirmPassword" className="block text-sm font-medium mb-1">
-            Confirm Password *
+            {t('auth.confirmPassword')} *
           </label>
           <input
             id="confirmPassword"
@@ -135,13 +135,13 @@ export function RegisterForm() {
           disabled={loading}
           className="w-full px-4 py-2 bg-blue-600 text-white rounded-md font-medium text-sm hover:bg-blue-700 disabled:opacity-50 transition-colors"
         >
-          {loading ? "Creating account..." : "Create Account"}
+          {loading ? t('auth.creatingAccount') : t('auth.createAccount')}
         </button>
       </form>
       <p className="mt-4 text-center text-sm text-neutral-500">
-        Already have an account?{" "}
+        {t('auth.alreadyHaveAccount')}{" "}
         <Link href="/login" className="text-blue-600 dark:text-blue-400 hover:underline">
-          Sign in
+          {t('auth.signIn')}
         </Link>
       </p>
     </div>
