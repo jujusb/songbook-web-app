@@ -376,6 +376,19 @@ const fr: Translations = {
     permissionsReviewerOnly: 'Les permissions ne peuvent être attribuées qu\'aux Réviseurs',
     currentUser: 'Utilisateur actuel',
   },
+  revisions: {
+    title: 'Révisions',
+    timestamp: 'Horodatage',
+    view: 'Voir',
+    hide: 'Masquer',
+    revert: 'Restaurer',
+    reverting: 'Restauration...',
+    publish: 'Publier',
+    publishing: 'Publication...',
+    confirmRevert: 'Restaurer cette révision ? Les modifications actuelles seront sauvegardées comme nouvelle révision d\'abord.',
+    confirmPublish: 'Publier cette révision comme version actuelle ?',
+    noRevisions: 'Aucune révision pour l\'instant. Les révisions sont créées automatiquement à chaque sauvegarde.',
+  },
 };
 
 export default fr;

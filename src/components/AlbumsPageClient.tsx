@@ -194,7 +194,7 @@ export function AlbumsPageClient({
                   {album.songCount} song
                   {album.songCount !== 1 ? "s" : ""}
                 </span>
-                {album.published !== undefined && (
+                {showEditActions && album.published !== undefined && (
                   <span className={album.published ? 'text-green-500' : 'text-red-500'} title={album.published ? 'Published' : 'Unpublished'}>
                     {album.published ? '✓ Published' : '✗ Unpublished'}
                   </span>

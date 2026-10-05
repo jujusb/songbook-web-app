@@ -253,7 +253,7 @@ function AlbumNode({
           <span className="text-xs text-neutral-400 shrink-0">
             {t('album.count', { n: album.songs.length })}
           </span>
-          {album.published !== undefined && (
+          {canEdit && album.published !== undefined && (
             <span className={album.published ? 'text-green-500' : 'text-red-500'} title={album.published ? 'Published' : 'Unpublished'}>
               {album.published ? '✓' : '✗'}
             </span>

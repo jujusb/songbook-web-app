@@ -374,6 +374,19 @@ const en = {
     permissionsReviewerOnly: 'Permissions can only be set for Reviewers',
     currentUser: 'Current User',
   },
+  revisions: {
+    title: 'Revisions',
+    timestamp: 'Timestamp',
+    view: 'View',
+    hide: 'Hide',
+    revert: 'Revert',
+    reverting: 'Reverting...',
+    publish: 'Publish',
+    publishing: 'Publishing...',
+    confirmRevert: 'Revert to this revision? Current changes will be saved as a new revision first.',
+    confirmPublish: 'Publish this revision as the current version?',
+    noRevisions: 'No revisions yet. Revisions are created automatically when you save changes.',
+  },
 };
 
 export default en;

@@ -1,11 +1,11 @@
 "use server";
 
-import { saveSongTranslation, saveSongMeta, createSong, getSong, getSongTranslation, getSiteConfig, extractBodyTitle, addSongTranslation, deleteSongTranslation, renameSong, renameAlbum, changeSongAlbum, getSetlist, saveSetlist, listSongs, getAlbum, saveAlbum, createAlbum, getLanguagesConfig, NO_ALBUM_ID, getAlbumsForSong } from "@/lib/content";
+import { saveSongTranslation, saveSongMeta, createSong, getSong, getSongTranslation, getSiteConfig, extractBodyTitle, addSongTranslation, deleteSongTranslation, renameSong, renameAlbum, changeSongAlbum, getSetlist, saveSetlist, listSongs, getAlbum, saveAlbum, createAlbum, getLanguagesConfig, NO_ALBUM_ID, getAlbumsForSong, findSongPath, listRevisions, getRevision, saveRevision as saveRevisionLib } from "@/lib/content";
 import { SongTranslationFrontmatterSchema, type Reference, type Partition, type Album } from "@/lib/content/schemas";
 import { revalidatePath } from "next/cache";
 import matter from "gray-matter";
 import { isReadOnly, isReadOnlyFor } from "@/lib/readonly";
-import { getSession, canEdit, canAdmin, canCreateSetlist, canManageSetlistShares } from "@/lib/auth";
+import { getSession, canEdit, canAdmin, canCreateSetlist, canManageSetlistShares, getCurrentUser, canEditSong } from "@/lib/auth";
 import { songIdFromTitle, slugifySongId, uniqueSongId } from "@/lib/song-ids";
 import { randomUUID } from "node:crypto";
 
@@ -148,6 +148,95 @@ export async function toggleSongPublishedAction(songId: string, lang: string) {
     revalidatePath("/songs");
     revalidatePath("/browse");
     return { ok: true as const, published: frontmatter.published };
+  } catch (err) {
+    return { ok: false as const, error: err instanceof Error ? err.message : 'FAILED' };
+  }
+}
+
+export async function revertSongToRevisionAction(songId: string, lang: string, timestamp: string) {
+  assertWritable();
+  const session = await getSession();
+  const user = await getCurrentUser();
+  if (!canEdit(session?.role ?? null) && !canEditSong(user, songId, lang)) {
+    return { ok: false as const, error: 'Unauthorized' };
+  }
+  try {
+    const songPath = await findSongPath(songId);
+    if (!songPath) {
+      return { ok: false as const, error: 'Song not found' };
+    }
+
+    // Convert timestamp to filename format
+    const file = timestamp.replace(/[-T:]/g, '-').replace(/--/g, '-') + '.cho';
+    
+    // Get the revision content
+    const revisionContent = await getRevision(songPath, lang, file);
+    
+    // Parse the revision content
+    const { meta: currentMeta } = await getSongTranslation(songId, lang);
+    const matter = await import("gray-matter");
+    const parsed = matter.default(revisionContent);
+    const parsedData = parsed.data as { language?: string; status?: 'draft' | 'review' | 'final'; published?: boolean; title?: string; translator?: string | null; lastModified?: string; modifiedBy?: string };
+    const frontmatter = parsedData.language 
+      ? { language: parsedData.language, status: parsedData.status || 'draft', published: parsedData.published || false, title: parsedData.title, translator: parsedData.translator, lastModified: parsedData.lastModified, modifiedBy: parsedData.modifiedBy }
+      : currentMeta;
+    const body = parsed.content.trim();
+
+    // Save current version as revision first
+    await saveRevisionLib(songPath, lang);
+    
+    // Apply the revision as current
+    await saveSongTranslation(songId, lang, frontmatter, body);
+
+    revalidatePath(`/songs/${songId}`);
+    revalidatePath(`/edit/${songId}/${lang}`);
+    revalidatePath("/songs");
+    revalidatePath("/browse");
+    
+    return { ok: true as const, message: "Reverted to revision" };
+  } catch (err) {
+    return { ok: false as const, error: err instanceof Error ? err.message : 'FAILED' };
+  }
+}
+
+export async function publishRevisionAction(songId: string, lang: string, timestamp: string) {
+  assertWritable();
+  const session = await getSession();
+  const user = await getCurrentUser();
+  if (!canEdit(session?.role ?? null) && !canEditSong(user, songId, lang)) {
+    return { ok: false as const, error: 'Unauthorized' };
+  }
+  try {
+    const songPath = await findSongPath(songId);
+    if (!songPath) {
+      return { ok: false as const, error: 'Song not found' };
+    }
+
+    // Convert timestamp to filename format
+    const file = timestamp.replace(/[-T:]/g, '-').replace(/--/g, '-') + '.cho';
+    
+    // Get the revision content
+    const revisionContent = await getRevision(songPath, lang, file);
+    
+    // Parse the revision content
+    const { meta: currentMeta } = await getSongTranslation(songId, lang);
+    const matter = await import("gray-matter");
+    const parsed = matter.default(revisionContent);
+    const parsedData = parsed.data as { language?: string; status?: 'draft' | 'review' | 'final'; published?: boolean; title?: string; translator?: string | null; lastModified?: string; modifiedBy?: string };
+    const frontmatter = parsedData.language 
+      ? { language: parsedData.language, status: parsedData.status || 'draft', published: parsedData.published || false, title: parsedData.title, translator: parsedData.translator, lastModified: parsedData.lastModified, modifiedBy: parsedData.modifiedBy }
+      : currentMeta;
+    const body = parsed.content.trim();
+
+    // Apply the revision as current WITHOUT creating a revision of current
+    await saveSongTranslation(songId, lang, frontmatter, body);
+
+    revalidatePath(`/songs/${songId}`);
+    revalidatePath(`/edit/${songId}/${lang}`);
+    revalidatePath("/songs");
+    revalidatePath("/browse");
+    
+    return { ok: true as const, message: "Published revision" };
   } catch (err) {
     return { ok: false as const, error: err instanceof Error ? err.message : 'FAILED' };
   }

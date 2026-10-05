@@ -3,7 +3,7 @@ import { existsSync } from 'fs';
 import path from 'path';
 import matter from 'gray-matter';
 import * as yaml from 'js-yaml';
-import { saveRevision } from './revisions';
+import { saveRevision, listRevisions, getRevision } from './revisions';
 import { syncSongToMusicDir } from '@/lib/lyrics-sync';
 import { FALLBACK_LANGUAGES } from '@/lib/i18n/labels';
 export { resolveSongListTitle } from '../song-titles';
@@ -58,7 +58,7 @@ export async function ensureVariousArtists(): Promise<void> {
 
 // --- Helper: find which album folder a song lives in ---
 
-async function findSongPath(songId: string): Promise<string | null> {
+export async function findSongPath(songId: string): Promise<string | null> {
   const libDir = getLibraryDir();
   try {
     const albumDirs = await readdir(libDir, { withFileTypes: true });
@@ -976,3 +976,5 @@ export async function moveNoAlbumSongsIntoAlbum(
   }
   return moved;
 }
+
+export { listRevisions, getRevision, saveRevision } from './revisions';

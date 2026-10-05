@@ -376,6 +376,19 @@ print: {
     permissionsReviewerOnly: 'Los permisos solo se pueden asignar a Revisores',
     currentUser: 'Usuario actual',
   },
+  revisions: {
+    title: 'Revisiones',
+    timestamp: 'Marca de tiempo',
+    view: 'Ver',
+    hide: 'Ocultar',
+    revert: 'Revertir',
+    reverting: 'Revirtiendo...',
+    publish: 'Publicar',
+    publishing: 'Publicando...',
+    confirmRevert: '¿Revertir a esta revisión? Los cambios actuales se guardarán como nueva revisión primero.',
+    confirmPublish: '¿Publicar esta revisión como la versión actual?',
+    noRevisions: 'No hay revisiones todavía. Las revisiones se crean automáticamente al guardar cambios.',
+  },
 };
 
 export default es;

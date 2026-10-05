@@ -9,6 +9,7 @@ import { EditorView } from '@/components/EditorView';
 import { ReferenceEditor } from '@/components/ReferenceEditor';
 import { MusicLinksEditor } from '@/components/MusicLinksEditor';
 import { LanguageSwitcher } from '@/components/LanguageSwitcher';
+import { RevisionPanel } from '@/components/RevisionPanel';
 import type { Reference, SpotifyLinks } from '@/lib/content/schemas';
 
 /**
@@ -287,7 +288,8 @@ export function EditPageClient({
         translations={translationLangs}
         translationsContent={translationsContent}
       />
-{showReferences && (
+      <RevisionPanel songId={songId} lang={lang} />
+      {showReferences && (
         <ReferenceEditor
           references={references}
           songId={songId}
