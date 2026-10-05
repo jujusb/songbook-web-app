@@ -8,7 +8,7 @@ import {
 } from "@/lib/content";
 import { getLocale } from "@/lib/i18n/server";
 import { getSession, canEdit } from "@/lib/auth";
-import { hasVoiceSections } from "@/lib/navidrome/voices";
+import { hasVoiceSectionsBatch } from "@/lib/navidrome/voices";
 import { BrowsePageClient } from "@/components/BrowsePageClient";
 import { T } from "@/components/Translate";
 
@@ -58,11 +58,9 @@ export default async function BrowsePage() {
 
   const songMap = new Map(songs.map((s) => [s.id, s]));
 
-  // Cheap flag precomputation (voice presence uses one memoized Navidrome dump).
-  const voicesBySong = new Map<string, boolean>();
-  for (const song of songs) {
-    voicesBySong.set(song.id, await hasVoiceSections(song.id, selectedLang));
-  }
+  // Batch check voice sections - fetch all voice track titles ONCE
+  const songIds = songs.map(s => s.id);
+  const voicesBySong = await hasVoiceSectionsBatch(songIds, selectedLang);
 
   // Build strict Artist > Album > Song tree, keeping only songs that have
   // the selected language (all songs when the default language is selected).

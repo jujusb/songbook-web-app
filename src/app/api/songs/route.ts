@@ -1,10 +1,23 @@
 import { NextResponse } from "next/server";
 import { listSongs, createSong, saveSongTranslation, getAlbum, saveAlbum, deleteSong, NO_ALBUM_ID } from "@/lib/content";
-import { isReadOnly } from "@/lib/readonly";
+import { isReadOnly, isReadOnlyFor } from "@/lib/readonly";
+import { getSession, canAdmin } from "@/lib/auth";
 
-export async function GET() {
+export async function GET(request: Request) {
   try {
-    const songs = await listSongs();
+    const { searchParams } = new URL(request.url);
+    const all = searchParams.get("all") === "true";
+    
+    let options = {};
+    if (all) {
+      const session = await getSession();
+      if (!canAdmin(session?.role ?? null)) {
+        return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+      }
+      options = { onlyPublished: false, role: 'admin' };
+    }
+    
+    const songs = await listSongs(options);
     return NextResponse.json(songs);
   } catch {
     return NextResponse.json(

@@ -4,7 +4,7 @@ import * as yaml from 'js-yaml';
 import bcrypt from 'bcryptjs';
 import { SignJWT, jwtVerify } from 'jose';
 import { cookies } from 'next/headers';
-import { UserSchema, type User, type Role } from './schemas';
+import { UserSchema, type User, type Role, PermissionSchema, type Permissions } from './schemas';
 import { isReadOnly, isReadOnlyFor } from '@/lib/readonly';
 
 const JWT_SECRET = new TextEncoder().encode(
@@ -215,4 +215,82 @@ export async function ensureDefaultAdmin(): Promise<void> {
     const adminPassword = process.env.ADMIN_PASSWORD || 'admin';
     await createUser('admin', adminPassword, 'admin', 'Administrator');
   }
+}
+
+/**
+ * Check if a user has permission to edit a specific song in a specific language.
+ * Admins always have permission. Reviewers need explicit permission or full reviewer role.
+ */
+export function canEditSong(
+  user: User | null,
+  songId: string,
+  lang: string
+): boolean {
+  if (!user) return false;
+  if (user.role === 'admin') return true;
+  if (user.role !== 'reviewer') return false;
+  
+  // Check explicit permissions
+  const perms = user.permissions ?? { editSong: [], editAlbum: [], editLanguage: [] };
+  
+  // Full language access
+  if (perms.editLanguage.includes(lang)) return true;
+  
+  // Specific song permission
+  return perms.editSong.some(p => p.songId === songId && p.lang === lang);
+}
+
+/**
+ * Check if a user has permission to edit a specific album in a specific language.
+ * Admins always have permission. Reviewers need explicit permission or full reviewer role.
+ */
+export function canEditAlbum(
+  user: User | null,
+  albumId: string,
+  lang: string
+): boolean {
+  if (!user) return false;
+  if (user.role === 'admin') return true;
+  if (user.role !== 'reviewer') return false;
+  
+  // Check explicit permissions
+  const perms = user.permissions ?? { editSong: [], editAlbum: [], editLanguage: [] };
+  
+  // Full language access
+  if (perms.editLanguage.includes(lang)) return true;
+  
+  // Specific album permission
+  return perms.editAlbum.some(p => p.albumId === albumId && p.lang === lang);
+}
+
+/**
+ * Check if a user has permission to edit any content in a specific language.
+ * Admins always have permission. Reviewers need explicit language permission.
+ */
+export function canEditLanguage(
+  user: User | null,
+  lang: string
+): boolean {
+  if (!user) return false;
+  if (user.role === 'admin') return true;
+  if (user.role !== 'reviewer') return false;
+  
+  // Check explicit permissions
+  const perms = user.permissions ?? { editSong: [], editAlbum: [], editLanguage: [] };
+  
+  // Full language access
+  return perms.editLanguage.includes(lang);
+}
+
+/**
+ * Check if a user can edit songs generally (for UI purposes - shows edit buttons)
+ * This is true for admins and reviewers with any song permissions
+ */
+export function canEditSongs(user: User | null): boolean {
+  if (!user) return false;
+  if (user.role === 'admin') return true;
+  if (user.role !== 'reviewer') return false;
+  
+  const perms = user.permissions ?? { editSong: [], editAlbum: [], editLanguage: [] };
+  return perms.editLanguage.length > 0 || perms.editSong.length > 0 || perms.editAlbum.length > 0;
 }

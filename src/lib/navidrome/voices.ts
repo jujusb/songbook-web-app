@@ -282,3 +282,49 @@ export async function hasVoiceSections(
     return false;
   }
 }
+
+/**
+ * Batch check: for multiple songs, check which have voice sections.
+ * Fetches all voice track titles ONCE and checks all songs in memory.
+ */
+export async function hasVoiceSectionsBatch(
+  songIds: string[],
+  lang: string,
+): Promise<Map<string, boolean>> {
+  const config = getVoicesConfig();
+  if (!config) {
+    return new Map(songIds.map(id => [id, false]));
+  }
+  try {
+    const titles = await getAllVoiceTrackTitles();
+    const result = new Map<string, boolean>();
+    
+    // Get all song titles first
+    const songTitles = await Promise.all(
+      songIds.map(async (songId) => {
+        try {
+          const title = await getSongTitle(songId, lang);
+          return { songId, normalized: normalizeTitle(title) };
+        } catch {
+          return { songId, normalized: null };
+        }
+      })
+    );
+    
+    // Check each song against all voice track titles
+    for (const { songId, normalized } of songTitles) {
+      if (!normalized) {
+        result.set(songId, false);
+        continue;
+      }
+      const hasVoice = titles.some(
+        (title) => sectionsFromTitle(title, normalized) !== null,
+      );
+      result.set(songId, hasVoice);
+    }
+    
+    return result;
+  } catch {
+    return new Map(songIds.map(id => [id, false]));
+  }
+}

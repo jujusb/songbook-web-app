@@ -10,6 +10,7 @@ const es: Translations = {
     newSong: '+ Nueva Canción',
     newSetlist: '+ Nueva Lista',
     admin: 'Admin',
+    users: 'Usuarios',
   },
   home: {
     title: 'Cancionero',
@@ -350,6 +351,26 @@ print: {
   footer: {
     contact: 'Si tienes algún problema o sugerencia, contáctanos por correo electrónico:',
     github: 'Ver en GitHub',
+  },
+  admin: {
+    userManagement: 'Gestión de Usuarios',
+    searchUsers: 'Buscar usuarios...',
+    username: 'Usuario',
+    displayName: 'Nombre visible',
+    role: 'Rol',
+    permissions: 'Permisos',
+    actions: 'Acciones',
+    editPermissions: 'Editar Permisos',
+    editPermissionsFor: 'Editar permisos de',
+    addPermission: 'Añadir Permiso',
+    selectSong: 'Seleccionar canción...',
+    selectAlbum: 'Seleccionar álbum...',
+    song: 'Canción',
+    album: 'Álbum',
+    fullLanguage: 'Idioma Completo',
+    allSongsInLanguage: 'Todas las canciones en este idioma',
+    noPermissions: 'Sin permisos específicos',
+    selectLanguage: 'Idioma',
   },
 };
 

@@ -124,12 +124,20 @@ export default async function RootLayout({
                 </Link>
               )}
               {showAdminActions && (
-                <Link
-                  href="/admin/partitions"
-                  className="text-sm text-neutral-600 dark:text-neutral-400 hover:text-foreground transition-colors"
-                >
-                  <T k="nav.admin" />
-                </Link>
+                <>
+                  <Link
+                    href="/admin/partitions"
+                    className="text-sm text-neutral-600 dark:text-neutral-400 hover:text-foreground transition-colors"
+                  >
+                    <T k="nav.admin" />
+                  </Link>
+                  <Link
+                    href="/admin/users"
+                    className="text-sm text-neutral-600 dark:text-neutral-400 hover:text-foreground transition-colors"
+                  >
+                    <T k="nav.users" />
+                  </Link>
+                </>
               )}
               {(showEditActions || showCreateSetlist) && (
                 <Link

@@ -1,11 +1,24 @@
 import { NextResponse } from "next/server";
 import { listAlbums, saveAlbum, deleteAlbum, moveNoAlbumSongsIntoAlbum } from "@/lib/content";
 import { AlbumSchema } from "@/lib/content/schemas";
-import { isReadOnly } from "@/lib/readonly";
+import { isReadOnly, isReadOnlyFor } from "@/lib/readonly";
+import { getSession, canAdmin } from "@/lib/auth";
 
-export async function GET() {
+export async function GET(request: Request) {
   try {
-    const albums = await listAlbums();
+    const { searchParams } = new URL(request.url);
+    const all = searchParams.get("all") === "true";
+    
+    let options = {};
+    if (all) {
+      const session = await getSession();
+      if (!canAdmin(session?.role ?? null)) {
+        return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+      }
+      options = { onlyPublished: false, role: 'admin' };
+    }
+    
+    const albums = await listAlbums(options);
     return NextResponse.json(albums);
   } catch {
     return NextResponse.json(

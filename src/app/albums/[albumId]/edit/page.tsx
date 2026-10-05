@@ -1,6 +1,6 @@
 import { notFound, redirect } from "next/navigation";
 import { getAlbum, listSongs, listArtists, getLanguagesConfig, resolveSongListTitle } from "@/lib/content";
-import { getSession, canEdit } from "@/lib/auth";
+import { getSession, canEdit, canEditAlbum, getCurrentUser } from "@/lib/auth";
 import { isReadOnly } from "@/lib/readonly";
 import { AlbumForm } from "@/components/AlbumForm";
 
@@ -11,9 +11,9 @@ export default async function EditAlbumPage({
 }) {
   if (isReadOnly()) notFound();
   const session = await getSession();
-  if (!canEdit(session?.role ?? null)) redirect("/login");
-
+  const user = await getCurrentUser();
   const { albumId } = await params;
+  if (!canEdit(session?.role ?? null) && !canEditAlbum(user, albumId, (await getLanguagesConfig()).default)) redirect("/login");
 
   let album;
   try {

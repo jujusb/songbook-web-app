@@ -8,6 +8,7 @@ const en = {
     newSong: '+ New Song',
     newSetlist: '+ New Setlist',
     admin: 'Admin',
+    users: 'Users',
   },
   home: {
     title: 'Songbook',
@@ -348,6 +349,26 @@ const en = {
   footer: {
     contact: 'If you have any problems or any suggestions, contact us via this email address:',
     github: 'View on GitHub',
+  },
+  admin: {
+    userManagement: 'User Management',
+    searchUsers: 'Search users...',
+    username: 'Username',
+    displayName: 'Display Name',
+    role: 'Role',
+    permissions: 'Permissions',
+    actions: 'Actions',
+    editPermissions: 'Edit Permissions',
+    editPermissionsFor: 'Edit permissions for',
+    addPermission: 'Add Permission',
+    selectSong: 'Select song...',
+    selectAlbum: 'Select album...',
+    song: 'Song',
+    album: 'Album',
+    fullLanguage: 'Full Language',
+    allSongsInLanguage: 'All songs in this language',
+    noPermissions: 'No specific permissions',
+    selectLanguage: 'Language',
   },
 };
 

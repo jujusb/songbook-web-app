@@ -10,6 +10,7 @@ const fr: Translations = {
     newSong: '+ Nouvelle Chanson',
     newSetlist: '+ Nouvelle Liste',
     admin: 'Admin',
+    users: 'Utilisateurs',
   },
   home: {
     title: 'Recueil',
@@ -350,6 +351,26 @@ const fr: Translations = {
   footer: {
     contact: 'Si vous avez un problème ou une suggestion, contactez-nous par e-mail :',
     github: 'Voir sur GitHub',
+  },
+  admin: {
+    userManagement: 'Gestion des Utilisateurs',
+    searchUsers: 'Rechercher des utilisateurs...',
+    username: "Nom d'utilisateur",
+    displayName: 'Nom affiché',
+    role: 'Rôle',
+    permissions: 'Permissions',
+    actions: 'Actions',
+    editPermissions: 'Modifier les Permissions',
+    editPermissionsFor: 'Modifier les permissions de',
+    addPermission: 'Ajouter une Permission',
+    selectSong: 'Sélectionner un chant...',
+    selectAlbum: 'Sélectionner un album...',
+    song: 'Chant',
+    album: 'Album',
+    fullLanguage: 'Langue Complète',
+    allSongsInLanguage: 'Tous les chants dans cette langue',
+    noPermissions: 'Aucune permission spécifique',
+    selectLanguage: 'Langue',
   },
 };
 
