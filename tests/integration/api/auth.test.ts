@@ -165,7 +165,7 @@ describe('API /api/auth', () => {
   describe('POST /api/auth/logout', () => {
     it('clears session cookie', async () => {
       const req = createMockRequest('POST', {}, 'http://localhost/api/auth/logout');
-      const response = await logoutPOST(req);
+      const response = await logoutPOST(req as any);
       
       expect(response.status).toBe(200);
       expect(response.headers.get('set-cookie')).toContain('songbook-session=;');
@@ -184,7 +184,7 @@ describe('API /api/auth', () => {
       } as any);
       
       const req = createMockRequest('GET', undefined, 'http://localhost/api/auth/me');
-      const response = await meGET(req);
+      const response = await meGET();
       const data = await response.json();
       
       expect(response.status).toBe(200);
@@ -200,7 +200,7 @@ describe('API /api/auth', () => {
       } as any);
       
       const req = createMockRequest('GET', undefined, 'http://localhost/api/auth/me');
-      const response = await meGET(req);
+      const response = await meGET();
       const data = await response.json();
       
       expect(response.status).toBe(200);
@@ -214,7 +214,7 @@ describe('API /api/auth', () => {
       } as any);
       
       const req = createMockRequest('GET', undefined, 'http://localhost/api/auth/me');
-      const response = await meGET(req);
+      const response = await meGET();
       const data = await response.json();
       
       expect(response.status).toBe(200);

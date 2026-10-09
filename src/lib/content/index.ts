@@ -22,6 +22,7 @@ import {
   type Album,
   type Artist,
   type Setlist,
+  type SetlistInput,
 } from './schemas';
 
 export function getContentDir(): string {
@@ -318,7 +319,7 @@ export async function findSetlistByShareToken(token: string): Promise<Setlist | 
   return setlists.find((s) => s.shareToken === token || s.shareSlug === token) ?? null;
 }
 
-export async function saveSetlist(setlist: Setlist): Promise<void> {
+export async function saveSetlist(setlist: SetlistInput): Promise<void> {
   const validated = SetlistSchema.parse(setlist);
   const dir = getSetlistsDir();
   await mkdir(dir, { recursive: true });

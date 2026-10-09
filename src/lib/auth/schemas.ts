@@ -28,6 +28,7 @@ export const UserSchema = z.object({
 });
 
 export type User = z.infer<typeof UserSchema>;
+export type UserInput = z.input<typeof UserSchema>;
 
 export const roles = ['public', 'reviewer', 'admin', 'setlist_creator'] as const;
 export type Role = (typeof roles)[number];

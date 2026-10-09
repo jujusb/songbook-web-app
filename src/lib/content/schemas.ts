@@ -215,3 +215,4 @@ export const SetlistSchema = z.object({
 });
 
 export type Setlist = z.infer<typeof SetlistSchema>;
+export type SetlistInput = z.input<typeof SetlistSchema>;

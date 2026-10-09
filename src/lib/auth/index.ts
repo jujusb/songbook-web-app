@@ -4,7 +4,7 @@ import * as yaml from 'js-yaml';
 import bcrypt from 'bcryptjs';
 import { SignJWT, jwtVerify } from 'jose';
 import { cookies } from 'next/headers';
-import { UserSchema, type User, type Role, PermissionSchema, type Permissions } from './schemas';
+import { UserSchema, type User, type UserInput, type Role, PermissionSchema, type Permissions } from './schemas';
 import { isReadOnly, isReadOnlyFor } from '@/lib/readonly';
 
 const JWT_SECRET = new TextEncoder().encode(
@@ -97,7 +97,7 @@ export async function findOrCreateOidcUser(
   return user;
 }
 
-export async function saveUser(user: User, opts?: { allowReadOnly?: boolean }): Promise<void> {
+export async function saveUser(user: UserInput, opts?: { allowReadOnly?: boolean }): Promise<void> {
   if (!opts?.allowReadOnly && isReadOnlyFor('user_write')) throw new Error('Read-only mode: user writes disabled');
   const dir = getUsersDir();
   await mkdir(dir, { recursive: true });
@@ -141,7 +141,7 @@ export async function verifyPassword(user: User, password: string): Promise<bool
   return bcrypt.compare(password, user.passwordHash);
 }
 
-export async function createSession(user: User): Promise<string> {
+export async function createSession(user: Pick<User, 'id' | 'username' | 'role'>): Promise<string> {
   if (isReadOnlyFor('login')) throw new Error('Read-only mode: login disabled');
   const token = await new SignJWT({ userId: user.id, role: user.role })
     .setProtectedHeader({ alg: 'HS256' })
@@ -223,7 +223,7 @@ export async function ensureDefaultAdmin(): Promise<void> {
  * Admins always have permission. Reviewers need explicit permission or full reviewer role.
  */
 export function canEditSong(
-  user: User | null,
+  user: UserInput | null,
   songId: string,
   lang: string
 ): boolean {
@@ -232,7 +232,11 @@ export function canEditSong(
   if (user.role !== 'reviewer') return false;
   
   // Check explicit permissions
-  const perms = user.permissions ?? { editSong: [], editAlbum: [], editLanguage: [] };
+  const perms: Permissions = {
+    editSong: user.permissions?.editSong ?? [],
+    editAlbum: user.permissions?.editAlbum ?? [],
+    editLanguage: user.permissions?.editLanguage ?? [],
+  };
   
   // Full language access
   if (perms.editLanguage.includes(lang)) return true;
@@ -246,7 +250,7 @@ export function canEditSong(
  * Admins always have permission. Reviewers need explicit permission or full reviewer role.
  */
 export function canEditAlbum(
-  user: User | null,
+  user: UserInput | null,
   albumId: string,
   lang: string
 ): boolean {
@@ -255,7 +259,11 @@ export function canEditAlbum(
   if (user.role !== 'reviewer') return false;
   
   // Check explicit permissions
-  const perms = user.permissions ?? { editSong: [], editAlbum: [], editLanguage: [] };
+  const perms: Permissions = {
+    editSong: user.permissions?.editSong ?? [],
+    editAlbum: user.permissions?.editAlbum ?? [],
+    editLanguage: user.permissions?.editLanguage ?? [],
+  };
   
   // Full language access
   if (perms.editLanguage.includes(lang)) return true;
@@ -269,7 +277,7 @@ export function canEditAlbum(
  * Admins always have permission. Reviewers need explicit language permission.
  */
 export function canEditLanguage(
-  user: User | null,
+  user: UserInput | null,
   lang: string
 ): boolean {
   if (!user) return false;
@@ -277,7 +285,11 @@ export function canEditLanguage(
   if (user.role !== 'reviewer') return false;
   
   // Check explicit permissions
-  const perms = user.permissions ?? { editSong: [], editAlbum: [], editLanguage: [] };
+  const perms: Permissions = {
+    editSong: user.permissions?.editSong ?? [],
+    editAlbum: user.permissions?.editAlbum ?? [],
+    editLanguage: user.permissions?.editLanguage ?? [],
+  };
   
   // Full language access
   return perms.editLanguage.includes(lang);
@@ -287,11 +299,15 @@ export function canEditLanguage(
  * Check if a user can edit songs generally (for UI purposes - shows edit buttons)
  * This is true for admins and reviewers with any song permissions
  */
-export function canEditSongs(user: User | null): boolean {
+export function canEditSongs(user: UserInput | null): boolean {
   if (!user) return false;
   if (user.role === 'admin') return true;
   if (user.role !== 'reviewer') return false;
   
-  const perms = user.permissions ?? { editSong: [], editAlbum: [], editLanguage: [] };
+  const perms: Permissions = {
+    editSong: user.permissions?.editSong ?? [],
+    editAlbum: user.permissions?.editAlbum ?? [],
+    editLanguage: user.permissions?.editLanguage ?? [],
+  };
   return perms.editLanguage.length > 0 || perms.editSong.length > 0 || perms.editAlbum.length > 0;
 }

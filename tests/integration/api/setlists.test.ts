@@ -49,7 +49,7 @@ describe('API /api/setlists', () => {
     it('returns empty list when no setlists exist', async () => {
       mockAuth(adminToken);
       const req = createMockRequest('GET');
-      const response = await setlistsGET(req);
+      const response = await setlistsGET();
       const data = await response.json();
       
       expect(response.status).toBe(200);
@@ -76,7 +76,7 @@ describe('API /api/setlists', () => {
       
       mockAuth(adminToken);
       const req = createMockRequest('GET');
-      const response = await setlistsGET(req);
+      const response = await setlistsGET();
       const data = await response.json();
       
       expect(response.status).toBe(200);
@@ -103,7 +103,7 @@ describe('API /api/setlists', () => {
       
       mockAuth(creatorToken);
       const req = createMockRequest('GET');
-      const response = await setlistsGET(req);
+      const response = await setlistsGET();
       const data = await response.json();
       
       expect(response.status).toBe(200);
@@ -130,7 +130,7 @@ describe('API /api/setlists', () => {
       
       mockAuth(publicToken);
       const req = createMockRequest('GET');
-      const response = await setlistsGET(req);
+      const response = await setlistsGET();
       const data = await response.json();
       
       expect(response.status).toBe(200);
