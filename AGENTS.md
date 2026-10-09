@@ -6,14 +6,16 @@ This version has breaking changes — APIs, conventions, and file structure may 
 
 # Songbook Web App
 
-Self-hosted, file-based songbook. No database — all data lives as YAML + ChordPro (`.cho`) files under `content/`. Read `songbook-web-app.md` for the full architecture spec.
+Self-hosted, file-based songbook. No database — all data lives as YAML + ChordPro (`.cho`) files under `content/`. Read `songbook-web-app.md` for the original architecture spec (note: parts of it drifted from the code) and `docs/index.md` for the living documentation.
 
 ## Commands
 
-- `npm run dev` — dev server (port 3000; Docker maps to 3100)
+- `npm run dev` — dev server (port 3000; Docker maps to 3000)
 - `npm run build` — production build (standalone output)
 - `npm run lint` — ESLint (flat config, `eslint.config.mjs`)
-- No test suite, no formatter, no pre-commit hooks
+- `npm test` — Vitest (unit/integration/component/API) with coverage thresholds
+- `npm run test:e2e` — Playwright end-to-end tests (Chromium only, via Docker)
+- No formatter, no pre-commit hooks
 
 ## Dev environment
 
@@ -41,7 +43,7 @@ Production Dockerfile installs Chromium + Noto fonts for Puppeteer PDF generatio
 
 ```
 content/
-  config/          — site.yaml, languages.yaml
+  config/          — site.yaml (languages come from env vars now, not files)
   artists/         — <artist-id>.yaml
   library/
     <album-id>/
@@ -56,7 +58,7 @@ All content schemas are Zod-validated in `src/lib/content/schemas.ts`. CRUD oper
 
 ### Auth
 
-Custom JWT auth (no NextAuth). Users stored as YAML in `content/users/`. Bcrypt password hashing, HTTP-only cookie (`songbook-session`), 7-day expiry. Three roles: `public` (read), `reviewer` (read+edit), `admin` (full). Auth checked per-route via `getSession()`/`getCurrentUser()` — no middleware.
+Custom JWT auth (no NextAuth). Users stored as YAML in `content/users/`. Bcrypt password hashing, HTTP-only cookie (`songbook-session`), 7-day expiry. Four roles: `public` (read), `setlist_creator` (public + own setlists; self-registration default), `reviewer` (read+edit), `admin` (full). Auth checked per-route via `getSession()`/`getCurrentUser()` — no middleware.
 
 Optional OIDC support configured in `site.yaml` (`oidc:` block). Uses standard Authorization Code flow with OIDC Discovery. Client secret via `OIDC_CLIENT_SECRET` env var. OIDC users are auto-provisioned with `authProvider: 'oidc'` in their YAML file. Role mapping from OIDC claims is configurable. See `src/lib/auth/oidc.ts` for the implementation.
 

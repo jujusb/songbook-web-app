@@ -2,6 +2,20 @@
 
 A self-hosted, file-based songbook application for managing songs with chords, supporting multiple languages, PDF export, live projection, and setlist management. No database required — all content lives as YAML and [ChordPro](https://www.chordpro.org/) files on disk.
 
+## Documentation
+
+The full documentation set lives in [`docs/`](docs/index.md):
+
+- [Tutorials](docs/tutorials/README.md) — step-by-step first-time experiences
+- [How-to guides](docs/how-to/README.md) — task-oriented recipes
+- [Reference](docs/reference/README.md) — the content model, routes, API, server actions, configuration
+- [Explanation](docs/explanation/README.md) — why the code is shaped this way, including the
+  [architecture decision records](docs/explanation/decisions/README.md) mined from this repository's
+  git history
+
+> Some sections of this README have drifted from the code (most notably the port and the removed
+> `languages.yaml`); the docs are kept accurate against the source.
+
 ## Features
 
 - **Chord rendering** — ChordPro format with chords displayed above lyrics, transposition controls
@@ -35,7 +49,7 @@ docker compose up
 ADMIN_PASSWORD=your-password ./run.sh up -d
 ```
 
-The dev server is available at `http://localhost:3100`. Production builds use a standalone Next.js output with Chromium bundled for PDF generation.
+The dev server is available at `http://localhost:3000`. Production builds use a standalone Next.js output with Chromium bundled for PDF generation.
 
 ### Local development
 
@@ -118,7 +132,6 @@ All content lives under `content/` and can be version-controlled independently, 
 content/
   config/
     site.yaml              # app title, default language, PDF page size, OIDC config
-    languages.yaml         # enabled languages with display names and RTL flags
   artists/
     <artist-id>.yaml
   users/
@@ -174,10 +187,12 @@ The frontmatter carries per-translation metadata (language, translator, status).
 | `npm run dev` | Start dev server (port 3000) |
 | `npm run build` | Production build (standalone output) |
 | `npm run lint` | ESLint with flat config |
+| `npm test` | Vitest unit/integration/component/API tests (coverage enforced) |
+| `npm run test:e2e` | Playwright end-to-end tests (needs a running server) |
 
 ## Docker
 
-**Development** (`docker-compose.yml`): Bind-mounts source code, uses `node:20-slim`, polls for file changes, maps port 3100 to 3000.
+**Development** (`docker-compose.yml`): Bind-mounts source code, uses `node:20-slim`, polls for file changes, maps port 3000 to 3000.
 
 **Production** (`Dockerfile`): Multi-stage build on `node:20-slim`. Installs Chromium and Noto fonts for PDF generation. Runs as non-root user. Content directory is volume-mounted at `/app/content`.
 
