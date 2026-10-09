@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { cookies } from 'next/headers';
-import { GET as albumsGET, POST as albumsPOST } from '@/app/api/albums/route';
+import { GET as albumsGET, POST as albumsPOST, PUT as albumsPUT, DELETE as albumsDELETE } from '@/app/api/albums/route';
 import { createTempContentDir } from '../../utils/temp-content';
 import { createUser, createSession } from '@/lib/auth';
 import { createAlbum } from '@/lib/content';
@@ -103,6 +103,29 @@ describe('API /api/albums', () => {
       expect(response.status).toBe(200);
       expect(data.map((a: any) => a.id)).toEqual(['published-album']);
     });
+
+    it('returns 401 for non-admin requesting all=true', async () => {
+      await createAlbum('hidden-album', 'Hidden Album', 'various-artists');
+
+      mockAuth(reviewerToken);
+      const req = createMockRequest('GET', undefined, 'http://localhost/api/albums?all=true');
+      const response = await albumsGET(req);
+
+      expect(response.status).toBe(401);
+    });
+
+    it('returns every album for admin with all=true', async () => {
+      await createAlbum('album-a', 'Album A', 'various-artists');
+      await createAlbum('album-b', 'Album B', 'various-artists');
+
+      mockAuth(adminToken);
+      const req = createMockRequest('GET', undefined, 'http://localhost/api/albums?all=true');
+      const response = await albumsGET(req);
+      const data = await response.json();
+
+      expect(response.status).toBe(200);
+      expect(data).toHaveLength(2);
+    });
   });
 
   describe('POST /api/albums', () => {
@@ -164,6 +187,100 @@ describe('API /api/albums', () => {
       
       const response = await albumsPOST(req);
       expect(response.status).toBe(403);
+    });
+
+    it('returns 400 when the album fails validation', async () => {
+      mockAuth(adminToken);
+      const req = createMockRequest('POST', {
+        id: 'bad-album',
+        title: 'Bad Album',
+        artist: 'various-artists',
+        spotify: 'https://not-spotify.example.com/album',
+      });
+
+      const response = await albumsPOST(req);
+      const data = await response.json();
+
+      expect(response.status).toBe(400);
+      expect(typeof data.error).toBe('string');
+    });
+  });
+
+  describe('PUT /api/albums', () => {
+    it('updates an existing album', async () => {
+      await createAlbum('edit-album', 'Edit Album', 'various-artists');
+
+      mockAuth(adminToken);
+      const req = createMockRequest('PUT', {
+        id: 'edit-album',
+        title: 'Edited Album',
+        artist: 'various-artists',
+        songs: [],
+      });
+
+      const response = await albumsPUT(req);
+      const data = await response.json();
+
+      expect(response.status).toBe(200);
+      expect(data).toEqual({ success: true, id: 'edit-album' });
+    });
+
+    it('returns 400 when the album fails validation', async () => {
+      mockAuth(adminToken);
+      const req = createMockRequest('PUT', { title: 'No ID', artist: 'various-artists' });
+
+      const response = await albumsPUT(req);
+      expect(response.status).toBe(400);
+    });
+
+    it('returns 403 in read-only mode', async () => {
+      vi.stubEnv('SONGBOOK_READONLY', '1');
+
+      mockAuth(adminToken);
+      const req = createMockRequest('PUT', {
+        id: 'edit-album',
+        title: 'Edited Album',
+        artist: 'various-artists',
+      });
+
+      const response = await albumsPUT(req);
+      expect(response.status).toBe(403);
+      vi.unstubAllEnvs();
+    });
+  });
+
+  describe('DELETE /api/albums', () => {
+    it('deletes an album by id query param', async () => {
+      await createAlbum('delete-me', 'Delete Me', 'various-artists');
+
+      mockAuth(adminToken);
+      const req = createMockRequest('DELETE', undefined, 'http://localhost/api/albums?id=delete-me');
+      const response = await albumsDELETE(req);
+      const data = await response.json();
+
+      expect(response.status).toBe(200);
+      expect(data).toEqual({ success: true });
+    });
+
+    it('returns 400 when id is missing', async () => {
+      mockAuth(adminToken);
+      const req = createMockRequest('DELETE');
+      const response = await albumsDELETE(req);
+      const data = await response.json();
+
+      expect(response.status).toBe(400);
+      expect(data.error).toContain('id is required');
+    });
+
+    it('returns 403 in read-only mode', async () => {
+      vi.stubEnv('SONGBOOK_READONLY', '1');
+
+      mockAuth(adminToken);
+      const req = createMockRequest('DELETE', undefined, 'http://localhost/api/albums?id=any');
+      const response = await albumsDELETE(req);
+
+      expect(response.status).toBe(403);
+      vi.unstubAllEnvs();
     });
   });
 });
