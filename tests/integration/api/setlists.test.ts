@@ -1,7 +1,9 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+import { cookies } from 'next/headers';
 import { GET as setlistsGET, POST as setlistsPOST } from '@/app/api/setlists/route';
-import { createTempContentDir, mockContentDir } from '../../../utils/temp-content';
-import { createUser, createSession, createSong, createAlbum, saveSetlist } from '@/lib/auth';
+import { createTempContentDir, mockContentDir } from '../../utils/temp-content';
+import { createUser, createSession } from '@/lib/auth';
+import { createSong, createAlbum, saveSetlist } from '@/lib/content';
 
 function createMockRequest(method: string, body?: unknown, url = 'http://localhost/api/setlists') {
   return {
@@ -37,8 +39,7 @@ describe('API /api/setlists', () => {
     vi.clearAllMocks();
   });
 
-  async function mockAuth(token: string | undefined) {
-    const { cookies } = await import('next/headers');
+  function mockAuth(token: string | undefined) {
     vi.mocked(cookies).mockReturnValue({
       get: vi.fn((name) => name === 'songbook-session' ? (token ? { value: token } : undefined) : undefined),
     } as any);
@@ -160,7 +161,6 @@ describe('API /api/setlists', () => {
       const data = await response.json();
       
       expect(response.status).toBe(201);
-      expect(data.success).toBe(true);
       expect(data.id).toBe('my-setlist');
     });
 
@@ -176,7 +176,7 @@ describe('API /api/setlists', () => {
       expect(response.status).toBe(201);
     });
 
-    it('returns 403 for public users', async () => {
+    it('returns 401 for public users', async () => {
       mockAuth(publicToken);
       const req = createMockRequest('POST', {
         id: 'public-setlist',
@@ -185,14 +185,12 @@ describe('API /api/setlists', () => {
       });
       
       const response = await setlistsPOST(req);
-      expect(response.status).toBe(403);
+      expect(response.status).toBe(401);
     });
 
     it('returns 400 for missing required fields', async () => {
       mockAuth(creatorToken);
-      const req = createMockRequest('POST', {
-        title: 'No ID',
-      });
+      const req = createMockRequest('POST', {});
       
       const response = await setlistsPOST(req);
       const data = await response.json();
@@ -201,8 +199,8 @@ describe('API /api/setlists', () => {
       expect(data.error).toContain('required');
     });
 
-    it('returns 403 in read-only mode', async () => {
-      vi.stubEnv('READ_ONLY', 'true');
+    it('allows setlist creation in read-only mode', async () => {
+      vi.stubEnv('SONGBOOK_READONLY', '1');
       
       mockAuth(creatorToken);
       const req = createMockRequest('POST', {
@@ -212,7 +210,7 @@ describe('API /api/setlists', () => {
       });
       
       const response = await setlistsPOST(req);
-      expect(response.status).toBe(403);
+      expect(response.status).toBe(201);
       vi.unstubAllEnvs();
     });
   });

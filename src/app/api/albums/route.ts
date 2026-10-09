@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { listAlbums, saveAlbum, deleteAlbum, moveNoAlbumSongsIntoAlbum } from "@/lib/content";
+import { listAlbums, saveAlbum, deleteAlbum, moveNoAlbumSongsIntoAlbum, type ListAlbumsOptions } from "@/lib/content";
 import { AlbumSchema } from "@/lib/content/schemas";
 import { isReadOnly, isReadOnlyFor } from "@/lib/readonly";
 import { getSession, canAdmin } from "@/lib/auth";
@@ -8,16 +8,20 @@ export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
     const all = searchParams.get("all") === "true";
-    
-    let options = {};
+
+    const session = await getSession();
+    const role = session?.role ?? null;
+
+    // Public/non-admin callers only see published albums. Admins requesting
+    // `?all=true` see everything; admins otherwise also see everything.
+    let options: ListAlbumsOptions = { onlyPublished: true, role: role ?? undefined };
     if (all) {
-      const session = await getSession();
-      if (!canAdmin(session?.role ?? null)) {
+      if (!canAdmin(role)) {
         return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
       }
       options = { onlyPublished: false, role: 'admin' };
     }
-    
+
     const albums = await listAlbums(options);
     return NextResponse.json(albums);
   } catch {
@@ -34,6 +38,10 @@ function readonlyResponse() {
 
 export async function POST(request: Request) {
   if (isReadOnly()) return readonlyResponse();
+  const session = await getSession();
+  if (!canAdmin(session?.role ?? null)) {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
   try {
     const body = await request.json();
     const album = AlbumSchema.parse(body);

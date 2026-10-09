@@ -27,7 +27,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Username already taken" }, { status: 409 });
     }
 
-    const user = await createUser(username, password, 'setlist_creator', displayName);
+    const user = await createUser(username, password, 'setlist_creator', displayName, { allowReadOnly: true });
 
     const token = await createSession(user);
 

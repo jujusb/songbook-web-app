@@ -99,10 +99,10 @@ Another verse
       
       const html = renderVisualChordSheet(source);
       
-      // HTML is escaped as <...
-      expect(html).toContain('<Script>');
-      expect(html).toContain('"Quotes"');
-      expect(html).toContain('&');
+      // HTML is escaped in the output
+      expect(html).toContain('&lt;Script&gt;');
+      expect(html).toContain('&quot;Quotes&quot;');
+      expect(html).toContain('&amp;');
     });
 
     it('handles empty lines', () => {
@@ -128,7 +128,8 @@ Third verse`;
       const html = renderVisualChordSheet(source, { repeatChorus: true });
       
       expect(html).toContain('Third verse');
-    );
+    });
+
 
     it('renders section labels', () => {
       const source = `{verse: 1}

@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { listSongs, createSong, saveSongTranslation, getAlbum, saveAlbum, deleteSong, NO_ALBUM_ID } from "@/lib/content";
+import { listSongs, createSong, saveSongTranslation, getAlbum, saveAlbum, deleteSong, NO_ALBUM_ID, type ListSongsOptions } from "@/lib/content";
 import { isReadOnly, isReadOnlyFor } from "@/lib/readonly";
 import { getSession, canAdmin } from "@/lib/auth";
 
@@ -8,7 +8,9 @@ export async function GET(request: Request) {
     const { searchParams } = new URL(request.url);
     const all = searchParams.get("all") === "true";
     
-    let options = {};
+    // Public/non-admin callers only see songs with at least one published
+    // translation. Admins requesting `?all=true` see everything.
+    let options: ListSongsOptions = { onlyPublished: true };
     if (all) {
       const session = await getSession();
       if (!canAdmin(session?.role ?? null)) {
@@ -85,6 +87,10 @@ export async function POST(request: Request) {
 export async function DELETE(request: Request) {
   if (isReadOnly()) {
     return NextResponse.json({ error: "Read-only mode" }, { status: 403 });
+  }
+  const session = await getSession();
+  if (!canAdmin(session?.role ?? null)) {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
   try {
     const { searchParams } = new URL(request.url);

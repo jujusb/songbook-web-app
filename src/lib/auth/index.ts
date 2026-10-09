@@ -97,8 +97,8 @@ export async function findOrCreateOidcUser(
   return user;
 }
 
-export async function saveUser(user: User): Promise<void> {
-  if (isReadOnlyFor('user_write')) throw new Error('Read-only mode: user writes disabled');
+export async function saveUser(user: User, opts?: { allowReadOnly?: boolean }): Promise<void> {
+  if (!opts?.allowReadOnly && isReadOnlyFor('user_write')) throw new Error('Read-only mode: user writes disabled');
   const dir = getUsersDir();
   await mkdir(dir, { recursive: true });
   const filePath = path.join(dir, `${user.id}.yaml`);
@@ -110,9 +110,10 @@ export async function createUser(
   username: string,
   password: string,
   role: Role,
-  displayName?: string
+  displayName?: string,
+  opts?: { allowReadOnly?: boolean }
 ): Promise<User> {
-  if (isReadOnlyFor('user_write')) throw new Error('Read-only mode: user writes disabled');
+  if (!opts?.allowReadOnly && isReadOnlyFor('user_write')) throw new Error('Read-only mode: user writes disabled');
   const id = username.toLowerCase().replace(/[^a-z0-9]+/g, '-');
   const passwordHash = await bcrypt.hash(password, 10);
   const user: User = {
@@ -124,7 +125,7 @@ export async function createUser(
     displayName,
     created: new Date().toISOString(),
   };
-  await saveUser(user);
+  await saveUser(user, opts);
   return user;
 }
 

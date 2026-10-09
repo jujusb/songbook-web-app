@@ -7,8 +7,14 @@ import type { Setlist } from "@/lib/content/schemas";
 export async function GET() {
   const all = await listSetlists();
   const session = await getSession();
-  const showAll = canEdit(session?.role ?? null);
-  return NextResponse.json(showAll ? all : all.filter((s) => s.public));
+  const role = session?.role ?? null;
+  // Editors/admins see everything; everyone else sees public setlists plus
+  // their own setlists (setlist_creators manage their own collections).
+  if (canEdit(role)) return NextResponse.json(all);
+  const userId = session?.userId;
+  return NextResponse.json(
+    all.filter((s) => s.public || (userId ? s.ownerId === userId : false))
+  );
 }
 
 function readonlyResponse(operation: string) {
@@ -24,7 +30,10 @@ export async function POST(request: Request) {
 
   try {
     const data = await request.json();
-    const id = (data.title as string)
+    if (!data.title || typeof data.title !== 'string' || !data.title.trim()) {
+      return NextResponse.json({ error: "title is required" }, { status: 400 });
+    }
+    const id = data.title
       .toLowerCase()
       .replace(/[^a-z0-9]+/g, "-")
       .replace(/^-|-$/g, "");

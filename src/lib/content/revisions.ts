@@ -31,10 +31,17 @@ export async function saveRevision(
   await mkdir(revDir, { recursive: true });
   
   const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
-  const revFile = path.join(revDir, `${timestamp}.cho`);
+  let revFile = path.join(revDir, `${timestamp}.cho`);
+  let suffix = 1;
+  // Two saves within the same millisecond would otherwise collide and silently
+  // overwrite each other, losing a revision.
+  while (existsSync(revFile)) {
+    revFile = path.join(revDir, `${timestamp}-${suffix}.cho`);
+    suffix++;
+  }
   await cp(choFile, revFile);
   
-  return timestamp;
+  return path.basename(revFile, '.cho');
 }
 
 export async function listRevisions(

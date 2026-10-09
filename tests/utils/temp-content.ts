@@ -4,6 +4,7 @@ import tmp from 'tmp-promise';
 
 export interface TempContentDir {
   path: string;
+  contentPath: string;
   cleanup: () => Promise<void>;
   writeFile: (relativePath: string, content: string) => Promise<void>;
   readFile: (relativePath: string) => Promise<string>;
@@ -74,4 +75,13 @@ export async function createTempContentDir(): Promise<TempContentDir> {
       return existsSync(path.join(contentPath, relativePath));
     },
   };
+}
+
+/**
+ * Point the content module at the given temp directory. `createTempContentDir`
+ * already chdirs into the temp root, so this is idempotent and mainly exists so
+ * tests can express intent explicitly.
+ */
+export function mockContentDir(tempDir: TempContentDir): void {
+  process.chdir(tempDir.path);
 }

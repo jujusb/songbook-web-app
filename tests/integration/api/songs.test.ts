@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+import { cookies } from 'next/headers';
 import { GET, POST, DELETE } from '@/app/api/songs/route';
-import { createTempContentDir, mockContentDir } from '../../../utils/temp-content';
+import { createTempContentDir } from '../../utils/temp-content';
 import { createUser, createSession, getUser } from '@/lib/auth';
 
 function createMockRequest(method: string, body?: unknown, url = 'http://localhost/api/songs') {
@@ -19,7 +20,6 @@ describe('API /api/songs', () => {
   
   beforeEach(async () => {
     tempDir = await createTempContentDir();
-    mockContentDir(tempDir);
     
     await createUser('admin', 'adminpass', 'admin');
     adminToken = await createSession({ id: 'admin', username: 'admin', role: 'admin' });
@@ -33,8 +33,7 @@ describe('API /api/songs', () => {
     vi.clearAllMocks();
   });
 
-  async function mockAuth(token: string | undefined) {
-    const { cookies } = await import('next/headers');
+  function mockAuth(token: string | undefined) {
     vi.mocked(cookies).mockReturnValue({
       get: vi.fn((name) => name === 'songbook-session' ? (token ? { value: token } : undefined) : undefined),
     } as any);
@@ -124,7 +123,7 @@ describe('API /api/songs', () => {
     });
 
     it('returns 403 in read-only mode', async () => {
-      vi.stubEnv('READ_ONLY', 'true');
+      vi.stubEnv('SONGBOOK_READONLY', '1');
       
       mockAuth(adminToken);
       const req = createMockRequest('POST', { id: 'test', title: 'Test' });
@@ -169,7 +168,7 @@ describe('API /api/songs', () => {
       
       const { getSongTranslation } = await import('@/lib/content');
       const { body } = await getSongTranslation('chordpro-song', 'en');
-      expect(body).toContain('Content here');
+      expect(body).toContain('[C]Content [G]here');
     });
   });
 
@@ -198,7 +197,7 @@ describe('API /api/songs', () => {
     });
 
     it('returns 403 in read-only mode', async () => {
-      vi.stubEnv('READ_ONLY', 'true');
+      vi.stubEnv('SONGBOOK_READONLY', '1');
       
       mockAuth(adminToken);
       const req = createMockRequest('DELETE', undefined, 'http://localhost/api/songs?id=test');

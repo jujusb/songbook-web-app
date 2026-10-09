@@ -23,4 +23,4 @@ vi.mock('next/headers', () => ({
 vi.stubEnv('JWT_SECRET', 'test-secret-key-for-testing-only');
 vi.stubEnv('ADMIN_PASSWORD', 'test-admin-password');
 vi.stubEnv('NODE_ENV', 'test');
-vi.stubEnv('READ_ONLY', 'false');
+vi.stubEnv('SONGBOOK_READONLY', '0');

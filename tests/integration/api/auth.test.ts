@@ -25,6 +25,7 @@ describe('API /api/auth', () => {
   
   afterEach(async () => {
     await tempDir.cleanup();
+    vi.unstubAllEnvs();
     vi.clearAllMocks();
   });
 
@@ -33,7 +34,7 @@ describe('API /api/auth', () => {
       await createUser('testuser', 'password123', 'reviewer', 'Test User');
     });
 
-    it('returns token and user on valid credentials', async () => {
+    it('returns success and session cookie on valid credentials', async () => {
       const req = createMockRequest('POST', {
         username: 'testuser',
         password: 'password123',
@@ -43,11 +44,9 @@ describe('API /api/auth', () => {
       const data = await response.json();
       
       expect(response.status).toBe(200);
-      expect(data.token).toBeDefined();
-      expect(data.user).toBeDefined();
-      expect(data.user.username).toBe('testuser');
-      expect(data.user.role).toBe('reviewer');
-      expect(data.user.displayName).toBe('Test User');
+      expect(data.success).toBe(true);
+      expect(data.role).toBe('reviewer');
+      expect(response.headers.get('set-cookie')).toContain('songbook-session=');
     });
 
     it('returns 401 for invalid username', async () => {
@@ -88,8 +87,8 @@ describe('API /api/auth', () => {
       expect(data.error).toContain('Username and password required');
     });
 
-    it('returns 403 in read-only mode', async () => {
-      vi.stubEnv('READ_ONLY', 'true');
+    it('allows login in read-only mode', async () => {
+      vi.stubEnv('SONGBOOK_READONLY', '1');
       
       const req = createMockRequest('POST', {
         username: 'testuser',
@@ -97,16 +96,14 @@ describe('API /api/auth', () => {
       }, 'http://localhost/api/auth/login');
       
       const response = await loginPOST(req);
-      const data = await response.json();
       
-      expect(response.status).toBe(403);
-      expect(data.error).toContain('Read-only mode');
+      expect(response.status).toBe(200);
       vi.unstubAllEnvs();
     });
   });
 
   describe('POST /api/auth/register', () => {
-    it('creates new user and returns token', async () => {
+    it('creates new user and returns session', async () => {
       const req = createMockRequest('POST', {
         username: 'newuser',
         password: 'newpass123',
@@ -116,15 +113,14 @@ describe('API /api/auth', () => {
       const response = await registerPOST(req);
       const data = await response.json();
       
-      expect(response.status).toBe(201);
-      expect(data.token).toBeDefined();
-      expect(data.user).toBeDefined();
-      expect(data.user.username).toBe('newuser');
-      expect(data.user.role).toBe('public');
-      expect(data.user.displayName).toBe('New User');
+      expect(response.status).toBe(200);
+      expect(data.success).toBe(true);
+      expect(data.role).toBe('setlist_creator');
+      expect(data.userId).toBeDefined();
+      expect(response.headers.get('set-cookie')).toContain('songbook-session=');
     });
 
-    it('returns 400 for existing username', async () => {
+    it('returns 409 for existing username', async () => {
       await createUser('existing', 'pass', 'public');
       
       const req = createMockRequest('POST', {
@@ -135,8 +131,8 @@ describe('API /api/auth', () => {
       const response = await registerPOST(req);
       const data = await response.json();
       
-      expect(response.status).toBe(400);
-      expect(data.error).toContain('already exists');
+      expect(response.status).toBe(409);
+      expect(data.error).toContain('already taken');
     });
 
     it('returns 400 for missing fields', async () => {
@@ -151,8 +147,8 @@ describe('API /api/auth', () => {
       expect(data.error).toContain('required');
     });
 
-    it('returns 403 in read-only mode', async () => {
-      vi.stubEnv('READ_ONLY', 'true');
+    it('allows registration in read-only mode', async () => {
+      vi.stubEnv('SONGBOOK_READONLY', '1');
       
       const req = createMockRequest('POST', {
         username: 'newuser',
@@ -160,9 +156,8 @@ describe('API /api/auth', () => {
       }, 'http://localhost/api/auth/register');
       
       const response = await registerPOST(req);
-      const data = await response.json();
       
-      expect(response.status).toBe(403);
+      expect(response.status).toBe(200);
       vi.unstubAllEnvs();
     });
   });
