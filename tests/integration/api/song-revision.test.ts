@@ -37,7 +37,7 @@ describe('API /api/songs/[id]/revisions/[timestamp]', () => {
     await createSong('rev-song', 'Rev Song', 'en');
     await tempDir.writeFile(
       'library/no-album/rev-song/en.cho',
-      '---\nlanguage: en\ntitle: Original Title\ntranslator: null\nstatus: draft\npublished: false\nmodifiedBy: admin\nlastModified: 2026-01-01T00:00:00.000Z\n---\n{title: Original}\nVerse 1\n'
+      '---\nlanguage: en\ntitle: Original Title\ntranslator: null\nstatus: draft\npublished: false\nmodifiedBy: admin\nlastModified: !!str 2026-01-01T00:00:00.000Z\n---\n{title: Original}\nVerse 1\n'
     );
     await saveSongTranslation(
       'rev-song',

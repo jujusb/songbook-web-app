@@ -1,15 +1,11 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { cookies } from 'next/headers';
-import { GET } from '@/app/api/songs/[id]/revisions/route';
+import { POST } from '@/app/api/songs/[id]/revisions/[timestamp]/revert/route';
 import { createTempContentDir, mockContentDir } from '../../utils/temp-content';
 import { createUser, createSession } from '@/lib/auth';
-import { createSong, saveSongTranslation } from '@/lib/content';
-import { findSongPath, listRevisions } from '@/lib/content';
+import { createSong, saveSongTranslation, findSongPath, listRevisions } from '@/lib/content';
 
-function createMockRequest(
-  method: string,
-  url = 'http://localhost/api/songs/rev-song/revisions'
-) {
+function createMockRequest(method: string, url: string) {
   return {
     method,
     url,
@@ -18,11 +14,11 @@ function createMockRequest(
   } as unknown as Request;
 }
 
-function params(id: string) {
-  return { params: Promise.resolve({ id }) };
+function params(id: string, timestamp: string) {
+  return { params: Promise.resolve({ id, timestamp }) };
 }
 
-describe('API /api/songs/[id]/revisions', () => {
+describe('API /api/songs/[id]/revisions/[timestamp]/revert', () => {
   let tempDir: Awaited<ReturnType<typeof createTempContentDir>>;
   let adminToken: string;
   let publicToken: string;
@@ -69,43 +65,50 @@ describe('API /api/songs/[id]/revisions', () => {
 
   it('returns 403 in read-only mode', async () => {
     vi.stubEnv('SONGBOOK_READONLY', '1');
-    const response = await GET(createMockRequest('GET'), params('rev-song'));
+    const response = await POST(
+      createMockRequest('POST', 'http://localhost/api/x'),
+      params('rev-song', timestamp)
+    );
     expect(response.status).toBe(403);
   });
 
   it('returns 401 for users without edit permission', async () => {
     mockAuth(publicToken);
-    const response = await GET(createMockRequest('GET'), params('rev-song'));
-    expect(response.status).toBe(401);
-  });
-
-  it('lists revisions for an editor', async () => {
-    mockAuth(adminToken);
-    const response = await GET(createMockRequest('GET'), params('rev-song'));
-    const data = await response.json();
-
-    expect(response.status).toBe(200);
-    expect(data.songId).toBe('rev-song');
-    expect(data.lang).toBe('en');
-    expect(Array.isArray(data.revisions)).toBe(true);
-    expect(data.revisions).toHaveLength(1);
-    expect(data.revisions[0].timestamp).toBe(timestamp);
-  });
-
-  it('honours the lang query parameter', async () => {
-    mockAuth(adminToken);
-    const response = await GET(
-      createMockRequest('GET', 'http://localhost/api/songs/rev-song/revisions?lang=es'),
-      params('rev-song')
+    const response = await POST(
+      createMockRequest('POST', 'http://localhost/api/x'),
+      params('rev-song', timestamp)
     );
-    const data = await response.json();
-    expect(response.status).toBe(200);
-    expect(data.lang).toBe('es');
+    expect(response.status).toBe(401);
   });
 
   it('returns 404 for a missing song', async () => {
     mockAuth(adminToken);
-    const response = await GET(createMockRequest('GET'), params('missing-song'));
+    const response = await POST(
+      createMockRequest('POST', 'http://localhost/api/x'),
+      params('missing-song', timestamp)
+    );
     expect(response.status).toBe(404);
+  });
+
+  it('reverts to a revision', async () => {
+    mockAuth(adminToken);
+    const response = await POST(
+      createMockRequest('POST', 'http://localhost/api/x?lang=en'),
+      params('rev-song', timestamp)
+    );
+    const data = await response.json();
+
+    expect(response.status).toBe(200);
+    expect(data.success).toBe(true);
+    expect(data.message).toContain('Reverted');
+  });
+
+  it('returns 500 for an unreadable revision', async () => {
+    mockAuth(adminToken);
+    const response = await POST(
+      createMockRequest('POST', 'http://localhost/api/x'),
+      params('rev-song', 'not-a-real-timestamp')
+    );
+    expect(response.status).toBe(500);
   });
 });
