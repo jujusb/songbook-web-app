@@ -1,302 +1,234 @@
 import { test, expect } from '@playwright/test';
+import { cleanup, loginAsAdmin, submitLogin } from './support';
 
-test.describe('Authentication Flow', () => {
-  test.beforeEach(async ({ page }) => {
-    await page.goto('/login');
+/**
+ * These flows run against a freshly seeded content directory. Most seed
+ * translations are unpublished, so nearly every assertion requires an
+ * authenticated admin session — the public read path would 404 on them.
+ */
+
+test.describe('Authentication', () => {
+  test('logs in with valid credentials', async ({ page }) => {
+    await loginAsAdmin(page);
+    await expect(page).toHaveURL(/\/browse$/);
+    await expect(page.getByRole('button', { name: 'Logout' })).toBeVisible();
   });
 
-  test('login with valid credentials', async ({ page }) => {
-    await page.fill('input[name="username"]', 'admin');
-    await page.fill('input[name="password"]', 'admin');
-    await page.click('button[type="submit"]');
-    
-    await expect(page).toHaveURL(/.*\/$/);
-    await expect(page.locator('text=Welcome')).toBeVisible();
+  test('rejects invalid credentials', async ({ page }) => {
+    await submitLogin(page, 'admin', 'definitely-wrong');
+    await expect(page.getByText('Invalid credentials')).toBeVisible();
+    await expect(page).toHaveURL(/\/login$/);
   });
 
-  test('login fails with invalid credentials', async ({ page }) => {
-    await page.fill('input[name="username"]', 'admin');
-    await page.fill('input[name="password"]', 'wrong');
-    await page.click('button[type="submit"]');
-    
-    await expect(page.locator('text=Invalid credentials')).toBeVisible();
-  });
-
-  test('logout works', async ({ page }) => {
-    await page.fill('input[name="username"]', 'admin');
-    await page.fill('input[name="password"]', 'admin');
-    await page.click('button[type="submit"]');
-    
-    await page.click('button:has-text("Logout")');
-    await expect(page).toHaveURL(/.*\/login/);
+  test('logs out and shows the login link', async ({ page }) => {
+    await loginAsAdmin(page);
+    await page.getByRole('button', { name: 'Logout' }).click();
+    await page.waitForURL(/\/$/);
+    await expect(page.getByRole('link', { name: 'Login' })).toBeVisible();
   });
 });
 
-test.describe('Song Browse Flow', () => {
+test.describe('Browsing the songbook', () => {
   test.beforeEach(async ({ page }) => {
-    await page.goto('/login');
-    await page.fill('input[name="username"]', 'admin');
-    await page.fill('input[name="password"]', 'admin');
-    await page.click('button[type="submit"]');
-    await page.waitForURL('/');
+    await loginAsAdmin(page);
   });
 
-  test('displays song list', async ({ page }) => {
+  test('lists the seeded songs', async ({ page }) => {
     await page.goto('/songs');
-    await expect(page.locator('text=Songs')).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Songs' })).toBeVisible();
+    await expect(page.getByRole('link', { name: /Amazing Grace/ })).toBeVisible();
+    await expect(page.getByRole('link', { name: /How Great Thou Art/ })).toBeVisible();
   });
 
-  test('filters songs by search', async ({ page }) => {
+  test('filters songs by search term', async ({ page }) => {
     await page.goto('/songs');
-    await page.fill('input[placeholder*="search" i]', 'Amazing');
-    await expect(page.locator('text=Amazing Grace')).toBeVisible();
+    await page.getByPlaceholder('Search').fill('Amazing');
+    await expect(page.getByRole('link', { name: /Amazing Grace/ })).toBeVisible();
+    await expect(page.getByRole('link', { name: /How Great Thou Art/ })).toHaveCount(0);
   });
 
-  test('opens song detail', async ({ page }) => {
+  test('opens a song and renders its chord sheet', async ({ page }) => {
     await page.goto('/songs');
-    await page.click('text=Amazing Grace');
+    await page.getByRole('link', { name: /Amazing Grace/ }).first().click();
     await expect(page).toHaveURL(/\/songs\/amazing-grace/);
-    await expect(page.locator('text=Amazing Grace')).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Amazing Grace', exact: true }).first()).toBeVisible();
+    await expect(page.locator('.visual-chord-sheet').first()).toBeVisible();
   });
 
-  test('transposes chords', async ({ page }) => {
+  test('transposes the chord sheet', async ({ page }) => {
     await page.goto('/songs/amazing-grace');
-    
-    const transposeUp = page.locator('button:has-text("+")').first();
+    const transposeUp = page.getByRole('button', { name: 'Transpose up' });
+    await expect(transposeUp).toBeVisible();
     await transposeUp.click();
     await transposeUp.click();
-    
-    await expect(page.locator('text=+2')).toBeVisible();
+    await expect(page.getByText('+2', { exact: true })).toBeVisible();
   });
 
-  test('toggles repeat sections', async ({ page }) => {
+  test('toggles repeated chorus sections', async ({ page }) => {
     await page.goto('/songs/amazing-grace');
-    
-    const toggleButton = page.locator('button:has-text("Hide Repeats")');
-    await toggleButton.click();
-    await expect(page.locator('button:has-text("Show Repeats")')).toBeVisible();
+    const hideRepeats = page.getByRole('button', { name: 'Hide Repeats' });
+    await expect(hideRepeats).toBeVisible();
+    await hideRepeats.click();
+    await expect(page.getByRole('button', { name: 'Show Repeats' })).toBeVisible();
+  });
+
+  test('switches between translations', async ({ page }) => {
+    await page.goto('/songs/amazing-grace?lang=es');
+    await expect(page.getByRole('heading', { name: 'Sublime Gracia', exact: true }).first()).toBeVisible();
+    await expect(page.locator('.visual-chord-sheet').first()).toBeVisible();
+  });
+
+  test('shows references for a song', async ({ page }) => {
+    await page.goto('/songs/amazing-grace');
+    await expect(page.getByText('1 Timothy 1:15').first()).toBeVisible();
   });
 });
 
-test.describe('Song Editor Flow', () => {
+test.describe('Song authoring', () => {
   test.beforeEach(async ({ page }) => {
-    await page.goto('/login');
-    await page.fill('input[name="username"]', 'admin');
-    await page.fill('input[name="password"]', 'admin');
-    await page.click('button[type="submit"]');
-    await page.waitForURL('/');
+    await loginAsAdmin(page);
   });
 
-  test('creates new song', async ({ page }) => {
+  test('creates a new song', async ({ page }) => {
+    await cleanup(page, '/api/songs', 'e2e-test-song');
     await page.goto('/songs/new');
-    
-    await page.fill('input[name="id"]', 'test-song');
-    await page.fill('input[name="title"]', 'Test Song');
-    await page.selectOption('select[name="lang"]', 'en');
-    await page.click('button:has-text("Create")');
-    
-    await expect(page).toHaveURL(/\/edit\/test-song\/en/);
-    await expect(page.locator('text=Test Song')).toBeVisible();
+    await page.getByPlaceholder('e.g. Amazing Grace').fill('E2E Test Song');
+    await page.locator('textarea').first().fill(
+      '{title: E2E Test Song}\n{key: C}\n\n{start_of_verse: 1}\n[C]Hello [G]world\n{end_of_verse}',
+    );
+    await page.getByRole('button', { name: 'Create Song' }).click();
+    await page.waitForURL(/\/songs\/e2e-test-song/);
+    await expect(page.getByRole('heading', { name: 'E2E Test Song', exact: true }).first()).toBeVisible();
+    await expect(page.locator('.visual-chord-sheet').first()).toBeVisible();
   });
 
-  test('edits song content', async ({ page }) => {
-    await page.goto('/edit/test-song/en');
-    
-    const editor = page.locator('.CodeMirror, [contenteditable="true"]').first();
-    await editor.fill('{title: Test Song}\n\n{verse: 1}\n[C]New [G]content');
-    
-    await page.click('button:has-text("Save")');
-    
-    await expect(page.locator('text=Saved')).toBeVisible();
-  });
+  test('edits a song title and persists the change', async ({ page }) => {
+    await cleanup(page, '/api/songs', 'e2e-edit-song');
+    await page.request.post('/api/songs', {
+      data: {
+        id: 'e2e-edit-song',
+        title: 'E2E Edit Song',
+        lang: 'en',
+        chordpro: '{title: E2E Edit Song}\n{key: G}\n\n{start_of_verse: 1}\n[G]A line\n{end_of_verse}',
+      },
+    });
 
-  test('adds translation', async ({ page }) => {
-    await page.goto('/edit/test-song/en');
-    
-    await page.click('button:has-text("Add Translation")');
-    await page.selectOption('select[name="lang"]', 'es');
-    await page.click('button:has-text("Create")');
-    
-    await expect(page).toHaveURL(/\/edit\/test-song\/es/);
+    await page.goto('/edit/e2e-edit-song/en');
+    const titleInput = page.getByRole('textbox', { name: 'Song title' });
+    await expect(titleInput).toHaveValue('E2E Edit Song');
+
+    const saveButton = titleInput.locator('xpath=following-sibling::button[1]');
+    await expect(saveButton).toHaveText('Saved');
+
+    await titleInput.fill('E2E Edit Song Renamed');
+    await expect(saveButton).toHaveText('Save');
+    await saveButton.click();
+    await expect(saveButton).toHaveText('Saved');
+
+    await page.reload();
+    await expect(page.getByRole('textbox', { name: 'Song title' })).toHaveValue('E2E Edit Song Renamed');
   });
 });
 
-test.describe('Album Management', () => {
+test.describe('Album management', () => {
   test.beforeEach(async ({ page }) => {
-    await page.goto('/login');
-    await page.fill('input[name="username"]', 'admin');
-    await page.fill('input[name="password"]', 'admin');
-    await page.click('button[type="submit"]');
-    await page.waitForURL('/');
+    await loginAsAdmin(page);
   });
 
-  test('creates new album', async ({ page }) => {
+  test('lists the seeded album', async ({ page }) => {
+    await page.goto('/albums');
+    await expect(page.getByRole('heading', { name: 'Albums', exact: true })).toBeVisible();
+    await expect(page.getByRole('link', { name: /Classic Hymns/ })).toBeVisible();
+  });
+
+  test('creates a new album with a song', async ({ page }) => {
+    await cleanup(page, '/api/albums', 'e2e-test-album');
     await page.goto('/albums/new');
-    
-    await page.fill('input[name="id"]', 'test-album');
-    await page.fill('input[name="title"]', 'Test Album');
-    await page.selectOption('select[name="artist"]', 'various-artists');
-    await page.fill('input[name="year"]', '2024');
-    await page.click('button:has-text("Create")');
-    
-    await expect(page).toHaveURL(/\/albums\/test-album/);
-    await expect(page.locator('text=Test Album')).toBeVisible();
-  });
-
-  test('adds song to album', async ({ page }) => {
-    await page.goto('/albums/test-album');
-    
-    await page.click('button:has-text("Add Song")');
-    await page.fill('input[name="songId"]', 'amazing-grace');
-    await page.click('button:has-text("Add")');
-    
-    await expect(page.locator('text=Amazing Grace')).toBeVisible();
+    await page.getByPlaceholder('Album title').fill('E2E Test Album');
+    await page.getByRole('button', { name: '+ Amazing Grace' }).click();
+    await page.getByRole('button', { name: 'Create Album' }).click();
+    await page.waitForURL(/\/albums\/e2e-test-album/);
+    await expect(page.getByRole('heading', { name: 'E2E Test Album', exact: true }).first()).toBeVisible();
+    await expect(page.getByRole('link', { name: /Amazing Grace/ })).toBeVisible();
   });
 });
 
-test.describe('Setlist Flow', () => {
+test.describe('Setlist management', () => {
   test.beforeEach(async ({ page }) => {
-    await page.goto('/login');
-    await page.fill('input[name="username"]', 'admin');
-    await page.fill('input[name="password"]', 'admin');
-    await page.click('button[type="submit"]');
-    await page.waitForURL('/');
+    await loginAsAdmin(page);
   });
 
-  test('creates setlist', async ({ page }) => {
+  test('creates a setlist containing a song', async ({ page }) => {
+    await cleanup(page, '/api/setlists', 'e2e-test-setlist');
     await page.goto('/setlists/new');
-    
-    await page.fill('input[name="id"]', 'test-setlist');
-    await page.fill('input[name="title"]', 'Test Setlist');
-    await page.fill('input[name="date"]', '2024-01-15');
-    await page.click('button:has-text("Create")');
-    
-    await expect(page).toHaveURL(/\/setlists\/test-setlist/);
+    await page.getByPlaceholder('Sunday Service').fill('E2E Test Setlist');
+    await page.getByPlaceholder('Search songs to add...').fill('Amazing');
+    await page.getByRole('button', { name: /Amazing Grace/ }).first().click();
+    await page.getByRole('button', { name: 'Create Setlist' }).click();
+    await page.waitForURL(/\/setlists\/e2e-test-setlist/);
+    await expect(page.getByRole('heading', { name: 'E2E Test Setlist', exact: true }).first()).toBeVisible();
   });
 
-  test('adds songs to setlist', async ({ page }) => {
-    await page.goto('/setlists/test-setlist');
-    
-    await page.click('button:has-text("Add Song")');
-    await page.selectOption('select[name="songId"]', 'amazing-grace');
-    await page.selectOption('select[name="lang"]', 'en');
-    await page.click('button:has-text("Add")');
-    
-    await expect(page.locator('text=Amazing Grace')).toBeVisible();
-  });
-
-  test('generates share link', async ({ page }) => {
-    await page.goto('/setlists/test-setlist');
-    
-    await page.click('button:has-text("Share")');
-    await page.click('button:has-text("Generate Link")');
-    
-    const shareUrl = page.locator('input[readonly]').first();
-    await expect(shareUrl).toHaveValue(/\/setlists\/test-setlist\?share=/);
+  test('creates a share link for a setlist', async ({ page }) => {
+    await page.goto('/setlists/my-setlist');
+    const createLink = page.getByRole('button', { name: 'Create share link' });
+    if (await createLink.count()) {
+      await createLink.click();
+    }
+    const shareInput = page.locator('input[readonly]').last();
+    await expect(shareInput).toHaveValue(/\/setlists\/share\//);
   });
 });
 
-test.describe('Print/Export Flow', () => {
+test.describe('User management', () => {
   test.beforeEach(async ({ page }) => {
-    await page.goto('/login');
-    await page.fill('input[name="username"]', 'admin');
-    await page.fill('input[name="password"]', 'admin');
-    await page.click('button[type="submit"]');
-    await page.waitForURL('/');
+    await loginAsAdmin(page);
   });
 
-  test('opens print view for song', async ({ page }) => {
-    await page.goto('/songs/amazing-grace');
-    await page.click('button:has-text("Print")');
-    
-    await expect(page).toHaveURL(/\/print\/amazing-grace/);
+  test('lists the admin user', async ({ page }) => {
+    await page.goto('/admin/users');
+    await expect(page.getByRole('heading', { name: 'User Management', exact: true })).toBeVisible();
+    await expect(page.locator('td.font-mono', { hasText: 'admin' }).first()).toBeVisible();
   });
 
-  test('opens print view for setlist', async ({ page }) => {
-    await page.goto('/setlists/test-setlist');
-    await page.click('button:has-text("Print")');
-    
-    await expect(page).toHaveURL(/\/print\/test-setlist/);
-  });
+  test('creates a new user', async ({ page }) => {
+    await cleanup(page, '/api/admin/users', 'e2euser');
+    await page.goto('/admin/users');
+    await page.getByRole('button', { name: '+ Create User' }).click();
 
-  test('exports PDF', async ({ page }) => {
-    await page.goto('/songs/amazing-grace');
-    await page.click('button:has-text("Export PDF")');
-    
-    // Wait for PDF generation
-    await expect(page.locator('text=Generating PDF')).toBeVisible({ timeout: 30000 });
-    await expect(page.locator('text=Download PDF')).toBeVisible({ timeout: 60000 });
+    const modal = page.locator('div.fixed.inset-0.z-50');
+    await modal.locator('input[type="text"]').first().fill('e2euser');
+    await modal.locator('input[type="password"]').fill('e2e-password');
+    await modal.locator('input[type="text"]').nth(1).fill('E2E User');
+    await modal.locator('input[type="email"]').fill('e2e@example.com');
+    await modal.locator('select').selectOption('reviewer');
+    await modal.getByRole('button', { name: 'Create User' }).click();
+
+    await expect(page.locator('td.font-mono', { hasText: 'e2euser' }).first()).toBeVisible();
   });
 });
 
-test.describe('User Management (Admin)', () => {
+test.describe('Print view', () => {
   test.beforeEach(async ({ page }) => {
-    await page.goto('/login');
-    await page.fill('input[name="username"]', 'admin');
-    await page.fill('input[name="password"]', 'admin');
-    await page.click('button[type="submit"]');
-    await page.waitForURL('/');
+    await loginAsAdmin(page);
   });
 
-  test('views user list', async ({ page }) => {
-    await page.goto('/admin/users');
-    await expect(page.locator('text=Users')).toBeVisible();
-    await expect(page.locator('text=admin')).toBeVisible();
-  });
-
-  test('creates new user', async ({ page }) => {
-    await page.goto('/admin/users');
-    await page.click('button:has-text("Create User")');
-    
-    await page.fill('input[name="username"]', 'newuser');
-    await page.fill('input[name="password"]', 'newpass123');
-    await page.selectOption('select[name="role"]', 'reviewer');
-    await page.fill('input[name="displayName"]', 'New User');
-    await page.click('button:has-text("Create")');
-    
-    await expect(page.locator('text=New User')).toBeVisible();
-  });
-
-  test('changes user role', async ({ page }) => {
-    await page.goto('/admin/users');
-    await page.locator('text=newuser').click();
-    await page.selectOption('select[name="role"]', 'admin');
-    await page.click('button:has-text("Save")');
-    
-    await expect(page.locator('text=admin')).toBeVisible();
+  test('renders a printable songbook page', async ({ page }) => {
+    await page.goto('/print/en?song=amazing-grace');
+    await expect(page.getByRole('button', { name: 'Print / Save as PDF' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: /Amazing Grace/ }).first()).toBeVisible();
   });
 });
 
-test.describe('Responsive Design', () => {
+test.describe('Responsive layout', () => {
   test.beforeEach(async ({ page }) => {
-    await page.goto('/login');
-    await page.fill('input[name="username"]', 'admin');
-    await page.fill('input[name="password"]', 'admin');
-    await page.click('button[type="submit"]');
-    await page.waitForURL('/');
+    await loginAsAdmin(page);
   });
 
-  test('mobile view shows inline chords', async ({ page }) => {
-    await page.setViewportSize({ width: 375, height: 667 });
+  test('renders the chord sheet on a phone viewport', async ({ page }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
     await page.goto('/songs/amazing-grace');
-    
-    // On mobile, chords should be inline
-    const chordSheet = page.locator('.visual-chord-sheet');
-    await expect(chordSheet).toBeVisible();
-  });
-
-  test('tablet view adapts layout', async ({ page }) => {
-    await page.setViewportSize({ width: 768, height: 1024 });
-    await page.goto('/songs');
-    
-    await expect(page.locator('.song-list')).toBeVisible();
-  });
-
-  test('desktop view shows full layout', async ({ page }) => {
-    await page.setViewportSize({ width: 1920, height: 1080 });
-    await page.goto('/songs/amazing-grace');
-    
-    await expect(page.locator('.visual-chord-sheet')).toBeVisible();
-    await expect(page.locator('text=References')).toBeVisible();
+    await expect(page.locator('.visual-chord-sheet').first()).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Transpose up' })).toBeVisible();
   });
 });

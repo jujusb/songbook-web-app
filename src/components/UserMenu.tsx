@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import Link from "next/link";
 import { useTranslation } from "@/lib/i18n";
 
@@ -14,19 +14,23 @@ interface UserInfo {
 
 export function UserMenu() {
   const router = useRouter();
+  const pathname = usePathname();
   const { t } = useTranslation();
   const [user, setUser] = useState<UserInfo | null>(null);
   const [loaded, setLoaded] = useState(false);
 
+  // The header lives in the root layout, so it is not remounted on client-side
+  // navigations. Re-fetch on every route change so login/logout is reflected
+  // immediately instead of staying stale until a full reload.
   useEffect(() => {
-    fetch("/api/auth/me")
+    fetch("/api/auth/me", { cache: "no-store" })
       .then((r) => r.json())
       .then((d) => {
         setUser(d.user);
         setLoaded(true);
       })
       .catch(() => setLoaded(true));
-  }, []);
+  }, [pathname]);
 
   if (!loaded) return null;
 
