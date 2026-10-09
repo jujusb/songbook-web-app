@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useTranslation } from '@/lib/i18n';
@@ -70,19 +70,25 @@ export function EditPageClient({
   const [isPublished, setIsPublished] = useState(published ?? false);
   const [savingPublished, setSavingPublished] = useState(false);
 
-  useEffect(() => {
+  const [prevTranslations, setPrevTranslations] = useState(translations);
+  if (translations !== prevTranslations) {
+    setPrevTranslations(translations);
     setTranslationLangs(translations);
-  }, [translations]);
+  }
 
-  useEffect(() => {
+  const [prevTitle, setPrevTitle] = useState(title);
+  if (title !== prevTitle) {
+    setPrevTitle(title);
     setTitleInput(title);
     setTitleSaved(true);
-  }, [title]);
+  }
 
-  useEffect(() => {
+  const [prevKeySignature, setPrevKeySignature] = useState(keySignature);
+  if (keySignature !== prevKeySignature) {
+    setPrevKeySignature(keySignature);
     setKeyInput(keySignature ?? '');
     setKeySaved(true);
-  }, [keySignature]);
+  }
 
   const handleSaveTitle = async () => {
     const next = titleInput.trim();

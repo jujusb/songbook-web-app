@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useSyncExternalStore } from "react";
 import ChordSheetJS from "chordsheetjs";
 import { renderVisualChordSheet } from "@/lib/chordpro/visual-render";
 import { SECTION_TYPES, splitSectionAliases } from "@/lib/chordpro/chord-utils";
@@ -344,17 +344,15 @@ export function ChordSheet({
 }) {
   const { t } = useTranslation();
   const [semitones, setSemitones] = useState(0);
-  const [isMobile, setIsMobile] = useState(false);
-  const [mounted, setMounted] = useState(false);
   const [showRepeats, setShowRepeats] = useState(repeatChorus);
-
-  useEffect(() => {
-    setMounted(true);
-    const checkMobile = () => setIsMobile(window.innerWidth < 768);
-    checkMobile();
-    window.addEventListener("resize", checkMobile);
-    return () => window.removeEventListener("resize", checkMobile);
-  }, []);
+  const isMobile = useSyncExternalStore(
+    (onChange) => {
+      window.addEventListener("resize", onChange);
+      return () => window.removeEventListener("resize", onChange);
+    },
+    () => window.innerWidth < 768,
+    () => false
+  );
 
   // Build section map from the original source
   const sectionMap = useMemo(
@@ -412,7 +410,7 @@ export function ChordSheet({
   }, [references, footnotes, sectionNames]);
 
   // Transpose first, then inject markers, then render, then linkify markers
-  const useInlineChords = inlineChords || (mounted && isMobile);
+  const useInlineChords = inlineChords || isMobile;
   const html = useMemo(() => {
     const transposed = transposeSource(initialSource, semitones);
     const withMarkers = injectMarkersIntoSource(transposed, footnotesByLine);

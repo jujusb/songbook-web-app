@@ -351,7 +351,8 @@ export async function extractTextItemsFromPDF(
     const pageHeight = viewport.height;
 
     const content = await page.getTextContent();
-    for (const item of content.items as any[]) {
+    type PdfTextItem = { str: string; transform: number[]; height?: number; fontSize?: number };
+    for (const item of content.items as unknown as PdfTextItem[]) {
       const tx = item.transform;
       allItems.push({
         text: item.str,

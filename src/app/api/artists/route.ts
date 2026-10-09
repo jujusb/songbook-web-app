@@ -26,9 +26,9 @@ export async function POST(request: Request) {
     const artist = ArtistSchema.parse(body);
     await saveArtist(artist);
     return NextResponse.json({ success: true, id: artist.id }, { status: 201 });
-  } catch (err: any) {
+  } catch (err: unknown) {
     return NextResponse.json(
-      { error: err.message || "Failed to create artist" },
+      { error: err instanceof Error ? err.message : "Failed to create artist" },
       { status: 400 }
     );
   }
@@ -41,9 +41,9 @@ export async function PUT(request: Request) {
     const artist = ArtistSchema.parse(body);
     await saveArtist(artist);
     return NextResponse.json({ success: true, id: artist.id });
-  } catch (err: any) {
+  } catch (err: unknown) {
     return NextResponse.json(
-      { error: err.message || "Failed to update artist" },
+      { error: err instanceof Error ? err.message : "Failed to update artist" },
       { status: 400 }
     );
   }
@@ -59,9 +59,9 @@ export async function DELETE(request: Request) {
     }
     await deleteArtist(id);
     return NextResponse.json({ success: true });
-  } catch (err: any) {
+  } catch (err: unknown) {
     return NextResponse.json(
-      { error: err.message || "Failed to delete artist" },
+      { error: err instanceof Error ? err.message : "Failed to delete artist" },
       { status: 500 }
     );
   }

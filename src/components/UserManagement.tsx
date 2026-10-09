@@ -49,12 +49,6 @@ export function UserManagement() {
   });
   const [newUserLoading, setNewUserLoading] = useState(false);
 
-  useEffect(() => {
-    fetchUsers();
-    fetchCurrentUser();
-    fetchOptions();
-  }, []);
-
   const fetchCurrentUser = async () => {
     try {
       const res = await fetch("/api/auth/me");
@@ -99,6 +93,14 @@ export function UserManagement() {
       }
     } catch {}
   };
+
+  useEffect(() => {
+    (async () => {
+      await fetchUsers();
+      await fetchCurrentUser();
+      await fetchOptions();
+    })();
+  }, []);
 
   const openEditPermissions = (user: User) => {
     setEditingUser(user);

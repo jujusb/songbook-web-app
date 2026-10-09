@@ -24,32 +24,6 @@ export function RevisionPanel({ songId, lang }: RevisionPanelProps) {
   const [showContent, setShowContent] = useState(false);
   const [busy, setBusy] = useState<string | null>(null);
 
-  useEffect(() => {
-    loadRevisions();
-  }, [songId, lang]);
-
-  // Auto-load the most recent revision on mount
-  useEffect(() => {
-    if (revisions.length > 0 && !showContent) {
-      loadRevisionContent(revisions[0].timestamp);
-    }
-  }, [revisions]);
-
-  const loadRevisions = async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      const res = await fetch(`/api/songs/${songId}/revisions?lang=${lang}`);
-      if (!res.ok) throw new Error("Failed to load revisions");
-      const data = await res.json();
-      setRevisions(data.revisions || []);
-    } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "Failed to load revisions");
-    } finally {
-      setLoading(false);
-    }
-  };
-
   const loadRevisionContent = async (timestamp: string) => {
     if (selectedRevision === timestamp && showContent) {
       setShowContent(false);
@@ -67,6 +41,40 @@ export function RevisionPanel({ songId, lang }: RevisionPanelProps) {
       setError(err instanceof Error ? err.message : "Failed to load revision");
     }
   };
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await fetch(`/api/songs/${songId}/revisions?lang=${lang}`);
+        if (!res.ok) throw new Error("Failed to load revisions");
+        const data = await res.json();
+        const list: Revision[] = data.revisions || [];
+        if (cancelled) return;
+        setRevisions(list);
+        if (list.length > 0) {
+          const contentRes = await fetch(
+            `/api/songs/${songId}/revisions/${list[0].timestamp}?lang=${lang}`
+          );
+          if (!contentRes.ok) throw new Error("Failed to load revision");
+          const contentData = await contentRes.json();
+          if (cancelled) return;
+          setRevisionContent(contentData.content);
+          setSelectedRevision(list[0].timestamp);
+          setShowContent(true);
+        }
+      } catch (err: unknown) {
+        if (!cancelled) {
+          setError(err instanceof Error ? err.message : "Failed to load revisions");
+        }
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [songId, lang]);
 
   const formatTimestamp = (ts: string) => {
     // ts is in ISO format like "2024-03-01T12:00:00.000Z"

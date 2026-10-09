@@ -429,7 +429,7 @@ export function EditorView({
                       : "border-transparent text-neutral-500 hover:text-neutral-700 dark:hover:text-neutral-300"
                   }`}
                 >
-                  {t(`editor.importTab${tab.charAt(0).toUpperCase() + tab.slice(1)}` as any)}
+                  {t(`editor.importTab${tab.charAt(0).toUpperCase() + tab.slice(1)}`)}
                 </button>
               ))}
             </div>

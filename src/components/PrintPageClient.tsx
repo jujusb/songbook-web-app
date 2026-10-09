@@ -4,11 +4,12 @@ import { useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { PrintSongbook } from "@/components/PrintSongbook";
 import { languageLabelFor } from "@/lib/i18n/labels";
+import type { PrintSong } from "@/lib/print/types";
 
 const langLabel = languageLabelFor;
 
 interface PrintPageClientProps {
-  printSongs: any;
+  printSongs: PrintSong[];
   pageTitle: string;
   header?: React.ReactNode;
   showLangLabels: boolean;

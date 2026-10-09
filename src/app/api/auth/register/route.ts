@@ -41,7 +41,7 @@ export async function POST(request: Request) {
     });
 
     return response;
-  } catch (err: any) {
-    return NextResponse.json({ error: err.message || "Registration failed" }, { status: 500 });
+  } catch (err: unknown) {
+    return NextResponse.json({ error: err instanceof Error ? err.message : "Registration failed" }, { status: 500 });
   }
 }
