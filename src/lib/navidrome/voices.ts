@@ -1,4 +1,6 @@
-import { getSongTitle } from '@/lib/content';
+import { readFile } from 'fs/promises';
+import path from 'path';
+import { getSongTitle, getContentDir } from '@/lib/content';
 import { getVoicesConfig } from './config';
 import { SubsonicClient } from './subsonic';
 import { normalizeTitle } from './share';
@@ -39,17 +41,33 @@ const SECTION_GENDER: Record<VoiceSection, VoiceGender> = {
 };
 
 /**
- * Specific labels take priority and unambiguously identify a section. The
- * generic keywords are fallbacks and map each recording to a single section
- * (first match) to avoid showing the same player twice.
+ * The voice-matching parameters for one language: which labels pin a recording
+ * to a single section, which words mean "every section of a gender"
+ * (AllBoys / AllGirls), and which generic keywords fall back to a single
+ * section.
  */
-const SPECIFIC_LABELS: { section: VoiceSection; label: string }[] = [
-  { section: 'tenor', label: 'chicos alta' },
-  { section: 'bass', label: 'chicos baja' },
-  { section: 'alto', label: 'chicas baja' },
-  { section: 'soprano', label: 'chicas alta' },
-];
+export interface VoiceLanguageParams {
+  /** Specific labels take priority and unambiguously identify a section. */
+  specificLabels: { section: VoiceSection; label: string }[];
+  /** Words mapping a recording to BOTH boys sections (TENOR + BASS). */
+  allBoys: string[];
+  /** Words mapping a recording to BOTH girls sections (ALTO + SOPRANO). */
+  allGirls: string[];
+  /** Generic keywords are fallbacks; the first match wins. */
+  keywords: { section: VoiceSection; keywords: string[] }[];
+}
 
+const VOICE_SECTIONS: VoiceSection[] = ['tenor', 'bass', 'alto', 'soprano'];
+
+function isVoiceSection(value: unknown): value is VoiceSection {
+  return typeof value === 'string' && (VOICE_SECTIONS as string[]).includes(value);
+}
+
+/**
+ * Generic keywords that apply in every language. They are the stable
+ * cross-language code words (the voice-part names themselves) matched as
+ * substrings: `tenor`/`boy`, `bass`, `alto`/`girl`, `soprano`/`sopran`.
+ */
 const KEYWORDS: { section: VoiceSection; keywords: string[] }[] = [
   { section: 'tenor', keywords: ['tenor', 'boy'] },
   { section: 'bass', keywords: ['bass'] },
@@ -58,23 +76,193 @@ const KEYWORDS: { section: VoiceSection; keywords: string[] }[] = [
 ];
 
 /**
- * Classify a recording title into its section(s). Specific labels pin it to a
- * single section; a bare `chico`/`chica` (no alta/baja modifier) is shown in
- * BOTH sections of that gender (TENOR+BASS for chicos, ALTO+SOPRANO for
- * chicas). The title must also contain the (normalized) song title.
+ * Universal "every section of a gender" words. The AllBoys / AllGirls
+ * convention applies to every language: a recording titled
+ * `My Song AllBoys` plays in TENOR + BASS, `My Song AllGirls` in
+ * ALTO + SOPRANO. Language configs may add their own words on top.
+ */
+const ALL_BOYS: string[] = ['allboys'];
+const ALL_GIRLS: string[] = ['allgirls'];
+
+/**
+ * Built-in per-language additions on top of the universal keywords. A language
+ * without an entry falls back to `es`-style params (the corpus this app was
+ * built for names its recordings in Spanish: `chico`/`chica`, `chicos`/
+ * `chicas`). Selectable per language with a matching JSON file — see
+ * `loadVoiceMatchingConfig`.
+ */
+const LANG_PARAMS: Record<string, Partial<VoiceLanguageParams>> = {
+  en: {},
+  es: {
+    specificLabels: [
+      { section: 'tenor', label: 'chicos alta' },
+      { section: 'bass', label: 'chicos baja' },
+      { section: 'alto', label: 'chicas baja' },
+      { section: 'soprano', label: 'chicas alta' },
+      { section: 'tenor', label: 'chico alta' },
+      { section: 'bass', label: 'chico baja' },
+      { section: 'alto', label: 'chica baja' },
+      { section: 'soprano', label: 'chica alta' },
+    ],
+    allBoys: ['chico', 'chicos'],
+    allGirls: ['chica', 'chicas'],
+  },
+  fr: {
+    keywords: [{ section: 'bass', keywords: ['basse'] }],
+  },
+};
+
+function mergeKeywords(
+  base: { section: VoiceSection; keywords: string[] }[],
+  extras: { section: VoiceSection; keywords: string[] }[],
+): { section: VoiceSection; keywords: string[] }[] {
+  const bySection = new Map(base.map((entry) => [entry.section, [...entry.keywords]]));
+  for (const entry of extras) {
+    if (!bySection.has(entry.section)) bySection.set(entry.section, []);
+    bySection.get(entry.section)!.push(...entry.keywords);
+  }
+  return [...bySection.entries()].map(([section, keywords]) => ({
+    section,
+    keywords,
+  }));
+}
+
+/**
+ * JSON file that overrides the built-in per-language vocabulary. Read from
+ * `<contentDir>/config/voices.json` by default; point `SONGBOOK_VOICES_MATCHING_FILE`
+ * at another path to pass a custom file into Docker. Shape:
+ *
+ * ```json
+ * {
+ *   "matching": {
+ *     "es": {
+ *       "specific": { "chicos alta": "tenor", "chico baja": "bass" },
+ *       "allBoys": ["chico", "chicos"],
+ *       "allGirls": ["chica", "chicas"],
+ *       "keywords": { "bajo": "bass" }
+ *     }
+ *   }
+ * }
+ * ```
+ *
+ * For a language, each provided dimension REPLACES that language's built-in
+ * dimension (whatever is absent keeps its built-in value). The universal
+ * keywords and the AllBoys/AllGirls words always stay active. When the file is
+ * missing or unreadable the built-ins are used unchanged.
+ */
+export const VOICES_MATCHING_FILE_ENV = 'SONGBOOK_VOICES_MATCHING_FILE';
+export const VOICES_MATCHING_FILE_NAME = 'voices.json';
+
+function normalizeLangConfig(raw: Record<string, unknown>): Partial<VoiceLanguageParams> {
+  const result: Partial<VoiceLanguageParams> = {};
+  if (raw.specific && typeof raw.specific === 'object') {
+    const specificLabels: { section: VoiceSection; label: string }[] = [];
+    for (const [label, section] of Object.entries(raw.specific)) {
+      if (!isVoiceSection(section)) continue;
+      const normalized = normalizeTitle(label);
+      if (normalized) specificLabels.push({ section, label: normalized });
+    }
+    if (specificLabels.length > 0) result.specificLabels = specificLabels;
+  }
+  if (Array.isArray(raw.allBoys)) {
+    const allBoys = raw.allBoys
+      .filter((word): word is string => typeof word === 'string')
+      .map(normalizeTitle)
+      .filter((word): word is string => Boolean(word));
+    if (allBoys.length > 0) result.allBoys = allBoys;
+  }
+  if (Array.isArray(raw.allGirls)) {
+    const allGirls = raw.allGirls
+      .filter((word): word is string => typeof word === 'string')
+      .map(normalizeTitle)
+      .filter((word): word is string => Boolean(word));
+    if (allGirls.length > 0) result.allGirls = allGirls;
+  }
+  if (raw.keywords && typeof raw.keywords === 'object') {
+    const keywords: { section: VoiceSection; keywords: string[] }[] = [];
+    for (const [word, section] of Object.entries(raw.keywords)) {
+      if (!isVoiceSection(section)) continue;
+      const normalized = normalizeTitle(word);
+      if (normalized) keywords.push({ section, keywords: [normalized] });
+    }
+    if (keywords.length > 0) result.keywords = keywords;
+  }
+  return result;
+}
+
+/**
+ * Load the per-language matching overrides from the matching JSON file.
+ * Returns an empty map when the file is absent or malformed.
+ */
+export async function loadVoiceMatchingConfig(): Promise<
+  Record<string, Partial<VoiceLanguageParams>>
+> {
+  const filePath =
+    process.env[VOICES_MATCHING_FILE_ENV] ??
+    path.join(getContentDir(), 'config', VOICES_MATCHING_FILE_NAME);
+  let raw: string;
+  try {
+    raw = await readFile(filePath, 'utf-8');
+  } catch {
+    return {};
+  }
+  try {
+    const parsed = JSON.parse(raw) as Record<string, unknown>;
+    if (!parsed || typeof parsed !== 'object') return {};
+    const matching =
+      parsed.matching && typeof parsed.matching === 'object' ? parsed.matching : parsed;
+    const result: Record<string, Partial<VoiceLanguageParams>> = {};
+    for (const [lang, entry] of Object.entries(matching)) {
+      if (!entry || typeof entry !== 'object') continue;
+      const langConfig = normalizeLangConfig(entry as Record<string, unknown>);
+      if (Object.keys(langConfig).length > 0) result[lang.toLowerCase()] = langConfig;
+    }
+    return result;
+  } catch {
+    return {};
+  }
+}
+
+async function loadParamsForLang(lang: string): Promise<VoiceLanguageParams> {
+  const config = await loadVoiceMatchingConfig();
+  return getVoiceLanguageParams(lang, config);
+}
+
+function getVoiceLanguageParams(
+  lang: string,
+  config: Record<string, Partial<VoiceLanguageParams>>,
+): VoiceLanguageParams {
+  const configured = config[lang];
+  const builtin = LANG_PARAMS[lang] ?? LANG_PARAMS['es'];
+  return {
+    specificLabels: configured?.specificLabels ?? builtin.specificLabels ?? [],
+    allBoys: [...ALL_BOYS, ...(configured?.allBoys ?? builtin.allBoys ?? [])],
+    allGirls: [...ALL_GIRLS, ...(configured?.allGirls ?? builtin.allGirls ?? [])],
+    keywords: mergeKeywords(KEYWORDS, configured?.keywords ?? builtin.keywords ?? []),
+  };
+}
+
+/**
+ * Classify a recording title into its section(s) using the resolved matching
+ * parameters. Specific labels pin it to a single section; an AllBoys word maps
+ * it to BOTH boys sections (TENOR + BASS), an AllGirls word to both girls
+ * sections (ALTO + SOPRANO); otherwise generic keywords map it to a single
+ * section (first match). The title must also contain the (normalized) song
+ * title.
  */
 function sectionsFromTitle(
   title: string,
   songTitle: string,
+  params: VoiceLanguageParams,
 ): VoiceSection[] | null {
   const normalized = normalizeTitle(title);
   if (!normalized || !songTitle || !normalized.includes(songTitle)) return null;
-  for (const { section, label } of SPECIFIC_LABELS) {
+  for (const { section, label } of params.specificLabels) {
     if (normalized.includes(label)) return [section];
   }
-  if (normalized.includes('chico')) return ['tenor', 'bass'];
-  if (normalized.includes('chica')) return ['alto', 'soprano'];
-  for (const { section, keywords } of KEYWORDS) {
+  if (params.allBoys.some((word) => normalized.includes(word))) return ['tenor', 'bass'];
+  if (params.allGirls.some((word) => normalized.includes(word))) return ['alto', 'soprano'];
+  for (const { section, keywords } of params.keywords) {
     if (keywords.some((keyword) => normalized.includes(keyword))) return [section];
   }
   return null;
@@ -105,6 +293,7 @@ export async function getVoiceSections(songId: string, lang: string): Promise<Vo
   const config = getVoicesConfig();
   if (!config) return [];
   const client = new SubsonicClient(config);
+  const params = await loadParamsForLang(lang);
   return memoized(`voices:${songId}:${lang}`, async () => {
     try {
       const songTitle = await getSongTitle(songId, lang);
@@ -116,7 +305,7 @@ export async function getVoiceSections(songId: string, lang: string): Promise<Vo
       const seen = new Set<string>();
       for (const track of tracks) {
         const title = track.title ?? '';
-        const sections = sectionsFromTitle(title, normalizedSongTitle);
+        const sections = sectionsFromTitle(title, normalizedSongTitle, params);
         if (!sections) continue;
         const key = normalizeTitle(title);
         if (!key || seen.has(key)) continue;
@@ -218,6 +407,7 @@ export async function getVoiceTrackIdsForSetlist(
   try {
     const tracks = await getAllVoiceTracks();
     if (tracks.length === 0) return {};
+    const matchingConfig = await loadVoiceMatchingConfig();
     const bySection: Record<VoiceSection, Map<string, VoiceTrack>> = {
       tenor: new Map(),
       bass: new Map(),
@@ -225,6 +415,7 @@ export async function getVoiceTrackIdsForSetlist(
       soprano: new Map(),
     };
     for (const item of items) {
+      const params = getVoiceLanguageParams(item.lang, matchingConfig);
       let songTitle: string;
       try {
         songTitle = await getSongTitle(item.songId, item.lang);
@@ -234,7 +425,7 @@ export async function getVoiceTrackIdsForSetlist(
       const normalizedSongTitle = normalizeTitle(songTitle);
       if (!normalizedSongTitle) continue;
       for (const track of tracks) {
-        const sections = sectionsFromTitle(track.title, normalizedSongTitle);
+        const sections = sectionsFromTitle(track.title, normalizedSongTitle, params);
         if (!sections) continue;
         const titleKey = normalizeTitle(track.title);
         for (const section of sections) {
@@ -271,12 +462,13 @@ export async function hasVoiceSections(
   const config = getVoicesConfig();
   if (!config) return false;
   try {
+    const params = await loadParamsForLang(lang);
     const songTitle = await getSongTitle(songId, lang);
     const normalizedSongTitle = normalizeTitle(songTitle);
     if (!normalizedSongTitle) return false;
     const titles = await getAllVoiceTrackTitles();
     return titles.some(
-      (title) => sectionsFromTitle(title, normalizedSongTitle) !== null,
+      (title) => sectionsFromTitle(title, normalizedSongTitle, params) !== null,
     );
   } catch {
     return false;
@@ -296,6 +488,7 @@ export async function hasVoiceSectionsBatch(
     return new Map(songIds.map(id => [id, false]));
   }
   try {
+    const params = await loadParamsForLang(lang);
     const titles = await getAllVoiceTrackTitles();
     const result = new Map<string, boolean>();
     
@@ -318,7 +511,7 @@ export async function hasVoiceSectionsBatch(
         continue;
       }
       const hasVoice = titles.some(
-        (title) => sectionsFromTitle(title, normalized) !== null,
+        (title) => sectionsFromTitle(title, normalized, params) !== null,
       );
       result.set(songId, hasVoice);
     }

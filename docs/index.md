@@ -51,6 +51,7 @@ Do not read them in order. Pick the question you have.
 ```
 content/                              the database, as files
   config/site.yaml                    title, default language, OIDC, PDF page size
+  config/voices.json                  optional per-language VOICES matching vocabulary (see how-to)
   artists/<artist-id>.yaml            artist bio, website, tags
   library/<album-id>/
     album.yaml                        album metadata, track order, Spotify/YouTube

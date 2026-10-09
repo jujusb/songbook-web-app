@@ -3,7 +3,7 @@ import Link from "next/link";
 import { cookies } from "next/headers";
 import { getSetlist, listSongs, getSong, getSongTranslation, getSongTranslations, getSongTitle, getLanguagesConfig, shouldShowSongInLanguage, getShareBaseUrl } from "@/lib/content";
 import { getLocale } from "@/lib/i18n/server";
-import { getSession, canEdit, canAdmin, canViewSetlist, canCreateSetlist, canManageSetlistShares } from "@/lib/auth";
+import { getSession, getCurrentUser, canEdit, canAdmin, canViewSetlist, canCreateSetlist, canManageSetlistShares } from "@/lib/auth";
 import { SetlistEditor } from "@/components/SetlistEditor";
 import { SetlistVoicePlaylists } from "@/components/SetlistVoicePlaylists";
 import { SetlistShareControls } from "@/components/SetlistShareControls";
@@ -33,6 +33,7 @@ export default async function SetlistPage({
   const session = await getSession();
   const userId = session?.userId;
   const role = session?.role ?? null;
+  const currentVoice = (await getCurrentUser())?.voice;
   const showEditActions = canEdit(role);
   const showDeleteActions = canAdmin(role);
   const canCreate = canCreateSetlist(role);
@@ -159,6 +160,7 @@ export default async function SetlistPage({
         setlistId={setlist.id}
         shares={voiceShares}
         canGenerate={showVoiceShares}
+        preferredVoice={currentVoice}
       />
 
       {showEditor ? (

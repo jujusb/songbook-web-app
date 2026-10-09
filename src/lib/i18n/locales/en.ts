@@ -9,6 +9,7 @@ const en = {
     newSetlist: '+ New Setlist',
     admin: 'Admin',
     users: 'Users',
+    profile: 'Profile',
   },
   home: {
     title: 'Songbook',
@@ -237,6 +238,21 @@ const en = {
     usernameMinLength: 'Username must be at least 3 characters',
     passwordMinLength: 'Password must be at least 8 characters',
     registrationFailed: 'Registration failed',
+  },
+  profile: {
+    title: 'My Profile',
+    voice: 'My voice',
+    voiceDesc: 'Pick the voice part you sing. It is selected by default in the players on song pages and in setlist voice playlists.',
+    noVoice: 'No preference',
+    save: 'Save voice',
+    saving: 'Saving...',
+    saved: 'Voice preference saved',
+    failed: 'Could not save your voice preference.',
+    notes: 'You can change this at any time.',
+  },
+  voice: {
+    boys: 'Boys',
+    girls: 'Girls',
   },
   editor: {
     visual: 'Visual',

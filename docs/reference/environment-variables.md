@@ -51,6 +51,12 @@ Enabled only when every variable in the group is present and valid.
 | Navidrome VOICES | `SONGBOOK_VOICES_NAVIDROME_SONGS_URL`, `SONGBOOK_VOICES_NAVIDROME_USERNAME`, `SONGBOOK_VOICES_NAVIDROME_PASSWORD` |
 | Spotify | `SPOTIFY_CLIENT_ID`, `SPOTIFY_CLIENT_SECRET` |
 
+`SONGBOOK_VOICES_MATCHING_FILE` (default: `<cwd>/content/config/voices.json`, read in
+`src/lib/navidrome/voices.ts`) is **optional** and overrides where the voice-matching JSON file is
+read from. The default lives in the bind-mounted content tree, so you normally do not need to set
+it. The file itself is not an app variable — see
+[Generate per-voice practice playlists](../how-to/generate-voice-playlists.md#override-the-vocabulary-with-a-json-file).
+
 ## Variables only Compose uses
 
 `docker-compose.yml` maps these `SONGBOOK_*` variables onto the app's real variables and mounts.

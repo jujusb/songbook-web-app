@@ -13,7 +13,7 @@ import {
   listAlbums,
 } from "@/lib/content";
 import { getLocale } from "@/lib/i18n/server";
-import { getSession, canEdit, canAdmin } from "@/lib/auth";
+import { getSession, getCurrentUser, canEdit, canAdmin } from "@/lib/auth";
 import { isReadOnly } from "@/lib/readonly";
 import { ChordSheet } from "@/components/ChordSheet";
 import { LanguageSwitcher } from "@/components/LanguageSwitcher";
@@ -90,6 +90,7 @@ export default async function SongPage({
 
   const session = await getSession();
   const isAdmin = canAdmin(session?.role ?? null);
+  const currentUser = await getCurrentUser();
 
   const langConfig = await getLanguagesConfig();
   const selectedLang = getLocale(await cookies(), langConfig.default);
@@ -338,7 +339,7 @@ export default async function SongPage({
         </div>
       )}
 
-      <VoiceSections id={songId} lang={lang} />
+      <VoiceSections id={songId} lang={lang} preferredVoice={currentUser?.voice} />
 
       {/* Language Switcher - auto switches to select on mobile */}
       <LanguageSwitcher

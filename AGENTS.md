@@ -31,6 +31,7 @@ Production Dockerfile installs Chromium + Noto fonts for Puppeteer PDF generatio
 - `OIDC_CLIENT_ID` — OAuth2 client ID
 - `OIDC_CLIENT_SECRET` — OAuth2 client secret
 - `OIDC_LOGOUT_URL` — provider logout endpoint (optional)
+- `SONGBOOK_VOICES_MATCHING_FILE` — optional absolute path (in-container) to the JSON file overriding the per-language voice-matching vocabulary; defaults to `<cwd>/content/config/voices.json` (see `src/lib/navidrome/voices.ts`)
 - See `docker-compose.yml` for the full set of `OIDC_*` env vars; they override `site.yaml` values
 
 ## Architecture

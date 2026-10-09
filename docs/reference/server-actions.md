@@ -52,6 +52,12 @@ Shared guards defined at the top of the file:
 | `deleteSetlistShareAction(setlistId)` | 794 | same | same two |
 | `setSetlistShareSlugAction(setlistId, slug)` | 827 | same; slug pattern `^[a-zA-Z0-9][a-zA-Z0-9_-]{0,59}$`, uniqueness checked | same two |
 
+## Profile
+
+| Action | Line | Guard | Notes |
+| --- | --- | --- | --- |
+| `updateMyVoicePreferenceAction(voice)` | 880 | any logged-in user | validates `voice` ∈ {tenor, bass, alto, soprano} or `null`; allowed in read-only mode; persists on the caller's own user record |
+
 Setlist actions run in read-only mode (that is the point). The editor's setlist create/update
 (`saveSetlist`, exported from `src/lib/content`) is called through the setlist page/editor rather
 than as an action; the API routes in `src/app/api/setlists/` cover it as well.

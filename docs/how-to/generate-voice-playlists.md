@@ -20,18 +20,92 @@ must have sharing enabled. See [Enable music players](./enable-music-players.md)
 ## Naming the recordings
 
 Recordings are matched to a setlist item by **title**, which must contain the song's title in the
-setlist item's language plus a section label. Specific labels win over generic keywords:
+setlist item's language plus a section label. The matching rules are **language-dependent**: each
+song language resolves its own set of labels, so `es` recordings can use Spanish labels while `en`
+or `fr` recordings use English or French keywords.
+
+The **universal generic keywords** apply to every language: `tenor`/`boy` → tenor, `bass` → bass,
+`alto`/`girl` → alto, `soprano`/`sopran` → soprano.
+
+The **AllBoys / AllGirls convention** is the recommended way to point a recording at *both* sections
+of a gender — it applies to every language:
+
+- `allboys` → **tenor + bass**
+- `allgirls` → **alto + soprano**
+
+So a recording named `My Song AllBoys` shows up for both tenor and bass, and `My Song AllGirls` for
+alto and soprano, no matter the song's language. Specific labels and single-section keywords still
+work on top of this.
+
+For `es` (and any language without its own rules), **specific labels win over generic keywords:**
 
 | Label in title (case-insensitive) | Section |
 | --- | --- |
-| `chico alta` | tenor |
-| `chico baja` | bass |
-| `chica baja` | alto |
-| `chica alta` | soprano |
+| `chico alta` / `chicos alta` | tenor |
+| `chico baja` / `chicos baja` | bass |
+| `chica baja` / `chicas baja` | alto |
+| `chica alta` / `chicas alta` | soprano |
 
-If no specific label is present, generic keywords are used: `tenor`/`boy` → tenor, `bass` → bass,
-`alto`/`girl` → alto, `soprano`/`sopran` → soprano. Every matching recording is included,
-de-duplicated by title, so a song with several takes of the same part shows all of them.
+The bare gender words of the built-in `es` mapping (`chico`, `chicos`, `chica`, `chicas`) are
+AllBoys/AllGirls words too — they map to *both* sections of that gender, exactly like the universal
+`allboys`/`allgirls` tokens. For `fr`, the only extension over the universal keywords is
+`basse` → bass; for `en` no extra labels exist, so recordings for English songs should use the
+universal tokens (`allboys`/`allgirls`) or the generic keywords (`boy`, `girl`, …).
+
+### Override the vocabulary with a JSON file
+
+The built-in per-language mapping above lives in code (`LANG_PARAMS` in
+`src/lib/navidrome/voices.ts`). You can replace parts of it **without touching code** with a JSON
+file kept in the content tree — because `content/` is bind-mounted into Docker, dropping the file in
+is all it takes:
+
+```
+content/config/voices.json
+```
+
+Shape (each language entry may omit any dimension):
+
+```json
+{
+  "matching": {
+    "de": {
+      "specific": { "fuer stimme": "tenor" },
+      "allBoys": ["jungs"],
+      "allGirls": ["maedchen"],
+      "keywords": { "lead": "tenor" }
+    }
+  }
+}
+```
+
+Semantics:
+
+- **`specific`** — an object of `label → section`, which pins a title to exactly that section and
+  wins over everything else. Replaces the language's built-in `specific` labels.
+- **`allBoys` / `allGirls`** — arrays of words that map a title to *both* sections of the gender
+  (like the universal `allboys`/`allgirls` words, which always stay active on top). Replaces that
+  language's built-in bare-gender words.
+- **`keywords`** — an object of `word → section`, fallback matches after allBoys/allGirls. Replaces
+  that language's built-in keywords.
+- For a language, each provided dimension **replaces** the built-in one; an absent dimension keeps
+  the built-in value. Universal keywords and universal AllBoys/AllGirls words cannot be removed.
+- Unknown languages without their own entry still fall back to the built-in `es` mapping.
+- If the file is missing, malformed, or empty, the built-in mapping is used unchanged.
+
+To point at a file elsewhere (for example one mounted on its own volume), set
+`SONGBOOK_VOICES_MATCHING_FILE` to its absolute path inside the container — see
+[Environment variables](../reference/environment-variables.md).
+
+### UI labels are separate from the search vocabulary
+
+The words used to *find* recordings on Navidrome (the tokens above) are independent from the words
+shown in the UI. The gender tabs are localized: **Boys**/**Girls** in English, **Chicos**/**Chicas**
+in Spanish, **Garçons**/**Filles** in French — configured as i18n strings, not as matching tokens.
+You can rename Navidrome recordings to match your own AllBoys/AllGirls vocabulary without changing
+anything a singer sees.
+
+Every matching recording is included, de-duplicated by title, so a song with several takes of the
+same part shows all of them.
 
 ## Generate the shares
 
@@ -56,9 +130,13 @@ read-only mode, which is why a public instance can offer practice playlists.
 
 ## On song pages
 
-When VOICES is configured, every song page shows per-voice players split into **Chicos**
-(tenor/bass) and **Chicas** (alto/soprano) tabs, using the same title matching. This is independent
-of setlists and needs no generation step.
+When VOICES is configured, every song page shows per-voice players split into localized **boys**
+(tenor/bass) and **girls** (alto/soprano) tabs, using the same language-dependent title matching.
+This is independent of setlists and needs no generation step.
+
+A logged-in user can set their own voice on their `/profile` page (`voice:` in their user YAML).
+When that section has recordings for a song, it is selected by default in the song players and in
+the setlist voice playlists, so each singer opens the app with their part already active.
 
 ## Gotchas
 

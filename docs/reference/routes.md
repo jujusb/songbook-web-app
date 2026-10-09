@@ -77,6 +77,7 @@ Routes redirect to `/songs` when `enableArtistPages` is false.
 | --- | --- | --- |
 | `/login` | login form + OIDC button; `?error=` banner | already logged in → `/browse`; `oidc.autoRedirect` → `/api/auth/oidc`; register link unless read-only |
 | `/register` | registration form | already logged in → `/setlists/new` |
+| `/profile` | voice preference form (own account) | → /login unless logged in; works in read-only mode |
 | `/admin/partitions` | partition scan UI | 404 in read-only; → /login unless Admin |
 | `/admin/users` | user management | 404 in read-only; 404 unless Admin |
 

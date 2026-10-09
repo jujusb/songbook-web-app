@@ -14,6 +14,9 @@ export const PermissionSchema = z.object({
 
 export type Permissions = z.infer<typeof PermissionSchema>;
 
+export const VoiceSectionSchema = z.enum(['tenor', 'bass', 'alto', 'soprano']);
+export type VoiceSection = z.infer<typeof VoiceSectionSchema>;
+
 export const UserSchema = z.object({
   id: z.string(),
   username: z.string(),
@@ -25,6 +28,8 @@ export const UserSchema = z.object({
   oidcSub: z.string().optional(),            // OIDC subject identifier
   created: z.union([z.string(), z.date()]).optional(),
   permissions: PermissionSchema.optional(),
+  /** The user's singer voice: selected by default on song and setlist pages. */
+  voice: VoiceSectionSchema.optional(),
 });
 
 export type User = z.infer<typeof UserSchema>;

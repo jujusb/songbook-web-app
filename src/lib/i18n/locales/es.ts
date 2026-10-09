@@ -11,6 +11,7 @@ const es: Translations = {
     newSetlist: '+ Nueva Lista',
     admin: 'Admin',
     users: 'Usuarios',
+    profile: 'Mi perfil',
   },
   home: {
     title: 'Cancionero',
@@ -239,6 +240,21 @@ const es: Translations = {
     usernameMinLength: 'El usuario debe tener al menos 3 caracteres',
     passwordMinLength: 'La contraseña debe tener al menos 8 caracteres',
     registrationFailed: 'Error al registrar',
+  },
+  profile: {
+    title: 'Mi perfil',
+    voice: 'Mi voz',
+    voiceDesc: 'Elige la cuerda vocal que cantas. Se seleccionará por defecto en los reproductores de las canciones y en las playlists de voces de las listas.',
+    noVoice: 'Sin preferencia',
+    save: 'Guardar voz',
+    saving: 'Guardando...',
+    saved: 'Preferencia de voz guardada',
+    failed: 'No se pudo guardar tu preferencia de voz.',
+    notes: 'Puedes cambiarlo en cualquier momento.',
+  },
+  voice: {
+    boys: 'Chicos',
+    girls: 'Chicas',
   },
   editor: {
     visual: 'Visual',

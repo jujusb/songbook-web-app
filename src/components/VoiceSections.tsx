@@ -1,23 +1,33 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useTranslation } from '@/lib/i18n';
 import type {
   VoiceGender,
   VoiceSection,
   VoiceGroup,
 } from '@/lib/navidrome/voices';
 
-const GENDER_LABELS: Record<VoiceGender, string> = {
-  boys: 'Chicos',
-  girls: 'Chicas',
-};
-
 /**
- * Renders the VOICES Navidrome players for a song. Tabs split by Chicos
- * (TENOR / BASS) and Chicas (ALTO / SOPRANO). Fetches automatically on mount;
- * hidden when no voice parts exist.
+ * Renders the VOICES Navidrome players for a song. Tabs split by boys
+ * (TENOR / BASS) and girls (ALTO / SOPRANO); the tab names are localized for
+ * the UI, independently of the words used to find the recordings on Navidrome
+ * (see the matching JSON file under `content/config/`). Fetches automatically
+ * on mount; hidden when no voice parts exist. When the logged-in user has a
+ * `preferredVoice` and that section has parts, it is selected by default.
  */
-export function VoiceSections({ id, lang }: { id: string; lang: string }) {
+export function VoiceSections({
+  id,
+  lang,
+  preferredVoice,
+}: {
+  id: string;
+  lang: string;
+  preferredVoice?: VoiceSection;
+}) {
+  const { t } = useTranslation();
+  const genderLabel = (gender: VoiceGender) =>
+    gender === 'boys' ? t('voice.boys') : t('voice.girls');
   const [groups, setGroups] = useState<VoiceGroup[] | null>(null);
   const [loaded, setLoaded] = useState(false);
   const [activeGender, setActiveGender] = useState<VoiceGender>('boys');
@@ -36,13 +46,30 @@ export function VoiceSections({ id, lang }: { id: string; lang: string }) {
         if (cancelled) return;
         if (res.ok && json.ok) {
           const data: VoiceGroup[] = json.data?.groups ?? [];
-          const first = data.find((group) =>
+          const withContent = data.filter((group) =>
             group.sections.some(({ parts }) => parts.length > 0),
           );
-          if (first) {
-            setActiveGender(first.gender);
-            const section = first.sections.find(({ parts }) => parts.length > 0);
-            if (section) setActiveSection(section.section);
+          if (withContent.length > 0) {
+            let selected = false;
+            if (preferredVoice) {
+              for (const group of withContent) {
+                const preferred = group.sections.find(
+                  (s) => s.section === preferredVoice && s.parts.length > 0,
+                );
+                if (preferred) {
+                  setActiveGender(group.gender);
+                  setActiveSection(preferred.section);
+                  selected = true;
+                  break;
+                }
+              }
+            }
+            if (!selected) {
+              const first = withContent[0];
+              setActiveGender(first.gender);
+              const section = first.sections.find(({ parts }) => parts.length > 0);
+              if (section) setActiveSection(section.section);
+            }
           }
           setGroups(data);
         }
@@ -54,7 +81,7 @@ export function VoiceSections({ id, lang }: { id: string; lang: string }) {
     return () => {
       cancelled = true;
     };
-  }, [id, lang]);
+  }, [id, lang, preferredVoice]);
 
   if (!loaded) return null;
   if (!groups || groups.length === 0) return null;
@@ -96,7 +123,7 @@ export function VoiceSections({ id, lang }: { id: string; lang: string }) {
             className={tabClass(group.gender === currentGroup.gender)}
             aria-pressed={group.gender === currentGroup.gender}
           >
-            {GENDER_LABELS[group.gender]}
+            {genderLabel(group.gender)}
           </button>
         ))}
         {sectionGroups.length > 1 && (

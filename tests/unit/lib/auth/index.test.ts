@@ -163,6 +163,31 @@ describe('auth/index.ts', () => {
       const users = await listUsers();
       expect(users.length).toBeGreaterThanOrEqual(3);
     });
+
+    it('persists the singer voice preference and reloads it', async () => {
+      const saved = await getUser('lookup-user');
+      expect(saved!.voice).toBeUndefined();
+      await saveUser({ ...saved!, voice: 'soprano' });
+
+      const reloaded = await getUser('lookup-user');
+      expect(reloaded!.voice).toBe('soprano');
+
+      const cleared = await getUser('lookup-user');
+      await saveUser({ ...cleared!, voice: undefined });
+      expect((await getUser('lookup-user'))!.voice).toBeUndefined();
+    });
+
+    it('rejects an unknown voice value on read', async () => {
+      await tempDir.writeFile('users/bad-voice.yaml', [
+        'id: bad-voice',
+        'username: bad-voice',
+        'role: review',
+        'authProvider: local',
+        'voice: countertenor',
+        '',
+      ].join('\n'));
+      expect(await getUser('bad-voice')).toBeNull();
+    });
   });
 
   describe('Permission helpers', () => {

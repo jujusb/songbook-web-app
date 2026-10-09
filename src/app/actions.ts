@@ -5,7 +5,7 @@ import { SongTranslationFrontmatterSchema, type Reference, type Partition, type 
 import { revalidatePath } from "next/cache";
 import matter from "gray-matter";
 import { isReadOnly, isReadOnlyFor } from "@/lib/readonly";
-import { getSession, canEdit, canAdmin, canCreateSetlist, canManageSetlistShares, getCurrentUser, canEditSong } from "@/lib/auth";
+import { getSession, canEdit, canAdmin, canCreateSetlist, canManageSetlistShares, getCurrentUser, canEditSong, saveUser } from "@/lib/auth";
 import { songIdFromTitle, slugifySongId, uniqueSongId } from "@/lib/song-ids";
 import { randomUUID } from "node:crypto";
 
@@ -856,6 +856,48 @@ export async function setSetlistShareSlugAction(setlistId: string, slug: string)
     revalidatePath(`/setlists/${setlistId}`);
     revalidatePath("/setlists");
     return { ok: true as const, slug: value };
+  } catch (err) {
+    return {
+      ok: false as const,
+      error: err instanceof Error ? err.message : "FAILED",
+    };
+  }
+}
+
+/* ------------------------------------------------------------------ */
+/*  Profile (the logged-in user's own preferences)                    */
+/* ------------------------------------------------------------------ */
+
+const VOICE_SECTIONS = ['tenor', 'bass', 'alto', 'soprano'] as const;
+type VoiceSectionValue = (typeof VOICE_SECTIONS)[number];
+
+/**
+ * Save the logged-in user's preferred voice section. The user's voice is
+ * selected by default on song pages (players) and setlist voice playlists.
+ * Allowed in read-only mode (a self-service account preference, like
+ * registration), and works for every role with an account.
+ */
+export async function updateMyVoicePreferenceAction(voice: string | null) {
+  const session = await getSession();
+  if (!session) {
+    return { ok: false as const, error: "Unauthorized" };
+  }
+  const user = await getCurrentUser();
+  if (!user) {
+    return { ok: false as const, error: "Unauthorized" };
+  }
+  const value =
+    voice === null
+      ? undefined
+      : (VOICE_SECTIONS as readonly string[]).includes(voice)
+        ? (voice as VoiceSectionValue)
+        : undefined;
+  if (voice !== null && value === undefined) {
+    return { ok: false as const, error: "INVALID_VOICE" };
+  }
+  try {
+    await saveUser({ ...user, voice: value }, { allowReadOnly: true });
+    return { ok: true as const };
   } catch (err) {
     return {
       ok: false as const,

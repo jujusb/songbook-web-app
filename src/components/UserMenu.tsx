@@ -58,13 +58,19 @@ export function UserMenu() {
   };
 
   return (
-    <div className="flex items-center gap-2">
+    <div className="flex items-center gap-3">
       <span className="text-xs text-neutral-400">
         {user.displayName || user.username}
         <span className="ml-1 px-1.5 py-0.5 bg-neutral-100 dark:bg-neutral-800 rounded text-[10px]">
           {user.role}
         </span>
       </span>
+      <Link
+        href="/profile"
+        className="text-xs text-neutral-400 hover:text-foreground transition-colors"
+      >
+        {t('nav.profile')}
+      </Link>
       <button
         type="button"
         onClick={handleLogout}

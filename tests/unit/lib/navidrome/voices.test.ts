@@ -1,5 +1,8 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import type { Mock } from 'vitest';
+import { mkdtemp, rm, writeFile } from 'node:fs/promises';
+import os from 'node:os';
+import path from 'node:path';
 
 vi.mock('@/lib/content', () => ({
   getAlbum: vi.fn(),
@@ -7,6 +10,7 @@ vi.mock('@/lib/content', () => ({
   getAlbumsForSong: vi.fn(),
   getArtist: vi.fn(),
   getArtistForSong: vi.fn(),
+  getContentDir: vi.fn(),
   getSongTitle: vi.fn(),
 }));
 
@@ -15,6 +19,17 @@ const VOICES_KEYS = [
   'SONGBOOK_VOICES_NAVIDROME_USERNAME',
   'SONGBOOK_VOICES_NAVIDROME_PASSWORD',
 ];
+const VOICES_MATCHING_FILE = 'SONGBOOK_VOICES_MATCHING_FILE';
+
+const tempDirs: string[] = [];
+
+async function writeMatchingFile(json: string): Promise<void> {
+  const dir = await mkdtemp(path.join(os.tmpdir(), 'songbook-voices-'));
+  tempDirs.push(dir);
+  const filePath = path.join(dir, 'voices.json');
+  await writeFile(filePath, json, 'utf-8');
+  process.env[VOICES_MATCHING_FILE] = filePath;
+}
 
 function jsonRes(body: Record<string, unknown>): { text: () => Promise<string> } {
   return { text: async () => JSON.stringify({ 'subsonic-response': body }) };
@@ -36,12 +51,20 @@ describe('navidrome/voices', () => {
     process.env.SONGBOOK_VOICES_NAVIDROME_USERNAME = 'user';
     process.env.SONGBOOK_VOICES_NAVIDROME_PASSWORD = 'secret';
     content = await import('@/lib/content');
+    (content.getContentDir as unknown as Mock).mockReturnValue(
+      '/nonexistent-songbook-content',
+    );
     voices = await import('@/lib/navidrome/voices');
   });
 
-  afterEach(() => {
+  afterEach(async () => {
     vi.unstubAllGlobals();
     for (const key of VOICES_KEYS) delete process.env[key];
+    delete process.env[VOICES_MATCHING_FILE];
+    for (const dir of tempDirs) {
+      await rm(dir, { recursive: true, force: true });
+    }
+    tempDirs.length = 0;
   });
 
   const mockGetSongTitle = () => content.getSongTitle as unknown as Mock;
@@ -79,7 +102,7 @@ describe('navidrome/voices', () => {
         throw new Error('unexpected fetch: ' + url);
       });
 
-      const groups = await voices.getVoiceSections('song-1', 'en');
+      const groups = await voices.getVoiceSections('song-1', 'es');
 
       expect(groups.map((g) => g.gender)).toEqual(['boys', 'girls']);
       const boys = groups.find((g) => g.gender === 'boys')!;
@@ -121,9 +144,117 @@ describe('navidrome/voices', () => {
         throw new Error('unexpected fetch: ' + url);
       });
 
-      const groups = await voices.getVoiceSections('song-dup', 'en');
+      const groups = await voices.getVoiceSections('song-dup', 'es');
       const tenor = groups[0].sections.find((s) => s.section === 'tenor')!;
       expect(tenor.parts).toHaveLength(1);
+    });
+
+    it('supports singular labels for es, mapping chico/chica alta/baja', async () => {
+      mockGetSongTitle().mockResolvedValue('Mi Cancion');
+      fetchMock.mockImplementation(async (input: RequestInfo | URL) => {
+        const url = String(input);
+        if (url.includes('search3.view')) {
+          return jsonRes({
+            status: 'ok',
+            searchResult3: {
+              song: [
+                { id: 't1', title: 'Mi Cancion Chico Alta' },
+                { id: 't2', title: 'Mi Cancion Chico Baja' },
+                { id: 't3', title: 'Mi Cancion Chica Baja' },
+                { id: 't4', title: 'Mi Cancion Chica Alta' },
+                { id: 't5', title: 'Mi Cancion Chico' },
+                { id: 't6', title: 'Mi Cancion Chica' },
+              ],
+            },
+          });
+        }
+        throw new Error('unexpected fetch: ' + url);
+      });
+
+      const groups = await voices.getVoiceSections('song-singular', 'es');
+      const tenor = groups.find((g) => g.gender === 'boys')!.sections.find((s) => s.section === 'tenor')!;
+      const bass = groups.find((g) => g.gender === 'boys')!.sections.find((s) => s.section === 'bass')!;
+      const alto = groups.find((g) => g.gender === 'girls')!.sections.find((s) => s.section === 'alto')!;
+      const soprano = groups.find((g) => g.gender === 'girls')!.sections.find((s) => s.section === 'soprano')!;
+      expect(tenor.parts.map((p) => p.title).sort()).toEqual(
+        ['Mi Cancion Chico Alta', 'Mi Cancion Chico'].sort()
+      );
+      expect(bass.parts.map((p) => p.title).sort()).toEqual(
+        ['Mi Cancion Chico Baja', 'Mi Cancion Chico'].sort()
+      );
+      expect(alto.parts.map((p) => p.title).sort()).toEqual(
+        ['Mi Cancion Chica Baja', 'Mi Cancion Chica'].sort()
+      );
+      expect(soprano.parts.map((p) => p.title).sort()).toEqual(
+        ['Mi Cancion Chica Alta', 'Mi Cancion Chica'].sort()
+      );
+    });
+
+    it('does not match chico/chica labels for en, but matches English keywords', async () => {
+      mockGetSongTitle().mockResolvedValue('Mi Cancion');
+      fetchMock.mockImplementation(async (input: RequestInfo | URL) => {
+        const url = String(input);
+        if (url.includes('search3.view')) {
+          return jsonRes({
+            status: 'ok',
+            searchResult3: {
+              song: [
+                { id: 't1', title: 'Mi Cancion Chicos' },
+                { id: 't2', title: 'Mi Cancion Boys' },
+                { id: 't3', title: 'Mi Cancion Girl' },
+              ],
+            },
+          });
+        }
+        throw new Error('unexpected fetch: ' + url);
+      });
+
+      const groups = await voices.getVoiceSections('song-en', 'en');
+      const boys = groups.find((g) => g.gender === 'boys')!;
+      const tenor = boys.sections.find((s) => s.section === 'tenor')!;
+      expect(tenor.parts.map((p) => p.title)).toEqual(['Mi Cancion Boys']);
+      const bass = boys.sections.find((s) => s.section === 'bass')!;
+      expect(bass.parts).toHaveLength(0);
+      const girls = groups.find((g) => g.gender === 'girls')!;
+      expect(girls.sections.find((s) => s.section === 'alto')!.parts.map((p) => p.title)).toEqual([
+        'Mi Cancion Girl',
+      ]);
+    });
+
+    it('matches the universal AllBoys/AllGirls words in any language', async () => {
+      mockGetSongTitle().mockResolvedValue('Mi Cancion');
+      fetchMock.mockImplementation(async (input: RequestInfo | URL) => {
+        const url = String(input);
+        if (url.includes('search3.view')) {
+          return jsonRes({
+            status: 'ok',
+            searchResult3: {
+              song: [
+                { id: 't1', title: 'Mi Cancion AllBoys' },
+                { id: 't2', title: 'Mi Cancion AllGirls' },
+              ],
+            },
+          });
+        }
+        throw new Error('unexpected fetch: ' + url);
+      });
+
+      const groups = await voices.getVoiceSections('song-universal', 'en');
+      expect(groups.map((g) => g.gender)).toEqual(['boys', 'girls']);
+      const boys = groups.find((g) => g.gender === 'boys')!;
+      expect(
+        boys.sections.find((s) => s.section === 'tenor')!.parts.map((p) => p.title),
+      ).toEqual(['Mi Cancion AllBoys']);
+      expect(
+        boys.sections.find((s) => s.section === 'bass')!.parts.map((p) => p.title),
+      ).toEqual(['Mi Cancion AllBoys']);
+      const girls = groups.find((g) => g.gender === 'girls')!;
+      expect(
+        girls.sections.find((s) => s.section === 'alto')!.parts.map((p) => p.title),
+      ).toEqual(['Mi Cancion AllGirls']);
+      expect(
+        girls.sections.find((s) => s.section === 'soprano')!.parts.map((p) => p.title),
+      ).toEqual(['Mi Cancion AllGirls']);
     });
 
     it('ignores recordings whose title does not contain the song title', async () => {
@@ -281,11 +412,44 @@ describe('navidrome/voices', () => {
         throw new Error('unexpected fetch: ' + url);
       });
 
-      const result = await voices.getVoiceTrackIdsForSetlist([{ songId: 's1', lang: 'en' }]);
+      const result = await voices.getVoiceTrackIdsForSetlist([{ songId: 's1', lang: 'es' }]);
 
       expect(result.tenor?.map((t) => t.id)).toEqual(['t1', 't2']);
       expect(result.bass?.map((t) => t.id)).toEqual(['t2']);
       expect(result.alto).toBeUndefined();
+    });
+
+    it('uses each setlist item language for matching', async () => {
+      mockGetSongTitle().mockResolvedValue('Mi Cancion');
+      fetchMock.mockImplementation(async (input: RequestInfo | URL) => {
+        const url = String(input);
+        if (url.includes('getAlbumList2.view')) {
+          return jsonRes({ status: 'ok', albumList2: { album: [{ id: 'a1' }] } });
+        }
+        if (url.includes('getAlbum.view')) {
+          return jsonRes({
+            status: 'ok',
+            album: {
+              id: 'a1',
+              song: [
+                { id: 't1', title: 'Mi Cancion Chicos' },
+                { id: 't2', title: 'Mi Cancion Boys' },
+                { id: 't3', title: 'Mi Cancion Basse' },
+              ],
+            },
+          });
+        }
+        throw new Error('unexpected fetch: ' + url);
+      });
+
+      const result = await voices.getVoiceTrackIdsForSetlist([
+        { songId: 's1', lang: 'es' },
+        { songId: 's2', lang: 'en' },
+        { songId: 's3', lang: 'fr' },
+      ]);
+
+      expect(result.tenor?.map((t) => t.id)).toEqual(['t1', 't2']);
+      expect(result.bass?.map((t) => t.id)).toEqual(['t1', 't3']);
     });
 
     it('never lists the same normalized title twice within a section', async () => {
@@ -356,6 +520,116 @@ describe('navidrome/voices', () => {
       });
 
       expect(await voices.getVoiceTrackIdsForSetlist([{ songId: 's1', lang: 'en' }])).toEqual({});
+    });
+
+    it('reads the per-language vocabulary from the matching JSON file', async () => {
+      await writeMatchingFile(
+        JSON.stringify({
+          matching: {
+            de: {
+              specific: { 'fuer stimme': 'tenor' },
+              allBoys: ['jungs'],
+              allGirls: ['maedchen'],
+              keywords: { lead: 'tenor' },
+            },
+          },
+        }),
+      );
+      mockGetSongTitle().mockResolvedValue('Mi Cancion');
+      fetchMock.mockImplementation(async (input: RequestInfo | URL) => {
+        const url = String(input);
+        if (url.includes('getAlbumList2.view')) {
+          return jsonRes({ status: 'ok', albumList2: { album: [{ id: 'a1' }] } });
+        }
+        if (url.includes('getAlbum.view')) {
+          return jsonRes({
+            status: 'ok',
+            album: {
+              id: 'a1',
+              song: [
+                { id: 't1', title: 'Mi Cancion Jungs' },
+                { id: 't2', title: 'Mi Cancion Maedchen' },
+                { id: 't3', title: 'Mi Cancion Lead' },
+                { id: 't4', title: 'Mi Cancion Chicos' },
+                { id: 't5', title: 'Mi Cancion AllBoys' },
+              ],
+            },
+          });
+        }
+        throw new Error('unexpected fetch: ' + url);
+      });
+
+      const result = await voices.getVoiceTrackIdsForSetlist([
+        { songId: 's1', lang: 'de' },
+      ]);
+
+      expect(result.tenor?.map((t) => t.id)).toEqual(['t1', 't3', 't5']);
+      expect(result.bass?.map((t) => t.id)).toEqual(['t1', 't5']);
+      expect(result.alto?.map((t) => t.id)).toEqual(['t2']);
+      expect(result.soprano?.map((t) => t.id)).toEqual(['t2']);
+    });
+
+    it('keeps built-in defaults for dimensions the JSON file does not touch', async () => {
+      await writeMatchingFile(
+        JSON.stringify({
+          matching: {
+            es: { keywords: { bajo: 'bass' } },
+          },
+        }),
+      );
+      mockGetSongTitle().mockResolvedValue('Mi Cancion');
+      fetchMock.mockImplementation(async (input: RequestInfo | URL) => {
+        const url = String(input);
+        if (url.includes('getAlbumList2.view')) {
+          return jsonRes({ status: 'ok', albumList2: { album: [{ id: 'a1' }] } });
+        }
+        if (url.includes('getAlbum.view')) {
+          return jsonRes({
+            status: 'ok',
+            album: {
+              id: 'a1',
+              song: [
+                { id: 't1', title: 'Mi Cancion Bajo' },
+                { id: 't2', title: 'Mi Cancion Chicos' },
+                { id: 't3', title: 'Mi Cancion Tenor' },
+              ],
+            },
+          });
+        }
+        throw new Error('unexpected fetch: ' + url);
+      });
+
+      const result = await voices.getVoiceTrackIdsForSetlist([
+        { songId: 's1', lang: 'es' },
+      ]);
+
+      expect(result.bass?.map((t) => t.id)).toEqual(['t1', 't2']);
+      expect(result.tenor?.map((t) => t.id)).toEqual(['t2', 't3']);
+    });
+
+    it('ignores a malformed matching JSON file and uses the built-ins', async () => {
+      await writeMatchingFile('{ not valid json');
+      mockGetSongTitle().mockResolvedValue('Mi Cancion');
+      fetchMock.mockImplementation(async (input: RequestInfo | URL) => {
+        const url = String(input);
+        if (url.includes('getAlbumList2.view')) {
+          return jsonRes({ status: 'ok', albumList2: { album: [{ id: 'a1' }] } });
+        }
+        if (url.includes('getAlbum.view')) {
+          return jsonRes({
+            status: 'ok',
+            album: { id: 'a1', song: [{ id: 't1', title: 'Mi Cancion Chicos' }] },
+          });
+        }
+        throw new Error('unexpected fetch: ' + url);
+      });
+
+      const result = await voices.getVoiceTrackIdsForSetlist([
+        { songId: 's1', lang: 'es' },
+      ]);
+
+      expect(result.tenor?.map((t) => t.id)).toEqual(['t1']);
+      expect(result.bass?.map((t) => t.id)).toEqual(['t1']);
     });
   });
 

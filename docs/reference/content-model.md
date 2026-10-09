@@ -16,7 +16,8 @@ in `src/lib/content/index.ts`.
 ```
 content/
   config/
-    site.yaml
+    site.yaml           app-level settings (auto-created with defaults)
+    voices.json         optional per-language VOICES matching vocabulary
   artists/
     <artist-id>.yaml
   library/
@@ -164,6 +165,7 @@ rewrites the body.
 | `oidcSub` | string | — | OIDC subject identifier |
 | `created` | string \| date | — | optional |
 | `permissions` | `Permissions` | — | optional; narrows a reviewer |
+| `voice` | `tenor` \| `bass` \| `alto` \| `soprano` | — | optional; the user's singer voice, selected by default on song/setlist pages |
 
 `Permissions` is `{ editSong: {songId, lang}[], editAlbum: {albumId, lang}[], editLanguage: string[] }`.
 

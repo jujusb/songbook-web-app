@@ -11,6 +11,7 @@ const fr: Translations = {
     newSetlist: '+ Nouvelle Liste',
     admin: 'Admin',
     users: 'Utilisateurs',
+    profile: 'Mon profil',
   },
   home: {
     title: 'Recueil',
@@ -239,6 +240,21 @@ const fr: Translations = {
     usernameMinLength: "Le nom d'utilisateur doit contenir au moins 3 caractères",
     passwordMinLength: 'Le mot de passe doit contenir au moins 8 caractères',
     registrationFailed: 'Échec de l\'inscription',
+  },
+  profile: {
+    title: 'Mon profil',
+    voice: 'Ma voix',
+    voiceDesc: 'Choisissez la corde vocale que vous chantez. Elle sera sélectionnée par défaut dans les lecteurs des chansons et dans les listes de lecture des voix.',
+    noVoice: 'Aucune préférence',
+    save: 'Enregistrer la voix',
+    saving: 'Enregistrement...',
+    saved: 'Préférence de voix enregistrée',
+    failed: 'Impossible d\'enregistrer votre préférence de voix.',
+    notes: 'Vous pouvez la modifier à tout moment.',
+  },
+  voice: {
+    boys: 'Garçons',
+    girls: 'Filles',
   },
   editor: {
     visual: 'Visuel',

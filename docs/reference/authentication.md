@@ -24,10 +24,13 @@ the token is reissued (for example, by logging in again).
 
 `UserSchema` (`src/lib/auth/schemas.ts:17`): `id`, `username`, `passwordHash` (absent for OIDC),
 `role`, optional `displayName`/`email`, `authProvider` (`local`/`oidc`), optional `oidcSub`,
-`created`, and optional `permissions`. Users are stored in `content/users/<id>.yaml`.
+`created`, optional `permissions`, and optional `voice` (one of `tenor`/`bass`/`alto`/`soprano`).
+Users are stored in `content/users/<id>.yaml`.
 
-`listUsers`, `getUser`, `createUser`, `updateUser`, and `deleteUser` live in `src/lib/auth/index.ts`.
-Passwords are hashed with bcrypt (`bcryptjs`).
+`listUsers`, `getUser`, `createUser`, `saveUser`, and `deleteUser` live in `src/lib/auth/index.ts`.
+Passwords are hashed with bcrypt (`bcryptjs`). A logged-in user can set their own `voice` on
+`/profile` (`src/app/actions.ts` `updateMyVoicePreferenceAction`); it is selected by default in the
+song-page players and setlist voice playlists.
 
 ### The default admin
 

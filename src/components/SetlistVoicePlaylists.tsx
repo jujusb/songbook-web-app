@@ -7,11 +7,6 @@ import { generateSetlistVoiceSharesAction } from '@/app/actions';
 import type { VoiceShareWithTracks } from '@/app/actions';
 import type { VoiceGender, VoiceSection } from '@/lib/navidrome/voices';
 
-const GENDER_LABELS: Record<VoiceGender, string> = {
-  boys: 'Chicos',
-  girls: 'Chicas',
-};
-
 const SECTION_GENDER: Record<VoiceSection, VoiceGender> = {
   tenor: 'boys',
   bass: 'boys',
@@ -27,7 +22,7 @@ const GENDER_SECTIONS: Record<VoiceGender, VoiceSection[]> = {
 /**
  * Per-voice shared playlists for a setlist, one Navidrome share per section
  * containing that voice's recordings for every song in the list. Mirrors the
- * song-page voices UI (Chicos / Chicas tabs): sections render the shared
+ * song-page voices UI (boys / girls tabs): sections render the shared
  * playlist in an iframe when the share page allows embedding, otherwise an
  * "Open playlist" link plus the section's stream players. When no shares
  * exist yet, editors see a button to generate them.
@@ -36,12 +31,16 @@ export function SetlistVoicePlaylists({
   setlistId,
   shares,
   canGenerate,
+  preferredVoice,
 }: {
   setlistId: string;
   shares: VoiceShareWithTracks[];
   canGenerate: boolean;
+  preferredVoice?: VoiceSection;
 }) {
   const { t } = useTranslation();
+  const genderLabel = (gender: VoiceGender) =>
+    gender === 'boys' ? t('voice.boys') : t('voice.girls');
   const router = useRouter();
   const [generating, setGenerating] = useState(false);
   const [done, setDone] = useState(false);
@@ -49,12 +48,15 @@ export function SetlistVoicePlaylists({
 
   const available = shares.filter((share) => share.tracks.length > 0);
 
-  const firstShare = available[0];
+  const preferredShare = preferredVoice
+    ? available.find((share) => share.section === preferredVoice)
+    : undefined;
+  const initialShare = preferredShare ?? available[0];
   const [activeGender, setActiveGender] = useState<VoiceGender>(
-    firstShare ? SECTION_GENDER[firstShare.section] : 'boys',
+    initialShare ? SECTION_GENDER[initialShare.section] : 'boys',
   );
   const [activeSection, setActiveSection] = useState<VoiceSection>(
-    firstShare?.section ?? 'tenor',
+    initialShare?.section ?? 'tenor',
   );
 
   const activeShare =
@@ -145,7 +147,7 @@ export function SetlistVoicePlaylists({
               }}
               className={tabClass(gender === activeGender)}
             >
-              {GENDER_LABELS[gender]}
+              {genderLabel(gender)}
             </button>
           );
         })}

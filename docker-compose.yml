@@ -34,6 +34,9 @@ services:
       - SONGBOOK_VOICES_NAVIDROME_SONGS_URL=${SONGBOOK_VOICES_NAVIDROME_SONGS_URL:-}
       - SONGBOOK_VOICES_NAVIDROME_USERNAME=${SONGBOOK_VOICES_NAVIDROME_USERNAME:-}
       - SONGBOOK_VOICES_NAVIDROME_PASSWORD=${SONGBOOK_VOICES_NAVIDROME_PASSWORD:-}
+      # Voice-matching vocabulary defaults to content/config/voices.json inside
+      # the mounted content tree; uncomment to point at a custom JSON file.
+      # - SONGBOOK_VOICES_MATCHING_FILE=/app/content/config/voices.json
       # --- Public/read-only instance base URL (used in setlist share links) ---
       - SONGBOOK_PUBLIC_URL=${SONGBOOK_PUBLIC_URL:-}
       # --- Branding & Contact (optional) ---
@@ -86,6 +89,9 @@ services:
       - SONGBOOK_VOICES_NAVIDROME_SONGS_URL=${SONGBOOK_VOICES_NAVIDROME_SONGS_URL:-}
       - SONGBOOK_VOICES_NAVIDROME_USERNAME=${SONGBOOK_VOICES_NAVIDROME_USERNAME:-}
       - SONGBOOK_VOICES_NAVIDROME_PASSWORD=${SONGBOOK_VOICES_NAVIDROME_PASSWORD:-}
+      # Voice-matching vocabulary defaults to content/config/voices.json inside
+      # the mounted content tree; uncomment to point at a custom JSON file.
+      # - SONGBOOK_VOICES_MATCHING_FILE=/app/content/config/voices.json
       # --- Public/read-only instance base URL (used in setlist share links) ---
       - SONGBOOK_PUBLIC_URL=${SONGBOOK_PUBLIC_URL:-}
       # --- Branding & Contact (optional) ---
