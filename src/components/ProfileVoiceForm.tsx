@@ -4,26 +4,24 @@ import { useState } from "react";
 import { updateMyVoicePreferenceAction } from "@/app/actions";
 import { useTranslation } from "@/lib/i18n";
 
-const VOICES = [
-  { id: "tenor", label: "Tenor" },
-  { id: "bass", label: "Bass" },
-  { id: "alto", label: "Alto" },
-  { id: "soprano", label: "Soprano" },
-] as const;
+const VOICES = ["tenor", "bass", "alto", "soprano"] as const;
 
-type VoiceId = (typeof VOICES)[number]["id"];
+type VoiceId = (typeof VOICES)[number];
 type Selection = VoiceId | "none";
 
 export function ProfileVoiceForm({ initialVoice }: { initialVoice?: string }) {
   const { t } = useTranslation();
   const [voice, setVoice] = useState<Selection>(
-    initialVoice && VOICES.some((v) => v.id === initialVoice)
+    initialVoice && VOICES.some((v) => v === initialVoice)
       ? (initialVoice as VoiceId)
       : "none",
   );
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const sectionLabel = (section: VoiceId) =>
+    t(`voice.sections.${section}`);
 
   const handleSave = async () => {
     setSaving(true);
@@ -54,17 +52,17 @@ export function ProfileVoiceForm({ initialVoice }: { initialVoice?: string }) {
       <div className="flex flex-wrap gap-2 mb-4">
         {VOICES.map((v) => (
           <button
-            key={v.id}
+            key={v}
             type="button"
-            onClick={() => handleSelect(v.id)}
-            aria-pressed={voice === v.id}
+            onClick={() => handleSelect(v)}
+            aria-pressed={voice === v}
             className={`px-3 py-2 rounded-md border text-sm transition-colors ${
-              voice === v.id
+              voice === v
                 ? "bg-blue-600 border-blue-600 text-white"
                 : "border-neutral-300 dark:border-neutral-700 text-neutral-700 dark:text-neutral-300 hover:border-blue-500"
             }`}
           >
-            {v.label}
+            {sectionLabel(v)}
           </button>
         ))}
         <button

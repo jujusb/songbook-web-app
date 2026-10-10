@@ -255,6 +255,12 @@ const fr: Translations = {
   voice: {
     boys: 'Garçons',
     girls: 'Filles',
+    sections: {
+      tenor: 'Ténor',
+      bass: 'Basse',
+      alto: 'Alto',
+      soprano: 'Soprano',
+    },
   },
   editor: {
     visual: 'Visuel',

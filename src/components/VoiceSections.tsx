@@ -28,6 +28,7 @@ export function VoiceSections({
   const { t } = useTranslation();
   const genderLabel = (gender: VoiceGender) =>
     gender === 'boys' ? t('voice.boys') : t('voice.girls');
+  const sectionLabel = (section: VoiceSection) => t(`voice.sections.${section}`);
   const [groups, setGroups] = useState<VoiceGroup[] | null>(null);
   const [loaded, setLoaded] = useState(false);
   const [activeGender, setActiveGender] = useState<VoiceGender>('boys');
@@ -137,7 +138,7 @@ export function VoiceSections({
             className={tabClass(section === currentSection.section)}
             aria-pressed={section === currentSection.section}
           >
-            {section}
+            {sectionLabel(section)}
           </button>
         ))}
       </div>

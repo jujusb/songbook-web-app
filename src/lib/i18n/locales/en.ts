@@ -251,8 +251,14 @@ const en = {
     notes: 'You can change this at any time.',
   },
   voice: {
-    boys: 'Boys',
-    girls: 'Girls',
+    boys: 'Boy',
+    girls: 'Girl',
+    sections: {
+      tenor: 'Tenor',
+      bass: 'Bass',
+      alto: 'Alto',
+      soprano: 'Soprano',
+    },
   },
   editor: {
     visual: 'Visual',

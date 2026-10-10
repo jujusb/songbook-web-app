@@ -221,7 +221,7 @@ describe('navidrome/voices', () => {
       ]);
     });
 
-    it('matches the universal AllBoys/AllGirls words in any language', async () => {
+    it('matches the universal boys/Girl words in any language', async () => {
       mockGetSongTitle().mockResolvedValue('Mi Cancion');
       fetchMock.mockImplementation(async (input: RequestInfo | URL) => {
         const url = String(input);
@@ -230,8 +230,8 @@ describe('navidrome/voices', () => {
             status: 'ok',
             searchResult3: {
               song: [
-                { id: 't1', title: 'Mi Cancion AllBoys' },
-                { id: 't2', title: 'Mi Cancion AllGirls' },
+                { id: 't1', title: 'Mi Cancion Boy' },
+                { id: 't2', title: 'Mi Cancion Girl' },
               ],
             },
           });
@@ -244,17 +244,17 @@ describe('navidrome/voices', () => {
       const boys = groups.find((g) => g.gender === 'boys')!;
       expect(
         boys.sections.find((s) => s.section === 'tenor')!.parts.map((p) => p.title),
-      ).toEqual(['Mi Cancion AllBoys']);
+      ).toEqual(['Mi Cancion Boy']);
       expect(
         boys.sections.find((s) => s.section === 'bass')!.parts.map((p) => p.title),
-      ).toEqual(['Mi Cancion AllBoys']);
+      ).toEqual(['Mi Cancion Boy']);
       const girls = groups.find((g) => g.gender === 'girls')!;
       expect(
         girls.sections.find((s) => s.section === 'alto')!.parts.map((p) => p.title),
-      ).toEqual(['Mi Cancion AllGirls']);
+      ).toEqual(['Mi Cancion Girl']);
       expect(
         girls.sections.find((s) => s.section === 'soprano')!.parts.map((p) => p.title),
-      ).toEqual(['Mi Cancion AllGirls']);
+      ).toEqual(['Mi Cancion Girl']);
     });
 
     it('ignores recordings whose title does not contain the song title', async () => {
@@ -528,8 +528,8 @@ describe('navidrome/voices', () => {
           matching: {
             de: {
               specific: { 'fuer stimme': 'tenor' },
-              allBoys: ['jungs'],
-              allGirls: ['maedchen'],
+              Boy: ['jungs'],
+              Girl: ['maedchen'],
               keywords: { lead: 'tenor' },
             },
           },
@@ -551,7 +551,7 @@ describe('navidrome/voices', () => {
                 { id: 't2', title: 'Mi Cancion Maedchen' },
                 { id: 't3', title: 'Mi Cancion Lead' },
                 { id: 't4', title: 'Mi Cancion Chicos' },
-                { id: 't5', title: 'Mi Cancion AllBoys' },
+                { id: 't5', title: 'Mi Cancion Boy' },
               ],
             },
           });

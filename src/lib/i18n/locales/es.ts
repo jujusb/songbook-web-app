@@ -253,8 +253,14 @@ const es: Translations = {
     notes: 'Puedes cambiarlo en cualquier momento.',
   },
   voice: {
-    boys: 'Chicos',
-    girls: 'Chicas',
+    boys: 'Chico',
+    girls: 'Chica',
+    sections: {
+      tenor: 'Tenor',
+      bass: 'Bajo',
+      alto: 'Contralto',
+      soprano: 'Soprano',
+    },
   },
   editor: {
     visual: 'Visual',

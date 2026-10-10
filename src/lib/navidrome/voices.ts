@@ -6,7 +6,7 @@ import { SubsonicClient } from './subsonic';
 import { normalizeTitle } from './share';
 
 export type VoiceSection = 'tenor' | 'bass' | 'alto' | 'soprano';
-export type VoiceGender = 'boys' | 'girls';
+export type VoiceGender = 'Boy' | 'Girl';
 
 export interface VoicePart {
   title: string;
@@ -31,28 +31,28 @@ export interface VoiceGroup {
   sections: VoiceSectionGroup[];
 }
 
-const GENDER_ORDER: VoiceGender[] = ['boys', 'girls'];
+const GENDER_ORDER: VoiceGender[] = ['Boy', 'Girl'];
 export const SECTION_ORDER: VoiceSection[] = ['tenor', 'bass', 'alto', 'soprano'];
 const SECTION_GENDER: Record<VoiceSection, VoiceGender> = {
-  tenor: 'boys',
-  bass: 'boys',
-  alto: 'girls',
-  soprano: 'girls',
+  tenor: 'Boy',
+  bass: 'Boy',
+  alto: 'Girl',
+  soprano: 'Girl',
 };
 
 /**
  * The voice-matching parameters for one language: which labels pin a recording
  * to a single section, which words mean "every section of a gender"
- * (AllBoys / AllGirls), and which generic keywords fall back to a single
+ * (Boy / Girl), and which generic keywords fall back to a single
  * section.
  */
 export interface VoiceLanguageParams {
   /** Specific labels take priority and unambiguously identify a section. */
   specificLabels: { section: VoiceSection; label: string }[];
-  /** Words mapping a recording to BOTH boys sections (TENOR + BASS). */
-  allBoys: string[];
-  /** Words mapping a recording to BOTH girls sections (ALTO + SOPRANO). */
-  allGirls: string[];
+  /** Words mapping a recording to BOTH Boy sections (TENOR + BASS). */
+  Boy: string[];
+  /** Words mapping a recording to BOTH Girl sections (ALTO + SOPRANO). */
+  Girl: string[];
   /** Generic keywords are fallbacks; the first match wins. */
   keywords: { section: VoiceSection; keywords: string[] }[];
 }
@@ -76,13 +76,13 @@ const KEYWORDS: { section: VoiceSection; keywords: string[] }[] = [
 ];
 
 /**
- * Universal "every section of a gender" words. The AllBoys / AllGirls
+ * Universal "every section of a gender" words. The Boy / Girl
  * convention applies to every language: a recording titled
- * `My Song AllBoys` plays in TENOR + BASS, `My Song AllGirls` in
+ * `My Song Boy` plays in TENOR + BASS, `My Song Girl` in
  * ALTO + SOPRANO. Language configs may add their own words on top.
  */
-const ALL_BOYS: string[] = ['allboys'];
-const ALL_GIRLS: string[] = ['allgirls'];
+const ALL_BOYS: string[] = ['Boy'];
+const ALL_GIRLS: string[] = ['Girl'];
 
 /**
  * Built-in per-language additions on top of the universal keywords. A language
@@ -95,21 +95,15 @@ const LANG_PARAMS: Record<string, Partial<VoiceLanguageParams>> = {
   en: {},
   es: {
     specificLabels: [
-      { section: 'tenor', label: 'chicos alta' },
-      { section: 'bass', label: 'chicos baja' },
-      { section: 'alto', label: 'chicas baja' },
-      { section: 'soprano', label: 'chicas alta' },
-      { section: 'tenor', label: 'chico alta' },
-      { section: 'bass', label: 'chico baja' },
-      { section: 'alto', label: 'chica baja' },
-      { section: 'soprano', label: 'chica alta' },
+      { section: 'tenor', label: 'tenor' },
+      { section: 'bass', label: 'bass' },
+      { section: 'alto', label: 'alto' },
+      { section: 'soprano', label: 'soprano' },
     ],
-    allBoys: ['chico', 'chicos'],
-    allGirls: ['chica', 'chicas'],
+    Boy: ['Boy'],
+    Girl: ['Girl'],
   },
-  fr: {
-    keywords: [{ section: 'bass', keywords: ['basse'] }],
-  },
+  fr: {},
 };
 
 function mergeKeywords(
@@ -137,8 +131,8 @@ function mergeKeywords(
  *   "matching": {
  *     "es": {
  *       "specific": { "chicos alta": "tenor", "chico baja": "bass" },
- *       "allBoys": ["chico", "chicos"],
- *       "allGirls": ["chica", "chicas"],
+ *       "Boy": ["chico", "chicos"],
+ *       "Girl": ["chica", "chicas"],
  *       "keywords": { "bajo": "bass" }
  *     }
  *   }
@@ -147,7 +141,7 @@ function mergeKeywords(
  *
  * For a language, each provided dimension REPLACES that language's built-in
  * dimension (whatever is absent keeps its built-in value). The universal
- * keywords and the AllBoys/AllGirls words always stay active. When the file is
+ * keywords and the Boy/Girl words always stay active. When the file is
  * missing or unreadable the built-ins are used unchanged.
  */
 export const VOICES_MATCHING_FILE_ENV = 'SONGBOOK_VOICES_MATCHING_FILE';
@@ -164,19 +158,19 @@ function normalizeLangConfig(raw: Record<string, unknown>): Partial<VoiceLanguag
     }
     if (specificLabels.length > 0) result.specificLabels = specificLabels;
   }
-  if (Array.isArray(raw.allBoys)) {
-    const allBoys = raw.allBoys
+  if (Array.isArray(raw.Boy)) {
+    const Boy = raw.Boy
       .filter((word): word is string => typeof word === 'string')
       .map(normalizeTitle)
       .filter((word): word is string => Boolean(word));
-    if (allBoys.length > 0) result.allBoys = allBoys;
+    if (Boy.length > 0) result.Boy = Boy;
   }
-  if (Array.isArray(raw.allGirls)) {
-    const allGirls = raw.allGirls
+  if (Array.isArray(raw.Girl)) {
+    const Girl = raw.Girl
       .filter((word): word is string => typeof word === 'string')
       .map(normalizeTitle)
       .filter((word): word is string => Boolean(word));
-    if (allGirls.length > 0) result.allGirls = allGirls;
+    if (Girl.length > 0) result.Girl = Girl;
   }
   if (raw.keywords && typeof raw.keywords === 'object') {
     const keywords: { section: VoiceSection; keywords: string[] }[] = [];
@@ -236,16 +230,16 @@ function getVoiceLanguageParams(
   const builtin = LANG_PARAMS[lang] ?? LANG_PARAMS['es'];
   return {
     specificLabels: configured?.specificLabels ?? builtin.specificLabels ?? [],
-    allBoys: [...ALL_BOYS, ...(configured?.allBoys ?? builtin.allBoys ?? [])],
-    allGirls: [...ALL_GIRLS, ...(configured?.allGirls ?? builtin.allGirls ?? [])],
+    Boy: [...ALL_BOYS, ...(configured?.Boy ?? builtin.Boy ?? [])],
+    Girl: [...ALL_GIRLS, ...(configured?.Girl ?? builtin.Girl ?? [])],
     keywords: mergeKeywords(KEYWORDS, configured?.keywords ?? builtin.keywords ?? []),
   };
 }
 
 /**
  * Classify a recording title into its section(s) using the resolved matching
- * parameters. Specific labels pin it to a single section; an AllBoys word maps
- * it to BOTH boys sections (TENOR + BASS), an AllGirls word to both girls
+ * parameters. Specific labels pin it to a single section; an Boy word maps
+ * it to BOTH Boy sections (TENOR + BASS), an Girl word to both Girl
  * sections (ALTO + SOPRANO); otherwise generic keywords map it to a single
  * section (first match). The title must also contain the (normalized) song
  * title.
@@ -260,8 +254,8 @@ function sectionsFromTitle(
   for (const { section, label } of params.specificLabels) {
     if (normalized.includes(label)) return [section];
   }
-  if (params.allBoys.some((word) => normalized.includes(word))) return ['tenor', 'bass'];
-  if (params.allGirls.some((word) => normalized.includes(word))) return ['alto', 'soprano'];
+  if (params.Boy.some((word) => normalized.includes(word))) return ['tenor', 'bass'];
+  if (params.Girl.some((word) => normalized.includes(word))) return ['alto', 'soprano'];
   for (const { section, keywords } of params.keywords) {
     if (keywords.some((keyword) => normalized.includes(keyword))) return [section];
   }
@@ -286,8 +280,8 @@ async function memoized<T>(
  * Find the voice-part recordings for a song on the VOICES Navidrome instance
  * by searching the current-language song title and classifying each result
  * into a section (TENOR / BASS / ALTO / SOPRANO). Every matching recording is
- * returned, deduplicated by title, and grouped into Chicos (boys) and Chicas
- * (girls) with their sections in fixed order.
+ * returned, deduplicated by title, and grouped into Chicos (Boy) and Chicas
+ * (Girl) with their sections in fixed order.
  */
 export async function getVoiceSections(songId: string, lang: string): Promise<VoiceGroup[]> {
   const config = getVoicesConfig();

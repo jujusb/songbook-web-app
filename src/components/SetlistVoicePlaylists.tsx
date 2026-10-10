@@ -41,6 +41,7 @@ export function SetlistVoicePlaylists({
   const { t } = useTranslation();
   const genderLabel = (gender: VoiceGender) =>
     gender === 'boys' ? t('voice.boys') : t('voice.girls');
+  const sectionLabel = (section: VoiceSection) => t(`voice.sections.${section}`);
   const router = useRouter();
   const [generating, setGenerating] = useState(false);
   const [done, setDone] = useState(false);
@@ -161,7 +162,7 @@ export function SetlistVoicePlaylists({
             onClick={() => setActiveSection(section)}
             className={tabClass(section === activeShare?.section)}
           >
-            {section}
+            {sectionLabel(section)}
           </button>
         ))}
       </div>
