@@ -53,7 +53,7 @@ describe('API /api/voices', () => {
   });
 
   it('returns grouped voice sections on success', async () => {
-    const groups = [{ gender: 'boys', sections: [] }];
+    const groups = [{ gender: 'Boy', sections: [] }];
     vi.mocked(getVoiceSections).mockResolvedValue(groups as any);
     const res = await POST(createMockRequest({ id: 'song-1', lang: 'en' }));
     const data = await res.json();

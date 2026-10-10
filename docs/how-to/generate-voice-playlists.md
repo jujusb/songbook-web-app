@@ -24,18 +24,18 @@ setlist item's language plus a section label. The matching rules are **language-
 song language resolves its own set of labels, so `es` recordings can use Spanish labels while `en`
 or `fr` recordings use English or French keywords.
 
-The **universal generic keywords** apply to every language: `tenor`/`boy` → tenor, `bass` → bass,
-`alto`/`girl` → alto, `soprano`/`sopran` → soprano.
+The **universal generic keywords** apply to every language, one section each:
+`tenor` → tenor, `bass` → bass, `alto` → alto, `soprano`/`sopran` → soprano.
 
 The **Boy / Girl convention** is the recommended way to point a recording at *both* sections
-of a gender — it applies to every language:
+of a gender — it applies to every language (matched case-insensitively):
 
-- `Boy` → **tenor + bass**
-- `Girl` → **alto + soprano**
+- `boy` (e.g. `My Song Boy`, `Mi Cancion Boys`) → **tenor + bass**
+- `girl` (e.g. `My Song Girl`) → **alto + soprano**
 
 So a recording named `My Song Boy` shows up for both tenor and bass, and `My Song Girl` for
-alto and soprano, no matter the song's language. Specific labels and single-section keywords still
-work on top of this.
+alto and soprano, no matter the song's language. Specific labels still win over this, and
+single-section keywords remain available for the exact part names.
 
 For `es` (and any language without its own rules), **specific labels win over generic keywords:**
 
@@ -48,9 +48,9 @@ For `es` (and any language without its own rules), **specific labels win over ge
 
 The bare gender words of the built-in `es` mapping (`chico`, `chicos`, `chica`, `chicas`) are
 Boy/Girl words too — they map to *both* sections of that gender, exactly like the universal
-`Boy`/`Girl` tokens. For `fr`, the only extension over the universal keywords is
+`boy`/`girl` tokens. For `fr`, the only extension over the universal keywords is
 `basse` → bass; for `en` no extra labels exist, so recordings for English songs should use the
-universal tokens (`Boy`/`Girl`) or the generic keywords (`boy`, `girl`, …).
+universal tokens (`boy`/`girl`) or the generic keywords (`tenor`, `bass`, `alto`, `soprano`).
 
 ### Override the vocabulary with a JSON file
 

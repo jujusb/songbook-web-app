@@ -104,8 +104,8 @@ describe('navidrome/voices', () => {
 
       const groups = await voices.getVoiceSections('song-1', 'es');
 
-      expect(groups.map((g) => g.gender)).toEqual(['boys', 'girls']);
-      const boys = groups.find((g) => g.gender === 'boys')!;
+      expect(groups.map((g) => g.gender)).toEqual(['Boy', 'Girl']);
+      const boys = groups.find((g) => g.gender === 'Boy')!;
       const tenor = boys.sections.find((s) => s.section === 'tenor')!;
       const bass = boys.sections.find((s) => s.section === 'bass')!;
       expect(tenor.parts.map((p) => p.title).sort()).toEqual(
@@ -117,7 +117,7 @@ describe('navidrome/voices', () => {
         'getCoverArt.view'
       );
 
-      const girls = groups.find((g) => g.gender === 'girls')!;
+      const girls = groups.find((g) => g.gender === 'Girl')!;
       expect(girls.sections.find((s) => s.section === 'soprano')!.parts.map((p) => p.title).sort()).toEqual(
         ['Mi Cancion Chicas', 'Mi Cancion Soprano'].sort()
       );
@@ -172,10 +172,10 @@ describe('navidrome/voices', () => {
       });
 
       const groups = await voices.getVoiceSections('song-singular', 'es');
-      const tenor = groups.find((g) => g.gender === 'boys')!.sections.find((s) => s.section === 'tenor')!;
-      const bass = groups.find((g) => g.gender === 'boys')!.sections.find((s) => s.section === 'bass')!;
-      const alto = groups.find((g) => g.gender === 'girls')!.sections.find((s) => s.section === 'alto')!;
-      const soprano = groups.find((g) => g.gender === 'girls')!.sections.find((s) => s.section === 'soprano')!;
+      const tenor = groups.find((g) => g.gender === 'Boy')!.sections.find((s) => s.section === 'tenor')!;
+      const bass = groups.find((g) => g.gender === 'Boy')!.sections.find((s) => s.section === 'bass')!;
+      const alto = groups.find((g) => g.gender === 'Girl')!.sections.find((s) => s.section === 'alto')!;
+      const soprano = groups.find((g) => g.gender === 'Girl')!.sections.find((s) => s.section === 'soprano')!;
       expect(tenor.parts.map((p) => p.title).sort()).toEqual(
         ['Mi Cancion Chico Alta', 'Mi Cancion Chico'].sort()
       );
@@ -190,7 +190,7 @@ describe('navidrome/voices', () => {
       );
     });
 
-    it('does not match chico/chica labels for en, but matches English keywords', async () => {
+    it('matches the universal Boy/Girl tokens for en and ignores chico/chica labels', async () => {
       mockGetSongTitle().mockResolvedValue('Mi Cancion');
       fetchMock.mockImplementation(async (input: RequestInfo | URL) => {
         const url = String(input);
@@ -210,15 +210,22 @@ describe('navidrome/voices', () => {
       });
 
       const groups = await voices.getVoiceSections('song-en', 'en');
-      const boys = groups.find((g) => g.gender === 'boys')!;
-      const tenor = boys.sections.find((s) => s.section === 'tenor')!;
-      expect(tenor.parts.map((p) => p.title)).toEqual(['Mi Cancion Boys']);
-      const bass = boys.sections.find((s) => s.section === 'bass')!;
-      expect(bass.parts).toHaveLength(0);
-      const girls = groups.find((g) => g.gender === 'girls')!;
+      const boys = groups.find((g) => g.gender === 'Boy')!;
+      expect(boys.sections.find((s) => s.section === 'tenor')!.parts.map((p) => p.title)).toEqual([
+        'Mi Cancion Boys',
+      ]);
+      expect(boys.sections.find((s) => s.section === 'bass')!.parts.map((p) => p.title)).toEqual([
+        'Mi Cancion Boys',
+      ]);
+      const girls = groups.find((g) => g.gender === 'Girl')!;
       expect(girls.sections.find((s) => s.section === 'alto')!.parts.map((p) => p.title)).toEqual([
         'Mi Cancion Girl',
       ]);
+      expect(girls.sections.find((s) => s.section === 'soprano')!.parts.map((p) => p.title)).toEqual([
+        'Mi Cancion Girl',
+      ]);
+      const allTitles = groups.flatMap((g) => g.sections.flatMap((s) => s.parts.map((p) => p.title)));
+      expect(allTitles).not.toContain('Mi Cancion Chicos');
     });
 
     it('matches the universal boys/Girl words in any language', async () => {
@@ -240,15 +247,15 @@ describe('navidrome/voices', () => {
       });
 
       const groups = await voices.getVoiceSections('song-universal', 'en');
-      expect(groups.map((g) => g.gender)).toEqual(['boys', 'girls']);
-      const boys = groups.find((g) => g.gender === 'boys')!;
+      expect(groups.map((g) => g.gender)).toEqual(['Boy', 'Girl']);
+      const boys = groups.find((g) => g.gender === 'Boy')!;
       expect(
         boys.sections.find((s) => s.section === 'tenor')!.parts.map((p) => p.title),
       ).toEqual(['Mi Cancion Boy']);
       expect(
         boys.sections.find((s) => s.section === 'bass')!.parts.map((p) => p.title),
       ).toEqual(['Mi Cancion Boy']);
-      const girls = groups.find((g) => g.gender === 'girls')!;
+      const girls = groups.find((g) => g.gender === 'Girl')!;
       expect(
         girls.sections.find((s) => s.section === 'alto')!.parts.map((p) => p.title),
       ).toEqual(['Mi Cancion Girl']);
@@ -449,7 +456,7 @@ describe('navidrome/voices', () => {
       ]);
 
       expect(result.tenor?.map((t) => t.id)).toEqual(['t1', 't2']);
-      expect(result.bass?.map((t) => t.id)).toEqual(['t1', 't3']);
+      expect(result.bass?.map((t) => t.id)).toEqual(['t1', 't2', 't3']);
     });
 
     it('never lists the same normalized title twice within a section', async () => {

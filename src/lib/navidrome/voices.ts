@@ -66,23 +66,25 @@ function isVoiceSection(value: unknown): value is VoiceSection {
 /**
  * Generic keywords that apply in every language. They are the stable
  * cross-language code words (the voice-part names themselves) matched as
- * substrings: `tenor`/`boy`, `bass`, `alto`/`girl`, `soprano`/`sopran`.
+ * substrings: `tenor`, `bass`, `alto`, `soprano`/`sopran`. The Boy/Girl tokens
+ * (below) are handled separately and map to both sections of a gender.
  */
 const KEYWORDS: { section: VoiceSection; keywords: string[] }[] = [
-  { section: 'tenor', keywords: ['tenor', 'boy'] },
+  { section: 'tenor', keywords: ['tenor'] },
   { section: 'bass', keywords: ['bass'] },
-  { section: 'alto', keywords: ['alto', 'girl'] },
+  { section: 'alto', keywords: ['alto'] },
   { section: 'soprano', keywords: ['soprano', 'sopran'] },
 ];
 
 /**
- * Universal "every section of a gender" words. The Boy / Girl
- * convention applies to every language: a recording titled
- * `My Song Boy` plays in TENOR + BASS, `My Song Girl` in
- * ALTO + SOPRANO. Language configs may add their own words on top.
+ * Universal "every section of a gender" words. The Boy / Girl convention
+ * applies to every language: a recording titled `My Song Boy` plays in
+ * TENOR + BASS, `My Song Girl` in ALTO + SOPRANO. Matching is
+ * case-insensitive (titles are normalized to lower case first). Language
+ * configs may add their own words on top.
  */
-const ALL_BOYS: string[] = ['Boy'];
-const ALL_GIRLS: string[] = ['Girl'];
+const ALL_BOYS: string[] = ['boy'];
+const ALL_GIRLS: string[] = ['girl'];
 
 /**
  * Built-in per-language additions on top of the universal keywords. A language
@@ -95,15 +97,21 @@ const LANG_PARAMS: Record<string, Partial<VoiceLanguageParams>> = {
   en: {},
   es: {
     specificLabels: [
-      { section: 'tenor', label: 'tenor' },
-      { section: 'bass', label: 'bass' },
-      { section: 'alto', label: 'alto' },
-      { section: 'soprano', label: 'soprano' },
+      { section: 'tenor', label: 'chicos alta' },
+      { section: 'bass', label: 'chicos baja' },
+      { section: 'alto', label: 'chicas baja' },
+      { section: 'soprano', label: 'chicas alta' },
+      { section: 'tenor', label: 'chico alta' },
+      { section: 'bass', label: 'chico baja' },
+      { section: 'alto', label: 'chica baja' },
+      { section: 'soprano', label: 'chica alta' },
     ],
-    Boy: ['Boy'],
-    Girl: ['Girl'],
+    Boy: ['chico', 'chicos'],
+    Girl: ['chica', 'chicas'],
   },
-  fr: {},
+  fr: {
+    keywords: [{ section: 'bass', keywords: ['basse'] }],
+  },
 };
 
 function mergeKeywords(
