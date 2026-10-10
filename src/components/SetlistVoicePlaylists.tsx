@@ -8,15 +8,15 @@ import type { VoiceShareWithTracks } from '@/app/actions';
 import type { VoiceGender, VoiceSection } from '@/lib/navidrome/voices';
 
 const SECTION_GENDER: Record<VoiceSection, VoiceGender> = {
-  tenor: 'boys',
-  bass: 'boys',
-  alto: 'girls',
-  soprano: 'girls',
+  tenor: 'Boy',
+  bass: 'Boy',
+  alto: 'Girl',
+  soprano: 'Girl',
 };
 
 const GENDER_SECTIONS: Record<VoiceGender, VoiceSection[]> = {
-  boys: ['tenor', 'bass'],
-  girls: ['alto', 'soprano'],
+  Boy: ['tenor', 'bass'],
+  Girl: ['alto', 'soprano'],
 };
 
 /**
@@ -40,7 +40,7 @@ export function SetlistVoicePlaylists({
 }) {
   const { t } = useTranslation();
   const genderLabel = (gender: VoiceGender) =>
-    gender === 'boys' ? t('voice.boys') : t('voice.girls');
+    gender === 'Boy' ? t('voice.boys') : t('voice.girls');
   const sectionLabel = (section: VoiceSection) => t(`voice.sections.${section}`);
   const router = useRouter();
   const [generating, setGenerating] = useState(false);
@@ -54,7 +54,7 @@ export function SetlistVoicePlaylists({
     : undefined;
   const initialShare = preferredShare ?? available[0];
   const [activeGender, setActiveGender] = useState<VoiceGender>(
-    initialShare ? SECTION_GENDER[initialShare.section] : 'boys',
+    initialShare ? SECTION_GENDER[initialShare.section] : 'Boy',
   );
   const [activeSection, setActiveSection] = useState<VoiceSection>(
     initialShare?.section ?? 'tenor',
@@ -130,7 +130,7 @@ export function SetlistVoicePlaylists({
         <span className="mr-1 text-xs font-medium uppercase tracking-wide text-neutral-500">
           {t('setlist.voicePlaylists')}
         </span>
-        {(['boys', 'girls'] as VoiceGender[]).map((gender) => {
+        {(['Boy', 'Girl'] as VoiceGender[]).map((gender) => {
           const hasSections = available.some(
             (share) => SECTION_GENDER[share.section] === gender,
           );

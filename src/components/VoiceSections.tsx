@@ -9,7 +9,7 @@ import type {
 } from '@/lib/navidrome/voices';
 
 /**
- * Renders the VOICES Navidrome players for a song. Tabs split by boys
+ * Renders the VOICES Navidrome players for a song. Tabs split by Boy
  * (TENOR / BASS) and girls (ALTO / SOPRANO); the tab names are localized for
  * the UI, independently of the words used to find the recordings on Navidrome
  * (see the matching JSON file under `content/config/`). Fetches automatically
@@ -27,11 +27,11 @@ export function VoiceSections({
 }) {
   const { t } = useTranslation();
   const genderLabel = (gender: VoiceGender) =>
-    gender === 'boys' ? t('voice.boys') : t('voice.girls');
+    gender === 'Boy' ? t('voice.boys') : t('voice.girls');
   const sectionLabel = (section: VoiceSection) => t(`voice.sections.${section}`);
   const [groups, setGroups] = useState<VoiceGroup[] | null>(null);
   const [loaded, setLoaded] = useState(false);
-  const [activeGender, setActiveGender] = useState<VoiceGender>('boys');
+  const [activeGender, setActiveGender] = useState<VoiceGender>('Boy');
   const [activeSection, setActiveSection] = useState<VoiceSection>('tenor');
 
   useEffect(() => {
