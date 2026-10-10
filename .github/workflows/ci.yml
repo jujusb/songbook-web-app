@@ -85,9 +85,8 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 30
     # The workflow defaults to NODE_ENV=test, but Next must build/serve in
-    # production mode for `next start`. Playwright's webServer starts the app.
-    env:
-      NODE_ENV: production
+    # production mode for `next start`. We set it per step (not at job level)
+    # so `npm ci` still installs devDependencies like @tailwindcss/postcss.
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -103,12 +102,16 @@ jobs:
 
       - name: Build application
         run: npm run build
+        env:
+          NODE_ENV: production
 
       - name: Install Playwright browsers
         run: npx playwright install --with-deps chromium
 
       - name: Run Playwright tests
         run: npm run test:e2e
+        env:
+          NODE_ENV: production
 
       - name: Upload Playwright report
         if: always()
