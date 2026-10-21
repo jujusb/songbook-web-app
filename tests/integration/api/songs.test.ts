@@ -93,6 +93,30 @@ describe('API /api/songs', () => {
       expect(response.status).toBe(200);
       expect(data.map((s: any) => s.id)).toEqual(['published-song']);
     });
+
+    it('hides the draft translations in read-only mode', async () => {
+      vi.stubEnv('SONGBOOK_READONLY', '1');
+      const { createSong, saveSongTranslation } = await import('@/lib/content');
+      await createSong('published-song', 'Published Song', 'en');
+
+      await saveSongTranslation('published-song', 'en', {
+        language: 'en', status: 'final', published: true
+      }, '{title: Published}\nContent');
+
+      await saveSongTranslation('published-song', 'es', {
+        language: 'es', status: 'draft', published: false
+      }, '{title: Borrador}\nContenido');
+
+      mockAuth(undefined); // No session = public
+      const req = createMockRequest('GET');
+      const response = await GET(req);
+      const data = await response.json();
+
+      expect(response.status).toBe(200);
+      expect(data[0].translations).toEqual(['en']);
+      expect(data[0].published).toEqual({ en: true });
+      vi.unstubAllEnvs();
+    });
   });
 
   describe('POST /api/songs', () => {

@@ -6,6 +6,7 @@ import * as yaml from 'js-yaml';
 import { saveRevision, moveRevisions } from './revisions';
 import { getContentDir, getLibraryDir, findSongPath, findSongAlbumId } from './paths';
 import { syncSongToMusicDir } from '@/lib/lyrics-sync';
+import { isReadOnly } from '@/lib/readonly';
 import { FALLBACK_LANGUAGES } from '@/lib/i18n/labels';
 export { resolveSongListTitle } from '../song-titles';
 export { getContentDir, findSongPath } from './paths';
@@ -74,6 +75,13 @@ export interface ListSongsOptions {
   role?: 'public' | 'reviewer' | 'admin' | 'setlist_creator';
 }
 
+/**
+ * The songs of the library.
+ *
+ * On the read-only (public) instance the draft translations are left out of
+ * the result: they are not served there, so the lists must not announce a
+ * language that is not deployed either.
+ */
 export async function listSongs(options: ListSongsOptions = {}): Promise<SongListItem[]> {
   const { onlyPublished = false, role } = options;
   const libDir = getLibraryDir();
@@ -105,16 +113,18 @@ export async function listSongs(options: ListSongsOptions = {}): Promise<SongLis
               .map((f) => path.basename(f, '.cho'));
             // Read published status from each translation
             for (const lang of translations) {
-              try {
-                const choRaw = await readFile(path.join(songPath, `${lang}.cho`), 'utf-8');
-                const { data } = matter(choRaw);
-                publishedMap[lang] = data?.published === true;
-              } catch {
-                publishedMap[lang] = false;
-              }
+              publishedMap[lang] = await isPublishedTranslation(songPath, lang);
             }
           } catch {
             // no .cho files readable
+          }
+          // The public instance does not serve drafts, so it does not list
+          // them either: a language that is not deployed stays invisible.
+          if (isReadOnly()) {
+            translations = translations.filter((lang) => publishedMap[lang]);
+            for (const lang of Object.keys(publishedMap)) {
+              if (!publishedMap[lang]) delete publishedMap[lang];
+            }
           }
           const choTitles: Record<string, string> = {};
           for (const lang of translations) {
@@ -323,13 +333,44 @@ export async function getSongTranslation(
   };
 }
 
+/**
+ * Whether the translation of a song is published.
+ *
+ * A translation is published when its frontmatter says so. A file that
+ * cannot be read counts as not published.
+ */
+async function isPublishedTranslation(songPath: string, lang: string): Promise<boolean> {
+  try {
+    const raw = await readFile(path.join(songPath, `${lang}.cho`), 'utf-8');
+    const { data } = matter(raw);
+    return data?.published === true;
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * The languages of a song.
+ *
+ * On the read-only (public) instance a draft translation does not exist as
+ * far as the visitors are concerned — the song page answers 404 for it — so
+ * the drafts are left out of the list here as well. Otherwise the pages
+ * would announce a language that cannot be opened.
+ */
 export async function getSongTranslations(id: string): Promise<string[]> {
   const songPath = await findSongPath(id);
   if (!songPath) return [];
   const entries = await readdir(songPath);
-  return entries
+  const translations = entries
     .filter((f) => f.endsWith('.cho'))
     .map((f) => path.basename(f, '.cho'));
+  if (!isReadOnly()) return translations;
+
+  const published: string[] = [];
+  for (const lang of translations) {
+    if (await isPublishedTranslation(songPath, lang)) published.push(lang);
+  }
+  return published;
 }
 
 export async function saveSongTranslation(

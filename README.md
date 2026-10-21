@@ -200,7 +200,9 @@ The frontmatter carries per-translation metadata (language, translator, status).
 
 **Development** (`docker-compose.yml`): Bind-mounts source code, uses `node:20-slim`, polls for file changes, maps port 3000 to 3000.
 
-**Production** (`Dockerfile`): Multi-stage build on `node:20-slim`. Installs Chromium and Noto fonts for PDF generation. Runs as non-root user. Content directory is volume-mounted at `/app/content`.
+**Production** (`Dockerfile`): Multi-stage build on `node:20-slim`. Installs Chromium and Noto fonts for PDF generation. Runs as non-root user. Content directory is volume-mounted at `/app/content`, the revision snapshots at `/app/revisions`.
+
+The entrypoint hands `/app/content`, `/app/music` and `/app/revisions` to the app user (`nextjs`, uid 1001) at startup, so a bind-mounted revisions folder must be writable by that user — otherwise every song save fails with `EACCES`.
 
 **`run.sh`**: Helper script that creates the Docker network, sets environment variables, and runs `docker compose`.
 
