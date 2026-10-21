@@ -47,7 +47,6 @@ services:
       # --- Branding & Contact (optional) ---
       - SONGBOOK_APP_NAME=${SONGBOOK_APP_NAME:-Songbook}
       - SONGBOOK_CONTACT_EMAIL=${SONGBOOK_CONTACT_EMAIL:-}
-      - SONGBOOK_GITHUB_URL=${SONGBOOK_GITHUB_URL:-https://github.com/anomalyco/songbook-web-app}
       # --- OIDC / SSO (all optional — set OIDC_ISSUER to enable) ---
       # - OIDC_ISSUER=https://auth.example.com/realms/main
       # - OIDC_CLIENT_ID=songbook
@@ -108,5 +107,4 @@ services:
       # --- Branding & Contact (optional) ---
       - SONGBOOK_APP_NAME=${SONGBOOK_APP_NAME:-Songbook}
       - SONGBOOK_CONTACT_EMAIL=${SONGBOOK_CONTACT_EMAIL:-}
-      - SONGBOOK_GITHUB_URL=${SONGBOOK_GITHUB_URL:-https://github.com/anomalyco/songbook-web-app}
     restart: unless-stopped

@@ -93,7 +93,6 @@ Dev server runs on `http://localhost:3000`.
 | `SONGBOOK_READONLY` | Enable read-only mode (allows setlist creation/sharing only) | `0` |
 | `SONGBOOK_APP_NAME` | Custom app name shown in header and metadata | `Songbook` |
 | `SONGBOOK_CONTACT_EMAIL` | Contact email shown in footer (mailto link) | _(none)_ |
-| `SONGBOOK_GITHUB_URL` | GitHub project URL shown in footer | `https://github.com/anomalyco/songbook-web-app` |
 
 `ADMIN_PASSWORD` and `JWT_SECRET` should be changed for any non-local deployment. All `OIDC_*` env vars override values in `site.yaml`.
 
@@ -120,7 +119,6 @@ Configure the app appearance via environment variables:
 ```bash
 SONGBOOK_APP_NAME="My Church Songbook"
 SONGBOOK_CONTACT_EMAIL="music@mychurch.org"
-SONGBOOK_GITHUB_URL="https://github.com/myorg/my-songbook"
 ```
 
 The footer will display the contact email (as a mailto link) and GitHub link when configured. All footer text is translated (EN/ES/FR).

@@ -24,7 +24,7 @@ const geistMono = Geist_Mono({
 
 const APP_NAME = process.env.SONGBOOK_APP_NAME || "Songbook";
 const CONTACT_EMAIL = process.env.SONGBOOK_CONTACT_EMAIL || "";
-const GITHUB_URL = process.env.SONGBOOK_GITHUB_URL || "https://github.com/anomalyco/songbook-web-app";
+const GITHUB_URL =  "https://github.com/jujusb/songbook-web-app";
 
 export const metadata: Metadata = {
   title: APP_NAME,

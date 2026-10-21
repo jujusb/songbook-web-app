@@ -8,18 +8,16 @@ them and restarting is enough.
 ```bash
 SONGBOOK_APP_NAME="My Church Songbook"
 SONGBOOK_CONTACT_EMAIL="music@mychurch.org"
-SONGBOOK_GITHUB_URL="https://github.com/myorg/my-songbook"
 ```
 
 | Variable | Default | Where it appears |
 | --- | --- | --- |
 | `SONGBOOK_APP_NAME` | `Songbook` | the header link and the page metadata title |
 | `SONGBOOK_CONTACT_EMAIL` | empty | a `mailto:` link in the footer |
-| `SONGBOOK_GITHUB_URL` | the project repository | a link in the footer |
 
 ## How the footer behaves
 
-The footer is rendered only if `SONGBOOK_CONTACT_EMAIL` or `SONGBOOK_GITHUB_URL` is non-empty. If
+The footer is rendered only if `SONGBOOK_CONTACT_EMAIL` is non-empty. If
 you clear both, there is no footer at all. The contact label and the GitHub label are translated
 (EN/ES/FR) along with the rest of the UI.
 

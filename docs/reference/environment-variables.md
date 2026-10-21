@@ -15,7 +15,6 @@ separately, because confusing the two is the most common configuration mistake.
 | `LANGUAGES_DEFAULT` | first enabled | `src/lib/content/index.ts:517` | default language code |
 | `SONGBOOK_APP_NAME` | `Songbook` | `src/app/layout.tsx:25` | header brand and metadata title |
 | `SONGBOOK_CONTACT_EMAIL` | empty | `src/app/layout.tsx:26` | footer `mailto:` link |
-| `SONGBOOK_GITHUB_URL` | project repo | `src/app/layout.tsx:27` | footer link |
 | `SONGBOOK_PUBLIC_URL` | request origin | setlist share links | base URL for share links |
 | `MUSIC_DIR` | `public/music` | `src/lib/lyrics-sync.ts:7` | root for audio served by `/api/music/...` |
 | `PARTITIONS_DIR` | `public/partitions` | `src/lib/partitions.ts:29` | root for sheet-music PDFs |
