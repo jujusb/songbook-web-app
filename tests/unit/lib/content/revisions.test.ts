@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { mkdir, readdir, writeFile } from 'fs/promises';
+import { mkdir, readdir, readFile, writeFile } from 'fs/promises';
 import { existsSync } from 'fs';
 import path from 'path';
 import { createTempContentDir, mockContentDir } from '../../../utils/temp-content';
@@ -180,6 +180,33 @@ describe('content/revisions.ts', () => {
       expect(
         existsSync(path.join(revisionDir(), '2026-01-01T00-00-00-000Z.cho'))
       ).toBe(true);
+    });
+  });
+
+  describe('unwritable revision tree', () => {
+    it('still saves the song when the revision tree cannot be written', async () => {
+      // A revision tree that cannot be written — a read-only mount, a volume
+      // owned by another user — must not stop the song from being saved.
+      const blocked = path.join(tempDir.path, 'not-a-directory');
+      await writeFile(blocked, 'x', 'utf-8');
+      vi.stubEnv('REVISIONS_DIR', blocked);
+      const warn = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
+
+      await writeTranslation();
+
+      await content.saveSongTranslation(
+        'test-song',
+        'en',
+        { language: 'en', status: 'draft', published: false },
+        '{title: Test}\nVerse 2'
+      );
+
+      const saved = await readFile(path.join(songDir(), 'en.cho'), 'utf-8');
+      expect(saved).toContain('Verse 2');
+      expect(warn).toHaveBeenCalled();
+
+      warn.mockRestore();
+      vi.unstubAllEnvs();
     });
   });
 

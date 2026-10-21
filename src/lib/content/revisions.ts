@@ -207,27 +207,42 @@ export async function saveRevision(
 ): Promise<string> {
   if (!existsSync(sourceFile)) return '';
 
-  await migrateLegacyRevisions(songId, path.dirname(sourceFile));
-
+  // The song id and the language become path segments, so an invalid one is a
+  // bug in the caller rather than a filesystem problem — it must not be
+  // swallowed by the catch below.
   const revDir = getRevisionsDir(songId, lang);
-  await mkdir(revDir, { recursive: true });
 
-  const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
-  let revFile = path.join(revDir, `${timestamp}.cho`);
-  let suffix = 1;
-  // Two saves within the same millisecond would otherwise collide and silently
-  // overwrite each other, losing a revision.
-  while (existsSync(revFile)) {
-    revFile = path.join(revDir, `${timestamp}-${suffix}.cho`);
-    suffix++;
+  try {
+    await migrateLegacyRevisions(songId, path.dirname(sourceFile));
+
+    await mkdir(revDir, { recursive: true });
+
+    const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+    let revFile = path.join(revDir, `${timestamp}.cho`);
+    let suffix = 1;
+    // Two saves within the same millisecond would otherwise collide and silently
+    // overwrite each other, losing a revision.
+    while (existsSync(revFile)) {
+      revFile = path.join(revDir, `${timestamp}-${suffix}.cho`);
+      suffix++;
+    }
+    await cp(sourceFile, revFile);
+
+    // Keep the tree from growing without bound. A failure here must not fail
+    // the save: the revision directory may be mounted read-only.
+    await collectRevisions(songId, lang).catch(() => undefined);
+
+    return path.basename(revFile, '.cho');
+  } catch (err) {
+    // A revision tree that cannot be written — a read-only mount, a volume
+    // owned by another user — must not stop the song from being saved. The
+    // history of that song is incomplete, but the edit itself goes through.
+    console.warn(
+      `Failed to snapshot ${songId}/${lang} — the revision history of this song is incomplete.`,
+      err
+    );
+    return '';
   }
-  await cp(sourceFile, revFile);
-
-  // Keep the tree from growing without bound. A failure here must not fail
-  // the save: the revision directory may be mounted read-only.
-  await collectRevisions(songId, lang).catch(() => undefined);
-
-  return path.basename(revFile, '.cho');
 }
 
 /**
