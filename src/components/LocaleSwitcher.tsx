@@ -3,21 +3,20 @@
 import { useRouter } from 'next/navigation';
 import { useTranslation } from '@/lib/i18n';
 
-const LOCALE_STORAGE_KEY = 'songbook-ui-locale';
-
-export function LocaleSwitcher() {
+export function LocaleSwitcher({
+  id,
+  className = '',
+}: {
+  id?: string;
+  className?: string;
+}) {
   const { locale, setLocale, availableLocales } = useTranslation();
   const router = useRouter();
 
   const handleChange = (value: string) => {
+    // The cookie is written by the i18n provider so that every switcher
+    // (header, footer, song language tabs) shares the same state.
     setLocale(value);
-    // Mirror the locale in a cookie so server-rendered pages (e.g. album
-    // and print lists) can resolve localized titles for the active UI language.
-    try {
-      document.cookie = `${LOCALE_STORAGE_KEY}=${encodeURIComponent(value)}; path=/; max-age=31536000; samesite=lax`;
-    } catch {
-      // cookies unavailable
-    }
     // Update URL to include lang param and re-render server components
     try {
       const url = new URL(window.location.href);
@@ -30,9 +29,10 @@ export function LocaleSwitcher() {
 
   return (
     <select
+      id={id}
       value={locale}
       onChange={(e) => handleChange(e.target.value)}
-      className="text-xs bg-transparent border border-neutral-300 dark:border-neutral-700 rounded px-1.5 py-0.5 text-neutral-600 dark:text-neutral-400 hover:text-foreground transition-colors cursor-pointer outline-none"
+      className={`text-xs bg-transparent border border-neutral-300 dark:border-neutral-700 rounded px-1.5 py-0.5 text-neutral-600 dark:text-neutral-400 hover:text-foreground transition-colors cursor-pointer outline-none ${className}`}
       aria-label="UI Language"
     >
       {availableLocales.map((l) => (

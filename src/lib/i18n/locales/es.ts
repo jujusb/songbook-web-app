@@ -54,6 +54,7 @@ const es: Translations = {
     transpose: 'Transportar',
     reset: 'Restablecer',
     originalKey: 'Tono original: {key}',
+    language: 'Idioma',
   },
   song: {
     present: 'Presentar',

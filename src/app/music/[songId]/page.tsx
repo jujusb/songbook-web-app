@@ -84,6 +84,7 @@ export default async function MusicReaderPage({
             songId={songId}
             languages={translations}
             currentLang={lang}
+            syncUiLocale
           />
         </div>
       )}

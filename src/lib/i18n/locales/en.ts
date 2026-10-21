@@ -52,6 +52,7 @@ const en = {
     transpose: 'Transpose',
     reset: 'Reset',
     originalKey: 'Original key: {key}',
+    language: 'Language',
   },
   song: {
     present: 'Present',

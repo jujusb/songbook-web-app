@@ -78,11 +78,11 @@ export default async function RootLayout({
     >
       <body className="min-h-full flex flex-col bg-background text-foreground">
         <header className="border-b border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-950 sticky top-0 z-50">
-          <nav className="max-w-full mx-auto px-4 sm:px-6 lg:px-8 h-14 flex items-center justify-between">
+          <nav className="max-w-full mx-auto px-4 sm:px-6 lg:px-8 min-h-14 py-2 flex items-center justify-between gap-3">
             <Link href="/" className="font-bold text-lg tracking-tight shrink-0">
               {APP_NAME}
             </Link>
-            <div className="flex flex-wrap items-center gap-3 sm:gap-4 lg:gap-6 shrink-0">
+            <div className="flex min-w-0 shrink items-center gap-3 overflow-x-auto sm:flex-wrap sm:shrink-0 sm:gap-4 sm:overflow-visible lg:gap-6 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
               <Link
                 href="/browse"
                 className="text-sm text-neutral-600 dark:text-neutral-400 hover:text-foreground transition-colors"
@@ -160,35 +160,42 @@ export default async function RootLayout({
           </nav>
         </header>
         <main className="flex-1 flex-grow">{children}</main>
-        {(CONTACT_EMAIL || GITHUB_URL) && (
-          <footer className="border-t border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-950 py-4 mt-auto">
-            <div className="max-w-full mx-auto px-4 sm:px-6 lg:px-8 text-center text-sm text-neutral-500 dark:text-neutral-400">
-              {CONTACT_EMAIL && (
-                <p className="mb-2">
-                  <T k="footer.contact" />{" "}
-                  <a
-                    href={`mailto:${CONTACT_EMAIL}`}
-                    className="text-blue-600 dark:text-blue-400 hover:underline"
-                  >
-                    {CONTACT_EMAIL}
-                  </a>
-                </p>
-              )}
-              {GITHUB_URL && (
-                <p>
-                  <a
-                    href={GITHUB_URL}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-blue-600 dark:text-blue-400 hover:underline"
-                  >
-                    <T k="footer.github" />
-                  </a>
-                </p>
-              )}
+        <footer className="border-t border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-950 mt-auto">
+          <div className="mx-auto w-full max-w-3xl px-4 sm:px-6 lg:px-8 py-4 flex flex-col items-center gap-2 text-center text-sm text-neutral-500 dark:text-neutral-400">
+            {CONTACT_EMAIL && (
+              <p className="flex max-w-full flex-col items-center gap-0.5 sm:flex-row sm:gap-1.5">
+                <span><T k="footer.contact" /></span>
+                <a
+                  href={`mailto:${CONTACT_EMAIL}`}
+                  className="max-w-full break-all text-blue-600 dark:text-blue-400 hover:underline"
+                >
+                  {CONTACT_EMAIL}
+                </a>
+              </p>
+            )}
+            {GITHUB_URL && (
+              <p className="max-w-full">
+                <a
+                  href={GITHUB_URL}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-block max-w-full break-words text-blue-600 dark:text-blue-400 hover:underline"
+                >
+                  <T k="footer.github" />
+                </a>
+              </p>
+            )}
+            <div className="mt-1 flex items-center gap-2">
+              <label
+                htmlFor="footer-locale"
+                className="text-xs opacity-80"
+              >
+                <T k="common.language" />
+              </label>
+              <LocaleSwitcher id="footer-locale" className="px-2 py-1 text-sm" />
             </div>
-          </footer>
-        )}
+          </div>
+        </footer>
       </body>
     </html>
     </RootClientLayout>

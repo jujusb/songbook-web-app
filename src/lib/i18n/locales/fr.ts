@@ -54,6 +54,7 @@ const fr: Translations = {
     transpose: 'Transposer',
     reset: 'Réinitialiser',
     originalKey: 'Tonalité originale : {key}',
+    language: 'Langue',
   },
   song: {
     present: 'Présenter',

@@ -347,6 +347,7 @@ export default async function SongPage({
         languages={translations}
         currentLang={lang}
         variant="auto"
+        syncUiLocale
         extraTab={
           partitions.length > 0
             ? {

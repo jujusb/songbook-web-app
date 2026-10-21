@@ -15,6 +15,7 @@ export function LanguageSwitcher({
   busy = null,
   extraTab,
   variant = "auto", // "auto" | "tabs" | "select"
+  syncUiLocale = false,
 }: {
   songId: string;
   languages: string[];
@@ -26,10 +27,15 @@ export function LanguageSwitcher({
   busy?: string | null;
   extraTab?: { href: string; active: boolean };
   variant?: "auto" | "tabs" | "select";
+  /**
+   * Keep the interface language in sync with the selected song language, so
+   * the language tabs and the language selector always agree.
+   */
+  syncUiLocale?: boolean;
 }) {
   const router = useRouter();
   const pathname = usePathname();
-  const { t, languageLabel } = useTranslation();
+  const { t, languageLabel, setLocale } = useTranslation();
   const [confirmingRemove, setConfirmingRemove] = useState<string | null>(null);
   const [showAddForm, setShowAddForm] = useState(false);
   const [addSelection, setAddSelection] = useState("");
@@ -45,6 +51,9 @@ export function LanguageSwitcher({
   const navigate = (lang: string) => {
     setConfirmingRemove(null);
     setShowAddForm(false);
+    if (syncUiLocale) {
+      setLocale(lang);
+    }
     router.push(linkFor ? linkFor(lang) : `${pathname}?lang=${lang}`);
   };
 

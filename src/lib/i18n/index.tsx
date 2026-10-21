@@ -16,8 +16,26 @@ import { languageLabelFor } from './labels';
 import type { Translations } from './locales/en';
 
 const LOCALE_STORAGE_KEY = 'songbook-ui-locale';
+const LOCALE_MAX_AGE = 31536000;
 
 const locales: Record<string, Translations> = { en, es, fr };
+
+/**
+ * Persist the locale in both localStorage (client preference) and a cookie
+ * (so the server-rendered pages resolve the same language).
+ */
+function persistLocale(code: string) {
+  try {
+    localStorage.setItem(LOCALE_STORAGE_KEY, code);
+  } catch {
+    // localStorage not available
+  }
+  try {
+    document.cookie = `${LOCALE_STORAGE_KEY}=${encodeURIComponent(code)}; path=/; max-age=${LOCALE_MAX_AGE}; samesite=lax`;
+  } catch {
+    // cookies unavailable
+  }
+}
 
 interface I18nContextValue {
   locale: string;
@@ -69,25 +87,35 @@ export function I18nProvider({
   );
 
   useEffect(() => {
+    // The language asked for in the URL wins over the stored preference: the
+    // interface always shows the language of the content that is being
+    // viewed. The proxy mirrors the same param into the cookie, so the server
+    // and the client agree on the language.
+    let next: string | null = null;
     try {
-      const stored = localStorage.getItem(LOCALE_STORAGE_KEY);
-      if (stored && songbookCodes.includes(stored)) {
-        // eslint-disable-next-line react-hooks/set-state-in-effect
-        setLocaleState(stored);
-      }
+      const fromUrl = new URLSearchParams(window.location.search).get('lang');
+      if (fromUrl && songbookCodes.includes(fromUrl)) next = fromUrl;
     } catch {
-      // localStorage not available
+      // URL not available
     }
+    if (!next) {
+      try {
+        const stored = localStorage.getItem(LOCALE_STORAGE_KEY);
+        if (stored && songbookCodes.includes(stored)) next = stored;
+      } catch {
+        // localStorage not available
+      }
+    }
+    if (!next) return;
+    persistLocale(next);
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setLocaleState(next);
   }, [songbookCodes]);
 
   const setLocale = useCallback((code: string) => {
     if (songbookCodes.includes(code)) {
       setLocaleState(code);
-      try {
-        localStorage.setItem(LOCALE_STORAGE_KEY, code);
-      } catch {
-        // localStorage not available
-      }
+      persistLocale(code);
     }
   }, [songbookCodes]);
 
