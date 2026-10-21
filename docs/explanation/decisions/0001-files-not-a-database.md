@@ -59,5 +59,5 @@ is the source of truth on every read.
 - `b942e16` — keeps `content/config/languages.yaml`; see
   [ADR-0012](./0012-languages-come-from-configuration.md) for what happened to it.
 - `songbook-web-app.md` §2 — the founding description of the file-based model.
-- `src/lib/content/index.ts:28` — `getContentDir()` resolving `content/` relative to `process.cwd()`
+- `src/lib/content/paths.ts:13` — `getContentDir()` resolving `content/` relative to `process.cwd()`
   at runtime, with environment overrides.

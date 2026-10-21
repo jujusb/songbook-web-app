@@ -152,6 +152,10 @@ revisions/                    # revision history, next to content/
     <lang>/<timestamp>.cho    # timestamped .cho snapshots
 ```
 
+Old snapshots are collected automatically: the newest `REVISIONS_MAX_COUNT` (default 50) per song
+and language are kept, and anything older than `REVISIONS_MAX_AGE_DAYS` (default 90) is deleted.
+`0` keeps everything. `npm run collect:revisions` sweeps the whole tree.
+
 Spotify links live in `meta.yaml` (`spotify.song` / `spotify.album` for the track and its album) and optionally in `album.yaml` (`spotify` for the album page). They take precedence over the automatic Spotify lookup and the Navidrome share links when the song is viewed in the site's default language.
 
 ### Song format

@@ -41,6 +41,24 @@ lexically in time order. The API accepts an ISO timestamp for a revision and map
 filename, so you never have to construct paths by hand. See
 [API endpoints](../reference/api-endpoints.md).
 
+## How many snapshots are kept
+
+Snapshots pile up — one per save — so a collector deletes the ones that are not worth keeping: a
+snapshot is collected when it is older than `REVISIONS_MAX_AGE_DAYS` days (default 90), or when it
+falls outside the `REVISIONS_MAX_COUNT` newest snapshots of its song and language (default 50).
+The newest ones win, and the collector runs on every save.
+
+To sweep the whole tree, for the songs that are no longer edited:
+
+```bash
+npm run collect:revisions -- --dry   # show what would go
+npm run collect:revisions             # delete it
+```
+
+Set `REVISIONS_MAX_COUNT=0` or `REVISIONS_MAX_AGE_DAYS=0` to keep everything (or everything of
+one kind). See
+[ADR-0017](../explanation/decisions/0017-old-revisions-are-collected.md).
+
 > A revision is a snapshot of one translation, not of the whole song. Reverting the Spanish file
 > leaves English untouched.
 

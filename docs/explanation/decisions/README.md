@@ -1,6 +1,6 @@
 # Architecture decision records
 
-Sixteen decisions that explain why the app looks the way it does. Each is written from the
+Seventeen decisions that explain why the app looks the way it does. Each is written from the
 repository's own history: the commits are real, the dates are real, and where a decision was later
 partly undone — or never aligned with the plan — the ADR says so.
 
@@ -35,6 +35,7 @@ Each record has:
 | [0014](./0014-the-music-importer-was-removed.md) | The music importer was built, then removed | Superseded; **feature removed** | 2026-07-27 → 2026-09-24 |
 | [0015](./0015-tests-arrive-late.md) | Tests arrive late, and only cover what they cover | Accepted; the early decisions are unpinned | 2026-10-09 |
 | [0016](./0016-revisions-live-outside-the-library.md) | Revisions live outside the library, in their own tree | Accepted | 2026-10-21 |
+| [0017](./0017-old-revisions-are-collected.md) | Old revisions are collected automatically | Accepted | 2026-10-21 |
 
 ## The decisions that were reversed or never landed
 

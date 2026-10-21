@@ -82,7 +82,8 @@ Vocabulary you will meet everywhere:
 - **Translation** — a single `<lang>.cho` file for a song. It has its own frontmatter (language,
   translator, status) and its own `published` flag.
 - **Revision** — a timestamped snapshot of one translation, written to the `revisions/` tree
-  (next to `content/`) before an edit that comes through the editor or the revision API.
+  (next to `content/`) before an edit that comes through the editor or the revision API. Old
+  snapshots are collected automatically.
 - **Setlist** — an ordered list of songs, each pinned to a language, with an owner. Shareable
   through a public flag, a random token, or a custom slug.
 - **Role** — one of `public`, `setlist_creator`, `reviewer`, `admin`. Auth is checked per route;

@@ -23,10 +23,19 @@ import { findSongPath } from './paths';
  * dashes (`2026-10-21T18-34-32-794Z.cho`). In the API and the UI the same
  * moment is a proper ISO string (`2026-10-21T18:34:32.794Z`). The two
  * formats convert both ways; see `timestampToRevisionFile`.
+ *
+ * Snapshots pile up: every save of an existing translation writes one. A
+ * garbage collector keeps them in check — see `collectRevisions`.
  */
 
 /** Directory name of the revision tree, next to the content directory. */
 export const REVISIONS_DIR = 'revisions';
+
+/** Snapshots kept per song and language when nothing else is configured. */
+export const DEFAULT_REVISIONS_MAX_COUNT = 50;
+
+/** Age in days after which a snapshot is collected, when nothing else is configured. */
+export const DEFAULT_REVISIONS_MAX_AGE_DAYS = 90;
 
 /** Legacy directory name, used before revisions moved out of the library. */
 const LEGACY_REVISIONS_DIR = '.revisions';
@@ -196,6 +205,10 @@ export async function saveRevision(
   }
   await cp(sourceFile, revFile);
 
+  // Keep the tree from growing without bound. A failure here must not fail
+  // the save: the revision directory may be mounted read-only.
+  await collectRevisions(songId, lang).catch(() => undefined);
+
   return path.basename(revFile, '.cho');
 }
 
@@ -307,4 +320,150 @@ export async function moveRevisions(oldSongId: string, newSongId: string): Promi
     }
   }
   await rm(from, { recursive: true, force: true });
+}
+
+// --- Garbage collection ---
+
+/** How many snapshots to keep, and how old they may get. */
+export interface RevisionGCConfig {
+  /**
+   * Keep at most this many snapshots per song and language. The newest ones
+   * win. `0` keeps them all.
+   */
+  maxCount: number;
+  /**
+   * Collect snapshots that are older than this many days. `0` keeps them all.
+   */
+  maxAgeDays: number;
+}
+
+export interface RevisionGCOptions extends Partial<RevisionGCConfig> {
+  /** The moment ages are measured against. Defaults to now. */
+  now?: Date;
+}
+
+export interface RevisionCollectionResult {
+  /** The snapshot files that were deleted. */
+  removed: string[];
+  /** The snapshot files that are left. */
+  kept: number;
+}
+
+/**
+ * Read the collection limits from the environment.
+ *
+ * - `REVISIONS_MAX_COUNT` — snapshots kept per song and language (default 50).
+ * - `REVISIONS_MAX_AGE_DAYS` — age in days after which a snapshot goes
+ *   (default 90).
+ *
+ * `0` means "keep everything" for either one, so `REVISIONS_MAX_COUNT=0` and
+ * `REVISIONS_MAX_AGE_DAYS=0` turn the collector off.
+ */
+export function getRevisionGCConfig(): RevisionGCConfig {
+  return {
+    maxCount: readNumber(process.env.REVISIONS_MAX_COUNT, DEFAULT_REVISIONS_MAX_COUNT),
+    maxAgeDays: readNumber(process.env.REVISIONS_MAX_AGE_DAYS, DEFAULT_REVISIONS_MAX_AGE_DAYS),
+  };
+}
+
+function readNumber(raw: string | undefined, fallback: number): number {
+  if (raw === undefined || raw.trim() === '') return fallback;
+  const value = Number(raw);
+  if (!Number.isFinite(value) || value < 0) return fallback;
+  return value;
+}
+
+/**
+ * Collect the snapshots of one translation.
+ *
+ * A snapshot is deleted when it is older than `maxAgeDays`, or when it falls
+ * outside the `maxCount` newest snapshots. Files that are not snapshot names
+ * are left alone.
+ */
+export async function collectRevisions(
+  songId: string,
+  lang: string,
+  options: RevisionGCOptions = {}
+): Promise<RevisionCollectionResult> {
+  const config = getRevisionGCConfig();
+  const maxCount = options.maxCount ?? config.maxCount;
+  const maxAgeDays = options.maxAgeDays ?? config.maxAgeDays;
+  const now = options.now ?? new Date();
+  const revDir = getRevisionsDir(songId, lang);
+
+  let entries: string[];
+  try {
+    entries = await readdir(revDir);
+  } catch {
+    return { removed: [], kept: 0 };
+  }
+
+  const snapshots = entries
+    .filter((file) => file.endsWith('.cho'))
+    .map((file) => ({ file, timestamp: revisionFileToTimestamp(file) }))
+    .filter((s): s is { file: string; timestamp: string } => s.timestamp !== null)
+    .map((s) => ({
+      file: s.file,
+      date: new Date(s.timestamp).getTime(),
+      suffix: revisionFileSuffix(s.file),
+    }))
+    // Newest first; two snapshots of the same millisecond are ordered by the
+    // collision suffix, the higher one being the later write.
+    .sort((a, b) => b.date - a.date || b.suffix - a.suffix);
+
+  const cutoff = maxAgeDays > 0 ? now.getTime() - maxAgeDays * 24 * 60 * 60 * 1000 : null;
+
+  const removed: string[] = [];
+  snapshots.forEach((snapshot, index) => {
+    const tooOld = cutoff !== null && snapshot.date < cutoff;
+    const beyondLimit = maxCount > 0 && index >= maxCount;
+    if (tooOld || beyondLimit) removed.push(snapshot.file);
+  });
+
+  for (const file of removed) {
+    try {
+      await rm(path.join(revDir, file), { force: true });
+    } catch {
+      // Read-only mount, or a file that vanished underneath us. The snapshot
+      // stays; the next run tries again.
+    }
+  }
+
+  return { removed, kept: snapshots.length - removed.length };
+}
+
+/**
+ * Collect the snapshots of every song and language in the revision tree.
+ */
+export async function collectAllRevisions(
+  options: RevisionGCOptions = {}
+): Promise<{ removed: number; kept: number; songs: number }> {
+  let songIds: string[];
+  try {
+    songIds = (await readdir(getRevisionsRoot(), { withFileTypes: true }))
+      .filter((entry) => entry.isDirectory() && isSafeSegment(entry.name))
+      .map((entry) => entry.name);
+  } catch {
+    return { removed: 0, kept: 0, songs: 0 };
+  }
+
+  let removed = 0;
+  let kept = 0;
+  for (const songId of songIds) {
+    let langs: string[];
+    try {
+      langs = (await readdir(getSongRevisionsDir(songId), { withFileTypes: true }))
+        .filter((entry) => entry.isDirectory() && isSafeSegment(entry.name))
+        .map((entry) => entry.name);
+    } catch {
+      continue;
+    }
+    for (const lang of langs) {
+      const result = await collectRevisions(songId, lang, options);
+      removed += result.removed.length;
+      kept += result.kept;
+    }
+  }
+
+  return { removed, kept, songs: songIds.length };
 }

@@ -19,6 +19,9 @@ separately, because confusing the two is the most common configuration mistake.
 | `SONGBOOK_PUBLIC_URL` | request origin | setlist share links | base URL for share links |
 | `MUSIC_DIR` | `public/music` | `src/lib/lyrics-sync.ts:7` | root for audio served by `/api/music/...` |
 | `PARTITIONS_DIR` | `public/partitions` | `src/lib/partitions.ts:29` | root for sheet-music PDFs |
+| `REVISIONS_DIR` | `<cwd>/revisions` | `src/lib/content/revisions.ts:71` | root of the revision tree, next to the content directory |
+| `REVISIONS_MAX_COUNT` | `50` | `src/lib/content/revisions.ts:364` | snapshots kept per song and language; `0` keeps them all |
+| `REVISIONS_MAX_AGE_DAYS` | `90` | `src/lib/content/revisions.ts:365` | age in days after which a snapshot is collected; `0` keeps them all |
 | `PORT` | `3000` | Next.js server | listen port |
 | `NODE_ENV` | — | auth cookie | `production` marks the session cookie `Secure` |
 
@@ -65,6 +68,9 @@ They are set in `.env`, not inside the app.
 | Variable | Passed to | Purpose |
 | --- | --- | --- |
 | `SONGBOOK_CONTENT_DIR` | host side of the `/app/content` mount | where the content tree lives on the host; **the app does not read this** |
+| `SONGBOOK_REVISIONS_DIR` | host side of the `/app/revisions` mount | where the revision tree lives on the host; **the app does not read this** |
+| `SONGBOOK_REVISIONS_MAX_COUNT` | `REVISIONS_MAX_COUNT` | snapshots kept per song and language |
+| `SONGBOOK_REVISIONS_MAX_AGE_DAYS` | `REVISIONS_MAX_AGE_DAYS` | age in days after which a snapshot is collected |
 | `SONGBOOK_MUSIC_DIR` | host side of `/app/music` | audio folder |
 | `SONGBOOK_PARTITION_DIR` | host side of `/app/partitions` | sheet-music folder |
 | `SONGBOOK_LANGUAGES` | `LANGUAGES` | enabled languages |
@@ -79,9 +85,12 @@ duration of the Compose call.
 ## Notes
 
 - **The content directory is not configurable at runtime.** `getContentDir()` returns
-  `<cwd>/content` (`src/lib/content/index.ts:28`). In Docker, cwd is `/app` and the host folder is
+  `<cwd>/content` (`src/lib/content/paths.ts:13`). In Docker, cwd is `/app` and the host folder is
   selected by the `SONGBOOK_CONTENT_DIR` bind mount. Outside Docker, run from the folder containing
   `content/`.
+- **The revision directory *is* configurable at runtime.** `REVISIONS_DIR` moves the revision tree;
+  it defaults to `<cwd>/revisions`, which in Docker is `/app/revisions`. The tree always sits
+  outside the content directory, whatever the value.
 - **`LANGUAGES` versus `SONGBOOK_LANGUAGES`.** The app reads `LANGUAGES`; Compose translates
   `SONGBOOK_LANGUAGES` into it. Setting `SONGBOOK_LANGUAGES` on a bare host has no effect.
 - **The fallback language list** comes from `FALLBACK_LANGUAGES` in `src/lib/i18n/labels.ts` when

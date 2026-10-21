@@ -182,4 +182,114 @@ describe('content/revisions.ts', () => {
       ).toBe(true);
     });
   });
+
+  describe('garbage collection', () => {
+    /** Write a snapshot file with a given ISO timestamp. */
+    async function writeSnapshot(iso: string, name = iso.replace(/[:.]/g, '-')) {
+      await mkdir(revisionDir(), { recursive: true });
+      const file = path.join(revisionDir(), `${name}.cho`);
+      await writeFile(file, `{title: ${iso}}\n`, 'utf-8');
+      return file;
+    }
+
+    it('keeps only the newest snapshots when there are more than the limit', async () => {
+      await writeSnapshot('2026-10-01T10-00-00-000Z');
+      await writeSnapshot('2026-10-02T10-00-00-000Z');
+      await writeSnapshot('2026-10-03T10-00-00-000Z');
+
+      const result = await revisions.collectRevisions('test-song', 'en', {
+        maxCount: 2,
+        maxAgeDays: 0,
+      });
+
+      expect(result.removed).toHaveLength(1);
+      expect(result.kept).toBe(2);
+      const files = await readdir(revisionDir());
+      expect(files).toHaveLength(2);
+      expect(files).toContain('2026-10-03T10-00-00-000Z.cho');
+      expect(files).toContain('2026-10-02T10-00-00-000Z.cho');
+      expect(files).not.toContain('2026-10-01T10-00-00-000Z.cho');
+    });
+
+    it('collects the snapshots that are too old', async () => {
+      const now = new Date('2026-10-21T12:00:00.000Z');
+      await writeSnapshot('2026-01-01T10-00-00-000Z');
+      await writeSnapshot('2026-10-20T10-00-00-000Z');
+
+      const result = await revisions.collectRevisions('test-song', 'en', {
+        maxCount: 0,
+        maxAgeDays: 30,
+        now,
+      });
+
+      expect(result.removed).toEqual(['2026-01-01T10-00-00-000Z.cho']);
+      expect(result.kept).toBe(1);
+      const files = await readdir(revisionDir());
+      expect(files).toEqual(['2026-10-20T10-00-00-000Z.cho']);
+    });
+
+    it('never touches a file that is not a snapshot', async () => {
+      await mkdir(revisionDir(), { recursive: true });
+      await writeFile(path.join(revisionDir(), 'notes.txt'), 'hello', 'utf-8');
+      await writeSnapshot('2026-01-01T10-00-00-000Z');
+
+      await revisions.collectRevisions('test-song', 'en', {
+        maxCount: 0,
+        maxAgeDays: 1,
+      });
+
+      const files = await readdir(revisionDir());
+      expect(files).toContain('notes.txt');
+    });
+
+    it('reads the limits from the environment', () => {
+      vi.stubEnv('REVISIONS_MAX_COUNT', '7');
+      vi.stubEnv('REVISIONS_MAX_AGE_DAYS', '30');
+      expect(revisions.getRevisionGCConfig()).toEqual({ maxCount: 7, maxAgeDays: 30 });
+      vi.unstubAllEnvs();
+    });
+
+    it('collects the snapshots of every song in the tree', async () => {
+      await writeSnapshot('2026-01-01T10-00-00-000Z');
+      const otherDir = path.join(tempDir.revisionsPath, 'other-song', 'en');
+      await mkdir(otherDir, { recursive: true });
+      await writeFile(
+        path.join(otherDir, '2026-01-02T10-00-00-000Z.cho'),
+        'x',
+        'utf-8'
+      );
+
+      const result = await revisions.collectAllRevisions({
+        maxCount: 0,
+        maxAgeDays: 30,
+        now: new Date('2026-10-21T12:00:00.000Z'),
+      });
+
+      expect(result.removed).toBe(2);
+      expect(result.songs).toBe(2);
+      expect(await readdir(revisionDir())).toHaveLength(0);
+    });
+
+    it('collects the snapshots of a song when a new one is saved', async () => {
+      vi.stubEnv('REVISIONS_MAX_COUNT', '1');
+      await writeTranslation();
+
+      await content.saveSongTranslation(
+        'test-song',
+        'en',
+        { language: 'en', status: 'draft', published: false },
+        '{title: Test}\nVerse 2'
+      );
+      await content.saveSongTranslation(
+        'test-song',
+        'en',
+        { language: 'en', status: 'draft', published: false },
+        '{title: Test}\nVerse 3'
+      );
+
+      const files = await readdir(revisionDir());
+      expect(files).toHaveLength(1);
+      vi.unstubAllEnvs();
+    });
+  });
 });

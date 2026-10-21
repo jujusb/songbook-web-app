@@ -956,4 +956,12 @@ export {
   getRevisionsDir,
   timestampToRevisionFile,
   revisionFileToTimestamp,
+  collectRevisions,
+  collectAllRevisions,
+  getRevisionGCConfig,
+  DEFAULT_REVISIONS_MAX_COUNT,
+  DEFAULT_REVISIONS_MAX_AGE_DAYS,
+  type RevisionGCConfig,
+  type RevisionGCOptions,
+  type RevisionCollectionResult,
 } from './revisions';

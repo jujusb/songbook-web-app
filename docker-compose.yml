@@ -21,6 +21,9 @@ services:
       - MUSIC_DIR=/app/music
       - PARTITIONS_DIR=/app/partitions
       - REVISIONS_DIR=/app/revisions
+      # --- Revision garbage collection (0 keeps everything) ---
+      - REVISIONS_MAX_COUNT=${SONGBOOK_REVISIONS_MAX_COUNT:-50}
+      - REVISIONS_MAX_AGE_DAYS=${SONGBOOK_REVISIONS_MAX_AGE_DAYS:-90}
       - ADMIN_PASSWORD_HASH=${ADMIN_PASSWORD_HASH:-}
       # --- Languages (optional — set LANGUAGES to configure without content files) ---
       - LANGUAGES=${SONGBOOK_LANGUAGES:-en,es,fr}

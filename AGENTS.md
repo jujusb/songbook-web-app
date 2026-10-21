@@ -83,5 +83,6 @@ Optional OIDC support configured in `site.yaml` (`oidc:` block). Uses standard A
 - Songs use ChordPro format (`.cho` extension) with YAML frontmatter
 - Multi-language: one `.cho` file per language per song, language code as filename
 - Revisions are timestamped `.cho` snapshots in the `revisions/` tree next to `content/` (root: `REVISIONS_DIR` env or `<cwd>/revisions`)
+- Snapshots are collected automatically: keep the newest `REVISIONS_MAX_COUNT` (default 50) per song and language, drop anything older than `REVISIONS_MAX_AGE_DAYS` (default 90); `0` keeps everything
 - API routes live under `src/app/api/`; pages are server components by default
 - `run.sh` is a wrapper for `docker compose` that sets up networking and env vars

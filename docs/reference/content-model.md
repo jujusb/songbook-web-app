@@ -43,7 +43,7 @@ revisions/
       <timestamp>.cho
 ```
 
-There is one reserved album id, `no-album` (`NO_ALBUM_ID`, `src/lib/content/index.ts:42`). Songs
+There is one reserved album id, `no-album` (`NO_ALBUM_ID`, `src/lib/content/index.ts:36`). Songs
 under `library/no-album/` exist and render, but are not listed in any `album.yaml`.
 
 > `config/languages.yaml` appeared in the original design and in older READMEs. The app does **not**
@@ -188,6 +188,26 @@ The revision tree sits next to `content/`, not inside the library. Snapshots are
 so moving a song to another album leaves them alone; renaming a song moves its folder in the
 revision tree. See
 [ADR-0016](../explanation/decisions/0016-revisions-live-outside-the-library.md).
+
+## Collecting old snapshots
+
+Every save writes a snapshot, so the tree would grow forever. A collector keeps it in check: a
+snapshot is deleted when it is **older than `REVISIONS_MAX_AGE_DAYS` days** (default 90), or when
+it falls **outside the `REVISIONS_MAX_COUNT` newest snapshots** of its song and language (default
+50). The newest snapshots win.
+
+The collector runs after every save, on the song that was just saved. To sweep the whole tree —
+for the songs that are no longer being edited — run:
+
+```bash
+npm run collect:revisions           # deletes what is beyond the limits
+npm run collect:revisions -- --dry  # only shows what it would delete
+```
+
+`0` means "keep everything" for either setting, so `REVISIONS_MAX_COUNT=0` and
+`REVISIONS_MAX_AGE_DAYS=0` turn the collector off. Files that are not snapshot names are never
+touched. See
+[ADR-0017](../explanation/decisions/0017-old-revisions-are-collected.md).
 
 ## Reserved ids
 
