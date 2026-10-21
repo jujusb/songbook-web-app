@@ -36,7 +36,7 @@ export default async function SongsPage() {
           </Link>
         </div>
       </div>
-      <SongListFilter songs={songs} defaultLang={langConfig.default} albums={albums} artists={artists} />
+      <SongListFilter songs={songs} defaultLang={langConfig.default} albums={albums} artists={artists} readOnly={isReadOnly()} />
     </div>
   );
 }

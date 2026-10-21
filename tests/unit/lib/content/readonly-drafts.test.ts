@@ -64,4 +64,16 @@ describe('content/index.ts — drafts in read-only mode', () => {
     expect(song?.translations?.sort()).toEqual(['en', 'es']);
     expect(song?.published).toEqual({ en: true, es: false });
   });
+
+  it('does not list a song in a language that is not deployed', async () => {
+    // Writable: the default language lists every song, even the ones that
+    // only exist in another language.
+    expect(content.shouldShowSongInLanguage(['fr'], 'en', 'en')).toBe(true);
+
+    vi.stubEnv('SONGBOOK_READONLY', '1');
+
+    // Read-only: the song is only listed in the language it is published in.
+    expect(content.shouldShowSongInLanguage(['fr'], 'en', 'en')).toBe(false);
+    expect(content.shouldShowSongInLanguage(['fr'], 'fr', 'en')).toBe(true);
+  });
 });

@@ -32,7 +32,7 @@ export function LocaleSwitcher({
       id={id}
       value={locale}
       onChange={(e) => handleChange(e.target.value)}
-      className={`text-xs bg-transparent border border-neutral-300 dark:border-neutral-700 rounded px-1.5 py-0.5 text-neutral-600 dark:text-neutral-400 hover:text-foreground transition-colors cursor-pointer outline-none ${className}`}
+      className={`shrink-0 text-xs bg-transparent border border-neutral-300 dark:border-neutral-700 rounded px-1.5 py-0.5 text-neutral-600 dark:text-neutral-400 hover:text-foreground transition-colors cursor-pointer outline-none ${className}`}
       aria-label="UI Language"
     >
       {availableLocales.map((l) => (

@@ -34,11 +34,13 @@ export function SongListFilter({
   defaultLang,
   albums = [],
   artists = [],
+  readOnly = false,
 }: {
   songs: Song[];
   defaultLang: string;
   albums?: Album[];
   artists?: Artist[];
+  readOnly?: boolean;
 }) {
   const { t, locale } = useTranslation();
   const [query, setQuery] = useState("");
@@ -48,9 +50,12 @@ export function SongListFilter({
 
   const activeLang = locale;
 
-  const langFiltered = songs.filter(
-    (song) =>
-      activeLang === defaultLang || song.translations.includes(activeLang)
+  // On the public instance a song is only listed in the languages that are
+  // deployed: the default language is not a shortcut for unpublished ones.
+  const langFiltered = songs.filter((song) =>
+    readOnly
+      ? song.translations.includes(activeLang)
+      : activeLang === defaultLang || song.translations.includes(activeLang)
   );
 
   const filtered = langFiltered.filter((song) => {

@@ -144,8 +144,13 @@ export async function listSongs(options: ListSongsOptions = {}): Promise<SongLis
           }
           // Check if song has any published translation
           const hasPublished = Object.values(publishedMap).some(v => v);
-          // Filter based on role and published status
-          if (onlyPublished && role !== 'admin' && !hasPublished) {
+          // Filter based on role and published status. The public instance
+          // never lists a song that has no deployed translation.
+          if (
+            onlyPublished &&
+            (role !== 'admin' || isReadOnly()) &&
+            !hasPublished
+          ) {
             continue; // skip unpublished songs for non-admin
           }
           songs.push({ ...meta, translations, choTitles, published: publishedMap });
@@ -173,13 +178,19 @@ export function resolveLocalizedTitle(meta: SongMeta, lang: string): string {
  * Decide whether a song should appear in a list for the selected language.
  * When the selected language is the site's default language, every song is
  * shown; otherwise only songs that actually have that translation.
+ *
+ * On the public (read-only) instance the default language is not a shortcut:
+ * a song is only listed in a language when that language is deployed, so a
+ * song published in one language does not show up in another one.
  */
 export function shouldShowSongInLanguage(
   translations: string[],
   selectedLang: string,
   defaultLang: string
 ): boolean {
-  if (!selectedLang || selectedLang === defaultLang) return true;
+  if (!selectedLang) return true;
+  if (isReadOnly()) return translations.includes(selectedLang);
+  if (selectedLang === defaultLang) return true;
   return translations.includes(selectedLang);
 }
 
