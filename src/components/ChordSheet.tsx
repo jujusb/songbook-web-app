@@ -332,6 +332,7 @@ export function ChordSheet({
   lang = "en",
   inlineChords = false,
   repeatChorus = true,
+  showChords = true,
 }: {
   initialSource: string;
   songKey: string | null;
@@ -341,10 +342,12 @@ export function ChordSheet({
   lang?: string;
   inlineChords?: boolean;
   repeatChorus?: boolean;
+  showChords?: boolean;
 }) {
   const { t } = useTranslation();
   const [semitones, setSemitones] = useState(0);
   const [showRepeats, setShowRepeats] = useState(repeatChorus);
+  const [localShowChords, setLocalShowChords] = useState(showChords);
   const isMobile = useSyncExternalStore(
     (onChange) => {
       window.addEventListener("resize", onChange);
@@ -499,6 +502,18 @@ export function ChordSheet({
         )}
         <button
           type="button"
+          onClick={() => setLocalShowChords(!localShowChords)}
+          className={`px-3 py-1.5 border border-neutral-300 dark:border-neutral-700 rounded-md text-xs transition-colors ${
+            localShowChords
+              ? "bg-blue-50 text-blue-700 dark:bg-blue-950 dark:text-blue-300"
+              : "hover:bg-neutral-100 dark:hover:bg-neutral-800"
+          }`}
+          title={localShowChords ? t('presentation.chordsOff') : t('presentation.chordsOn')}
+        >
+          {localShowChords ? t('presentation.chordsOff') : t('presentation.chordsOn')}
+        </button>
+        <button
+          type="button"
           onClick={() => setShowRepeats(!showRepeats)}
           className={`px-3 py-1.5 border border-neutral-300 dark:border-neutral-700 rounded-md text-xs transition-colors ${
             showRepeats
@@ -514,7 +529,7 @@ export function ChordSheet({
       {/* Chord sheet - responsive, fits screen without horizontal scroll */}
       <div className="w-full overflow-hidden">
         <div
-          className="visual-chord-editor visual-chord-sheet"
+          className={`visual-chord-editor visual-chord-sheet${localShowChords ? "" : " hide-chords"}`}
           dangerouslySetInnerHTML={{ __html: html }}
         />
       </div>

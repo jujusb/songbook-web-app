@@ -17,20 +17,22 @@ export type Permissions = z.infer<typeof PermissionSchema>;
 export const VoiceSectionSchema = z.enum(['tenor', 'bass', 'alto', 'soprano']);
 export type VoiceSection = z.infer<typeof VoiceSectionSchema>;
 
-export const UserSchema = z.object({
-  id: z.string(),
-  username: z.string(),
-  passwordHash: z.string().optional(),       // absent for OIDC-only users
-  role: z.enum(['public', 'reviewer', 'admin', 'setlist_creator']),
-  displayName: z.string().optional(),
-  email: z.string().optional(),
-  authProvider: z.enum(['local', 'oidc']).default('local'),
-  oidcSub: z.string().optional(),            // OIDC subject identifier
-  created: z.union([z.string(), z.date()]).optional(),
-  permissions: PermissionSchema.optional(),
-  /** The user's singer voice: selected by default on song and setlist pages. */
-  voice: VoiceSectionSchema.optional(),
-});
+  export const UserSchema = z.object({
+    id: z.string(),
+    username: z.string(),
+    passwordHash: z.string().optional(),       // absent for OIDC-only users
+    role: z.enum(['public', 'reviewer', 'admin', 'setlist_creator']),
+    displayName: z.string().optional(),
+    email: z.string().optional(),
+    authProvider: z.enum(['local', 'oidc']).default('local'),
+    oidcSub: z.string().optional(),            // OIDC subject identifier
+    created: z.union([z.string(), z.date()]).optional(),
+    permissions: PermissionSchema.optional(),
+    /** The user's singer voice: selected by default on song and setlist pages. */
+    voice: VoiceSectionSchema.optional(),
+    /** Whether to show chords by default on song pages. */
+    showChords: z.boolean().optional(),
+  });
 
 export type User = z.infer<typeof UserSchema>;
 export type UserInput = z.input<typeof UserSchema>;

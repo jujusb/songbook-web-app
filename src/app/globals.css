@@ -188,7 +188,8 @@ a.ref-marker:hover {
   display: none;
 }
 
-.presentation-content.hide-chords .vce-chord-row {
+.presentation-content.hide-chords .vce-chord-row,
+.visual-chord-sheet.hide-chords .vce-chord-row {
   display: none;
 }
 

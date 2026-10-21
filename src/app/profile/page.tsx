@@ -3,6 +3,7 @@ import { cookies } from "next/headers";
 import { getCurrentUser } from "@/lib/auth";
 import { getLocale, createT } from "@/lib/i18n/server";
 import { ProfileVoiceForm } from "@/components/ProfileVoiceForm";
+import { ProfileChordsForm } from "@/components/ProfileChordsForm";
 
 export default async function ProfilePage() {
   const user = await getCurrentUser();
@@ -19,6 +20,7 @@ export default async function ProfilePage() {
         {user.displayName || user.username}
       </p>
       <ProfileVoiceForm initialVoice={user.voice} />
+      <ProfileChordsForm initialShowChords={user.showChords} />
     </div>
   );
 }

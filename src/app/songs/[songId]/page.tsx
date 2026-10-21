@@ -381,6 +381,7 @@ export default async function SongPage({
               songCapo={capo ?? null}
               references={meta.references}
               lang={lang}
+              showChords={currentUser?.showChords !== false}
             />
 
             {/* References - collapsible on mobile, sidebar on desktop */}
