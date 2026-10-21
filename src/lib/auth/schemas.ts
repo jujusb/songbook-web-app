@@ -32,6 +32,8 @@ export type VoiceSection = z.infer<typeof VoiceSectionSchema>;
     voice: VoiceSectionSchema.optional(),
     /** Whether to show chords by default on song pages. */
     showChords: z.boolean().optional(),
+    /** Chord notation to display: letters, solfège, roman numerals, or Nashville numbers. */
+    chordNotation: z.enum(['letters', 'solfege', 'roman', 'nashville']).optional(),
   });
 
 export type User = z.infer<typeof UserSchema>;

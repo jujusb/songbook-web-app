@@ -932,3 +932,35 @@ export async function updateMyChordsPreferenceAction(showChords: boolean | null)
     };
   }
 }
+
+/**
+ * Save the logged-in user's chord notation preference.
+ */
+export async function updateMyChordNotationAction(notation: string | null) {
+  const session = await getSession();
+  if (!session) {
+    return { ok: false as const, error: "Unauthorized" };
+  }
+  const user = await getCurrentUser();
+  if (!user) {
+    return { ok: false as const, error: "Unauthorized" };
+  }
+  const value =
+    notation === null
+      ? undefined
+      : notation === 'letters' || notation === 'solfege' || notation === 'roman' || notation === 'nashville'
+        ? notation
+        : undefined;
+  if (notation !== null && value === undefined) {
+    return { ok: false as const, error: "INVALID_NOTATION" };
+  }
+  try {
+    await saveUser({ ...user, chordNotation: value }, { allowReadOnly: true });
+    return { ok: true as const };
+  } catch (err) {
+    return {
+      ok: false as const,
+      error: err instanceof Error ? err.message : "FAILED",
+    };
+  }
+}

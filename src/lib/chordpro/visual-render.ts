@@ -165,7 +165,31 @@ export function renderVisualChordSheet(
         const { primary, aliases } = splitSectionAliases(labeledRepeat[2]);
         const display = aliases[0] ?? null;
         
-        if (repeatChorus) {
+        if (repeatChorus || type !== 'chorus') {
+          if (type === 'instrumental') {
+            const html = lookup(type, primary);
+            if (html) {
+              const relabeled = display
+                ? html.replace(
+                    /<div class="vce-section-label">([^<]*)<\/div>/,
+                    (_m, label) =>
+                      label.trim()
+                        ? `<div class="vce-section-label">${escapeHtml(display)}</div>`
+                        : _m
+                  )
+                : html;
+              out.push(`  ${relabeled}`);
+              const st = repeats[type];
+              st.lastHtml = relabeled;
+              for (const alias of aliases) {
+                const norm = alias.toLowerCase().trim();
+                if (!norm) continue;
+                st.byLabel.set(norm, relabeled);
+                st.byLabel.set(`${type} ${norm}`, relabeled);
+              }
+            }
+            continue;
+          }
           const html = lookup(type, primary);
           if (html) {
             // A replayed section adopts its alternate name when one is given:
@@ -190,26 +214,31 @@ export function renderVisualChordSheet(
               st.byLabel.set(norm, relabeled);
               st.byLabel.set(`${type} ${norm}`, relabeled);
             }
+            continue;
           }
-        } else {
-          // Show only the section label when repeatChorus is false
-          const label = display || primary;
-          out.push(`  <div class="vce-section-label vce-section-label--repeat">${escapeHtml(label)}</div>`);
         }
+        // Show only the section label when repeatChorus is false (for chorus)
+        const label = display || primary;
+        out.push(`  <div class="vce-section-label vce-section-label--repeat">${escapeHtml(label)}</div>`);
         continue;
       }
 
       if (bareRepeat) {
         finalizeAll();
-        if (repeatChorus) {
+        if (repeatChorus || bareRepeat !== 'chorus') {
+          if (bareRepeat === 'instrumental') {
+            const html = repeats[bareRepeat].lastHtml;
+            if (html) out.push(`  ${html}`);
+            continue;
+          }
           const html = repeats[bareRepeat].lastHtml;
           if (html) out.push(`  ${html}`);
-        } else {
-          // Show section label for bare repeat when repeatChorus is false
-          const st = repeats[bareRepeat];
-          if (st && st.label) {
-            out.push(`  <div class="vce-section-label vce-section-label--repeat">${escapeHtml(st.label)}</div>`);
-          }
+          continue;
+        }
+        // Show section label for bare repeat when repeatChorus is false
+        const st = repeats[bareRepeat];
+        if (st && st.label) {
+          out.push(`  <div class="vce-section-label vce-section-label--repeat">${escapeHtml(st.label)}</div>`);
         }
         continue;
       }

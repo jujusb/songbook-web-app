@@ -4,6 +4,7 @@ import { getCurrentUser } from "@/lib/auth";
 import { getLocale, createT } from "@/lib/i18n/server";
 import { ProfileVoiceForm } from "@/components/ProfileVoiceForm";
 import { ProfileChordsForm } from "@/components/ProfileChordsForm";
+import { ProfileNotationForm } from "@/components/ProfileNotationForm";
 
 export default async function ProfilePage() {
   const user = await getCurrentUser();
@@ -21,6 +22,7 @@ export default async function ProfilePage() {
       </p>
       <ProfileVoiceForm initialVoice={user.voice} />
       <ProfileChordsForm initialShowChords={user.showChords} />
+      <ProfileNotationForm initialNotation={user.chordNotation} />
     </div>
   );
 }

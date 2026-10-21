@@ -382,6 +382,7 @@ export default async function SongPage({
               references={meta.references}
               lang={lang}
               showChords={currentUser?.showChords !== false}
+              chordNotation={(currentUser?.chordNotation as any) || "letters"}
             />
 
             {/* References - collapsible on mobile, sidebar on desktop */}
