@@ -66,16 +66,25 @@ change).
 
 ## Two languages in one app
 
-There are two unrelated "languages" systems, and confusing them causes real bugs:
+There are two "languages" systems in the app. They are related: the interface always speaks the
+language of the content that is being viewed.
 
 - **Song translations** — the `.cho` files. One per song per language, chosen with `?lang=`. Stored
   in content. Governed by `published`, the default language, and `LANGUAGES`/`LANGUAGES_DEFAULT`.
 - **UI language** — the interface strings (buttons, menus). Translated EN/ES/FR in
-  `src/lib/i18n/locales/`. Stored in a cookie (`songbook-ui-locale`) and chosen by
-  `<LocaleSwitcher>`, propagated by `src/middleware.ts`.
+  `src/lib/i18n/locales/`. Stored in a cookie (`songbook-ui-locale`) and in localStorage, chosen by
+  `<LocaleSwitcher>` (header and footer) and propagated by `src/proxy.ts`.
+
+They are kept in sync in both directions:
+
+- `?lang=` in the URL wins. The proxy persists it in the `songbook-ui-locale` cookie and the i18n
+  provider applies it on load, so a link to a song in another language brings the interface with it.
+- Clicking a language tab on a song page (`<LanguageSwitcher syncUiLocale>`) also switches the
+  interface language, and picking a language in the header or footer switcher switches the song
+  that is displayed.
 
 The default *song* language is used for Spotify-original logic and metadata fallbacks. The *UI*
-language is cosmetic. Neither knows about the other. See
+language is cosmetic, except that it selects the song translation that is shown. See
 [ADR-0012](./decisions/0012-languages-come-from-configuration.md).
 
 ## Rendering and PDF

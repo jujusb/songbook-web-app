@@ -89,7 +89,9 @@ instance; visitors use the public one. `SONGBOOK_PUBLIC_URL` stitches them toget
   `content/users` read-write or point the public instance at a copy. The repository's Compose mounts
   the whole content tree read-only; adjust if you enable registration at scale.
 - **Unpublished songs are still unpublished.** Read-only mode does not change the published rules.
-  Content must be published on the private instance before the public instance shows it.
+  Content must be published on the private instance before the public instance shows it. The
+  public instance does not even mention the languages that are not deployed: a song published in
+  Spanish but not in English is listed in the Spanish views only.
 
 ## See also
 

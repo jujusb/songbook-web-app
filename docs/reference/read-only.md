@@ -57,6 +57,17 @@ does. Then even a bug in the checks cannot write to the library. The trade-off i
 self-registration needs a writable `content/users/`; see
 [Run a public read-only instance](../how-to/run-a-public-read-only-instance.md).
 
+## Drafts stay invisible
+
+A translation that is not published does not exist as far as the public instance is concerned. The
+song page answers 404 for it, and the language lists do not mention it either: the songs list, the
+browse tree, the album and artist pages, and the language tabs of a song only show the deployed
+languages. A song that is published in one language but not in another is only listed in the
+languages where it is deployed — the default language is not a shortcut for it.
+
+The private instance keeps showing the drafts, marked in red, so editors can see what is still
+work in progress.
+
 ## See also
 
 - [ADR-0007 — Read-only mode is a deployment profile](../explanation/decisions/0007-read-only-mode-is-a-deployment-profile.md)
