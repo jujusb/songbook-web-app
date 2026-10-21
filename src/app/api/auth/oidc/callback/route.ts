@@ -1,7 +1,7 @@
 import { NextResponse, type NextRequest } from 'next/server';
 import { cookies } from 'next/headers';
 import { exchangeCode, verifyIdToken, getOidcConfig, resolveRole } from '@/lib/auth/oidc';
-import { findOrCreateOidcUser, createSession } from '@/lib/auth';
+import { findOrCreateOidcUser, createSession, isSecureRequest } from '@/lib/auth';
 import { isReadOnly } from '@/lib/readonly';
 
 export async function GET(request: NextRequest) {
@@ -75,7 +75,7 @@ export async function GET(request: NextRequest) {
     const response = NextResponse.redirect(new URL('/browse', origin));
     response.cookies.set('songbook-session', token, {
       httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
+      secure: isSecureRequest(request),
       sameSite: 'lax',
       maxAge: 7 * 24 * 60 * 60,
       path: '/',

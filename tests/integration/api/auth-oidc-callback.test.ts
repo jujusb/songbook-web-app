@@ -24,6 +24,7 @@ vi.mock('@/lib/auth/oidc', () => ({
 vi.mock('@/lib/auth', () => ({
   findOrCreateOidcUser,
   createSession,
+  isSecureRequest: () => false,
 }));
 
 import { GET } from '@/app/api/auth/oidc/callback/route';
@@ -31,7 +32,7 @@ import { GET } from '@/app/api/auth/oidc/callback/route';
 const CALLBACK = 'http://localhost/api/auth/oidc/callback';
 
 function createNextRequest(url: string): NextRequest {
-  return { nextUrl: new URL(url), url } as unknown as NextRequest;
+  return { nextUrl: new URL(url), url, headers: new Headers() } as unknown as NextRequest;
 }
 
 function configureCookies(storedState?: string) {

@@ -20,6 +20,7 @@ import {
   ensureDefaultAdmin,
   listUsers,
   findOrCreateOidcUser,
+  isSecureRequest,
 } from '@/lib/auth';
 import { createTempContentDir } from '../../../utils/temp-content';
 
@@ -393,6 +394,43 @@ describe('auth/index.ts', () => {
       
       const user = await getUser('to-delete');
       expect(user).toBeNull();
+    });
+  });
+
+  describe('isSecureRequest', () => {
+    function req(url: string, headers: Record<string, string> = {}) {
+      return { url, headers: new Headers(headers) };
+    }
+
+    it('returns false for plain http requests', () => {
+      expect(isSecureRequest(req('http://192.168.1.10:3000/api/auth/login'))).toBe(false);
+    });
+
+    it('returns true for https requests', () => {
+      expect(isSecureRequest(req('https://songbook.example.com/api/auth/login'))).toBe(true);
+    });
+
+    it('honors x-forwarded-proto from a TLS-terminating proxy', () => {
+      expect(
+        isSecureRequest(req('http://songbook:3000/api/auth/login', { 'x-forwarded-proto': 'https' })),
+      ).toBe(true);
+    });
+
+    it('uses the first value when x-forwarded-proto is a comma-separated list', () => {
+      expect(
+        isSecureRequest(
+          req('http://songbook:3000/api/auth/login', { 'x-forwarded-proto': 'https, http' }),
+        ),
+      ).toBe(true);
+      expect(
+        isSecureRequest(
+          req('https://songbook/api/auth/login', { 'x-forwarded-proto': 'http, https' }),
+        ),
+      ).toBe(false);
+    });
+
+    it('falls back to http when the url is unparseable', () => {
+      expect(isSecureRequest(req('not a url'))).toBe(false);
     });
   });
 });

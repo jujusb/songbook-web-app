@@ -12,7 +12,7 @@ vi.mock('@/lib/auth/oidc', () => ({ getOidcConfig, buildAuthorizationUrl }));
 import { GET } from '@/app/api/auth/oidc/route';
 
 function createNextRequest(url = 'http://localhost/api/auth/oidc'): NextRequest {
-  return { nextUrl: new URL(url), url } as unknown as NextRequest;
+  return { nextUrl: new URL(url), url, headers: new Headers() } as unknown as NextRequest;
 }
 
 describe('API /api/auth/oidc', () => {

@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { getUserByUsername, verifyPassword, createSession, ensureDefaultAdmin } from "@/lib/auth";
+import { getUserByUsername, verifyPassword, createSession, ensureDefaultAdmin, isSecureRequest } from "@/lib/auth";
 import { isReadOnlyFor } from "@/lib/readonly";
 
 export async function POST(request: Request) {
@@ -30,7 +30,7 @@ export async function POST(request: Request) {
     const response = NextResponse.json({ success: true, role: user.role });
     response.cookies.set("songbook-session", token, {
       httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
+      secure: isSecureRequest(request),
       sameSite: "lax",
       maxAge: 7 * 24 * 60 * 60, // 7 days
       path: "/",

@@ -100,6 +100,47 @@ describe('API /api/auth', () => {
       expect(response.status).toBe(200);
       vi.unstubAllEnvs();
     });
+
+    it('does not mark the session cookie Secure over plain http', async () => {
+      const req = createMockRequest('POST', {
+        username: 'testuser',
+        password: 'password123',
+      }, 'http://192.168.1.10:3000/api/auth/login');
+
+      const response = await loginPOST(req);
+
+      expect(response.status).toBe(200);
+      expect(response.headers.get('set-cookie')).not.toMatch(/;\s*Secure/i);
+    });
+
+    it('marks the session cookie Secure over https', async () => {
+      const req = createMockRequest('POST', {
+        username: 'testuser',
+        password: 'password123',
+      }, 'https://songbook.example.com/api/auth/login');
+
+      const response = await loginPOST(req);
+
+      expect(response.status).toBe(200);
+      expect(response.headers.get('set-cookie')).toMatch(/;\s*Secure/i);
+    });
+
+    it('marks the session cookie Secure behind a TLS-terminating proxy', async () => {
+      const req = {
+        method: 'POST',
+        url: 'http://songbook:3000/api/auth/login',
+        json: async () => ({ username: 'testuser', password: 'password123' }),
+        headers: new Headers({
+          'content-type': 'application/json',
+          'x-forwarded-proto': 'https',
+        }),
+      } as unknown as Request;
+
+      const response = await loginPOST(req);
+
+      expect(response.status).toBe(200);
+      expect(response.headers.get('set-cookie')).toMatch(/;\s*Secure/i);
+    });
   });
 
   describe('POST /api/auth/register', () => {

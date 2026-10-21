@@ -2,15 +2,33 @@ import { readdir, readFile, writeFile, mkdir } from 'fs/promises';
 import path from 'path';
 import * as yaml from 'js-yaml';
 import bcrypt from 'bcryptjs';
-import { SignJWT, jwtVerify } from 'jose';
 import { cookies } from 'next/headers';
 import { UserSchema, type User, type UserInput, type Role, PermissionSchema, type Permissions } from './schemas';
+import { SESSION_COOKIE_NAME, signSessionToken, verifySessionToken } from './session';
 import { isReadOnly, isReadOnlyFor } from '@/lib/readonly';
 
-const JWT_SECRET = new TextEncoder().encode(
-  process.env.JWT_SECRET || 'songbook-default-secret-change-me'
-);
-const COOKIE_NAME = 'songbook-session';
+/**
+ * Whether the incoming request was served over HTTPS, used to decide the
+ * `secure` flag of the session cookie.
+ *
+ * Tying `secure` to `NODE_ENV === 'production'` breaks self-hosted deployments
+ * served over plain HTTP (e.g. `http://192.168.1.10:3000`): browsers silently
+ * drop `Secure` cookies on non-HTTPS origins, so the session is never stored
+ * and the header keeps showing "Login" even after a successful sign-in. Basing
+ * it on the actual request protocol keeps `Secure` on HTTPS while working over
+ * HTTP. Honors `x-forwarded-proto` for reverse proxies that terminate TLS.
+ */
+export function isSecureRequest(request: { url: string; headers: Headers }): boolean {
+  const forwarded = request.headers.get('x-forwarded-proto');
+  if (forwarded) {
+    return forwarded.split(',')[0]!.trim().toLowerCase() === 'https';
+  }
+  try {
+    return new URL(request.url).protocol === 'https:';
+  } catch {
+    return false;
+  }
+}
 
 function getUsersDir(): string {
   return path.join(process.cwd(), 'content', 'users');
@@ -143,21 +161,16 @@ export async function verifyPassword(user: User, password: string): Promise<bool
 
 export async function createSession(user: Pick<User, 'id' | 'username' | 'role'>): Promise<string> {
   if (isReadOnlyFor('login')) throw new Error('Read-only mode: login disabled');
-  const token = await new SignJWT({ userId: user.id, role: user.role })
-    .setProtectedHeader({ alg: 'HS256' })
-    .setExpirationTime('7d')
-    .sign(JWT_SECRET);
-  return token;
+  return signSessionToken(user);
 }
 
 export async function getSession(): Promise<{ userId: string; role: Role } | null> {
   if (isReadOnlyFor('login')) return null;
   try {
     const cookieStore = await cookies();
-    const token = cookieStore.get(COOKIE_NAME)?.value;
+    const token = cookieStore.get(SESSION_COOKIE_NAME)?.value;
     if (!token) return null;
-    const { payload } = await jwtVerify(token, JWT_SECRET);
-    return { userId: payload.userId as string, role: payload.role as Role };
+    return verifySessionToken(token);
   } catch {
     return null;
   }

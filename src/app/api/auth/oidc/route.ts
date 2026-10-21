@@ -1,6 +1,7 @@
 import { NextResponse, type NextRequest } from 'next/server';
 import { buildAuthorizationUrl, getOidcConfig } from '@/lib/auth/oidc';
 import { cookies } from 'next/headers';
+import { isSecureRequest } from '@/lib/auth';
 import { isReadOnly } from '@/lib/readonly';
 
 export async function GET(request: NextRequest) {
@@ -21,7 +22,7 @@ export async function GET(request: NextRequest) {
   const cookieStore = await cookies();
   cookieStore.set('oidc-state', state, {
     httpOnly: true,
-    secure: process.env.NODE_ENV === 'production',
+    secure: isSecureRequest(request),
     sameSite: 'lax',
     maxAge: 600, // 10 minutes
     path: '/',

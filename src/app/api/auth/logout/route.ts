@@ -1,5 +1,5 @@
 import { NextResponse, type NextRequest } from "next/server";
-import { getCurrentUser } from "@/lib/auth";
+import { getCurrentUser, isSecureRequest } from "@/lib/auth";
 import { getOidcConfig } from "@/lib/auth/oidc";
 import { isReadOnlyFor } from "@/lib/readonly";
 
@@ -17,7 +17,7 @@ export async function POST(request: NextRequest) {
   const clearCookie = (res: NextResponse) => {
     res.cookies.set("songbook-session", "", {
       httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
+      secure: isSecureRequest(request),
       sameSite: "lax",
       maxAge: 0,
       path: "/",

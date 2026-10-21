@@ -59,7 +59,7 @@ All content schemas are Zod-validated in `src/lib/content/schemas.ts`. CRUD oper
 
 ### Auth
 
-Custom JWT auth (no NextAuth). Users stored as YAML in `content/users/`. Bcrypt password hashing, HTTP-only cookie (`songbook-session`), 7-day expiry. Four roles: `public` (read), `setlist_creator` (public + own setlists; self-registration default), `reviewer` (read+edit), `admin` (full). Auth checked per-route via `getSession()`/`getCurrentUser()` — no middleware.
+Custom JWT auth (no NextAuth). Users stored as YAML in `content/users/`. Bcrypt password hashing, HTTP-only cookie (`songbook-session`), 7-day expiry. Four roles: `public` (read), `setlist_creator` (public + own setlists; self-registration default), `reviewer` (read+edit), `admin` (full). Coarse auth/role gating lives in `src/proxy.ts` (Next.js 16 proxy), while resource-level authorization and defense-in-depth remain in route handlers and server actions via `getSession()`/`getCurrentUser()`.
 
 Optional OIDC support configured in `site.yaml` (`oidc:` block). Uses standard Authorization Code flow with OIDC Discovery. Client secret via `OIDC_CLIENT_SECRET` env var. OIDC users are auto-provisioned with `authProvider: 'oidc'` in their YAML file. Role mapping from OIDC claims is configurable. See `src/lib/auth/oidc.ts` for the implementation.
 

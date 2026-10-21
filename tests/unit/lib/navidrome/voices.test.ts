@@ -264,6 +264,53 @@ describe('navidrome/voices', () => {
       ).toEqual(['Mi Cancion Girl']);
     });
 
+    it('maps Boy words to tenor + bass and Girl words to alto + soprano only', async () => {
+      mockGetSongTitle().mockResolvedValue('Mi Cancion');
+      fetchMock.mockImplementation(async (input: RequestInfo | URL) => {
+        const url = String(input);
+        if (url.includes('search3.view')) {
+          return jsonRes({
+            status: 'ok',
+            searchResult3: {
+              song: [
+                { id: 'b1', title: 'Mi Cancion Boy' },
+                { id: 'b2', title: 'Mi Cancion Boys' },
+                { id: 'g1', title: 'Mi Cancion Girl' },
+                { id: 'g2', title: 'Mi Cancion GIRLS' },
+                { id: 't1', title: 'Mi Cancion Tenor' },
+              ],
+            },
+          });
+        }
+        throw new Error('unexpected fetch: ' + url);
+      });
+
+      const groups = await voices.getVoiceSections('song-uni', 'en');
+
+      const boys = groups.find((g) => g.gender === 'Boy')!;
+      const girlGroup = groups.find((g) => g.gender === 'Girl')!;
+      // `Mi Cancion GIRLS` also proves matching is case-insensitive.
+      const boyTitles = ['Mi Cancion Boy', 'Mi Cancion Boys'];
+      const girlTitles = ['Mi Cancion Girl', 'Mi Cancion GIRLS'];
+
+      const tenor = boys.sections.find((s) => s.section === 'tenor')!;
+      const bass = boys.sections.find((s) => s.section === 'bass')!;
+      const alto = girlGroup.sections.find((s) => s.section === 'alto')!;
+      const soprano = girlGroup.sections.find((s) => s.section === 'soprano')!;
+
+      expect(tenor.parts.map((p) => p.title).sort()).toEqual(
+        [...boyTitles, 'Mi Cancion Tenor'].sort(),
+      );
+      expect(bass.parts.map((p) => p.title).sort()).toEqual(boyTitles.sort());
+      expect(alto.parts.map((p) => p.title).sort()).toEqual(girlTitles.sort());
+      expect(soprano.parts.map((p) => p.title).sort()).toEqual(girlTitles.sort());
+
+      const boyTitlesSeen = [tenor, bass].flatMap((s) => s.parts.map((p) => p.title));
+      const girlTitlesSeen = [alto, soprano].flatMap((s) => s.parts.map((p) => p.title));
+      for (const title of girlTitles) expect(boyTitlesSeen).not.toContain(title);
+      for (const title of boyTitles) expect(girlTitlesSeen).not.toContain(title);
+    });
+
     it('ignores recordings whose title does not contain the song title', async () => {
       mockGetSongTitle().mockResolvedValue('Mi Cancion');
       fetchMock.mockImplementation(async (input: RequestInfo | URL) => {
@@ -424,6 +471,37 @@ describe('navidrome/voices', () => {
       expect(result.tenor?.map((t) => t.id)).toEqual(['t1', 't2']);
       expect(result.bass?.map((t) => t.id)).toEqual(['t2']);
       expect(result.alto).toBeUndefined();
+    });
+
+    it('routes Boy tracks to tenor + bass and Girl tracks to alto + soprano', async () => {
+      mockGetSongTitle().mockResolvedValue('Mi Cancion');
+      fetchMock.mockImplementation(async (input: RequestInfo | URL) => {
+        const url = String(input);
+        if (url.includes('getAlbumList2.view')) {
+          return jsonRes({ status: 'ok', albumList2: { album: [{ id: 'a1' }] } });
+        }
+        if (url.includes('getAlbum.view')) {
+          return jsonRes({
+            status: 'ok',
+            album: {
+              id: 'a1',
+              song: [
+                { id: 't1', title: 'Mi Cancion Boy' },
+                { id: 't2', title: 'Mi Cancion Girl' },
+                { id: 't3', title: 'Mi Cancion Tenor' },
+              ],
+            },
+          });
+        }
+        throw new Error('unexpected fetch: ' + url);
+      });
+
+      const result = await voices.getVoiceTrackIdsForSetlist([{ songId: 's1', lang: 'en' }]);
+
+      expect(result.tenor?.map((t) => t.id)).toEqual(['t1', 't3']);
+      expect(result.bass?.map((t) => t.id)).toEqual(['t1']);
+      expect(result.alto?.map((t) => t.id)).toEqual(['t2']);
+      expect(result.soprano?.map((t) => t.id)).toEqual(['t2']);
     });
 
     it('uses each setlist item language for matching', async () => {
