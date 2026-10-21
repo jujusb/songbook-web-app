@@ -49,6 +49,9 @@ COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
 # Content directory will be mounted as a volume
 RUN mkdir -p /app/content && chown nextjs:nodejs /app/content
 
+# Revision snapshots live next to the content directory
+RUN mkdir -p /app/revisions && chown nextjs:nodejs /app/revisions
+
 # Music directory will be mounted as a volume
 RUN mkdir -p /app/music && chown nextjs:nodejs /app/music
 

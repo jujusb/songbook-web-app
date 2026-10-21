@@ -92,8 +92,10 @@ Server rendering matters in two places:
 
 The CodeMirror editor is a client component that talks to `saveSongAction`. The action preserves
 the frontmatter, writes the file, and revalidates. Because content is plain files, "autosave" is a
-file write, and the revision history is a folder of timestamped copies next to the live file — see
-[ADR-0009](./decisions/0009-revisions-are-snapshots.md).
+file write, and the revision history is a folder of timestamped copies in the `revisions/` tree
+next to the content directory — see
+[ADR-0009](./decisions/0009-revisions-are-snapshots.md) and
+[ADR-0016](./decisions/0016-revisions-live-outside-the-library.md).
 
 ## What is not here
 

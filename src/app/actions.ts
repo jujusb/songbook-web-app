@@ -1,9 +1,10 @@
 "use server";
 
-import { saveSongTranslation, saveSongMeta, createSong, getSong, getSongTranslation, getSiteConfig, extractBodyTitle, addSongTranslation, deleteSongTranslation, renameSong, renameAlbum, changeSongAlbum, getSetlist, saveSetlist, listSongs, getAlbum, saveAlbum, createAlbum, getLanguagesConfig, NO_ALBUM_ID, getAlbumsForSong, findSongPath, listRevisions, getRevision, saveRevision as saveRevisionLib } from "@/lib/content";
+import { saveSongTranslation, saveSongMeta, createSong, getSong, getSongTranslation, getSiteConfig, extractBodyTitle, addSongTranslation, deleteSongTranslation, renameSong, renameAlbum, changeSongAlbum, getSetlist, saveSetlist, listSongs, getAlbum, saveAlbum, createAlbum, getLanguagesConfig, NO_ALBUM_ID, getAlbumsForSong, findSongPath, getRevision, saveRevision as saveRevisionLib, timestampToRevisionFile } from "@/lib/content";
 import { SongTranslationFrontmatterSchema, type Reference, type Partition, type Album } from "@/lib/content/schemas";
 import { revalidatePath } from "next/cache";
 import matter from "gray-matter";
+import path from "path";
 import { isReadOnly, isReadOnlyFor } from "@/lib/readonly";
 import { getSession, canEdit, canAdmin, canCreateSetlist, canManageSetlistShares, getCurrentUser, canEditSong, saveUser } from "@/lib/auth";
 import { songIdFromTitle, slugifySongId, uniqueSongId } from "@/lib/song-ids";
@@ -166,11 +167,12 @@ export async function revertSongToRevisionAction(songId: string, lang: string, t
       return { ok: false as const, error: 'Song not found' };
     }
 
-    // Convert timestamp to filename format
-    const file = timestamp.replace(/[-T:]/g, '-').replace(/--/g, '-') + '.cho';
+    // The timestamp is an ISO string; the snapshot file name is the same
+    // moment with the colons and dots replaced by dashes.
+    const file = timestampToRevisionFile(timestamp);
     
     // Get the revision content
-    const revisionContent = await getRevision(songPath, lang, file);
+    const revisionContent = await getRevision(songId, lang, file);
     
     // Parse the revision content
     const { meta: currentMeta } = await getSongTranslation(songId, lang);
@@ -183,7 +185,7 @@ export async function revertSongToRevisionAction(songId: string, lang: string, t
     const body = parsed.content.trim();
 
     // Save current version as revision first
-    await saveRevisionLib(songPath, lang);
+    await saveRevisionLib(songId, lang, path.join(songPath, `${lang}.cho`));
     
     // Apply the revision as current
     await saveSongTranslation(songId, lang, frontmatter, body);
@@ -212,11 +214,12 @@ export async function publishRevisionAction(songId: string, lang: string, timest
       return { ok: false as const, error: 'Song not found' };
     }
 
-    // Convert timestamp to filename format
-    const file = timestamp.replace(/[-T:]/g, '-').replace(/--/g, '-') + '.cho';
+    // The timestamp is an ISO string; the snapshot file name is the same
+    // moment with the colons and dots replaced by dashes.
+    const file = timestampToRevisionFile(timestamp);
     
     // Get the revision content
-    const revisionContent = await getRevision(songPath, lang, file);
+    const revisionContent = await getRevision(songId, lang, file);
     
     // Parse the revision content
     const { meta: currentMeta } = await getSongTranslation(songId, lang);

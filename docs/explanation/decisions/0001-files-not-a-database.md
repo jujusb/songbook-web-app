@@ -21,7 +21,8 @@ All content is plain files under `content/`, one format per concern:
 
 - YAML for structured data — `config/site.yaml`, artists, album + song `meta.yaml`, `users/*.yaml`.
 - ChordPro (`.cho`) for the things that are text — song translations, with YAML frontmatter.
-- `.revisions/<lang>/<timestamp>.cho` snapshots for history.
+- `revisions/<song-id>/<lang>/<timestamp>.cho` snapshots for history, in a tree next to
+  `content/` (see [ADR-0016](./0016-revisions-live-outside-the-library.md)).
 
 The content layer (`src/lib/content/index.ts`) is a thin wrapper over `fs/promises`: it reads,
 writes, and lists files, then validates the data with Zod (`schemas.ts`). `gray-matter` splits

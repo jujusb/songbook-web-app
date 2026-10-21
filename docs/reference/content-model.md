@@ -1,7 +1,7 @@
 # Content model
 
 Everything the app persists lives under the content directory, `getContentDir()` =
-`path.join(process.cwd(), 'content')` (`src/lib/content/index.ts:28`). It is a plain folder tree of
+`path.join(process.cwd(), 'content')` (`src/lib/content/paths.ts:11`). It is a plain folder tree of
 YAML and ChordPro files. Schemas are defined with Zod in `src/lib/content/schemas.ts`; CRUD lives
 in `src/lib/content/index.ts`.
 
@@ -10,6 +10,12 @@ in `src/lib/content/index.ts`.
 > Compose bind mount (`SONGBOOK_CONTENT_DIR`, a Compose variable, not one the app reads). Outside
 > Docker, run the app from the directoryju that contains `content/`, or symlink it there. There is no
 > `SONGBOOK_CONTENT_DIR` read in `src/`.
+
+> **Revisions live outside the content directory.** The revision tree is a sibling of `content/`:
+> `getRevisionsRoot()` = `process.env.REVISIONS_DIR` or `<working directory>/revisions`
+> (`src/lib/content/revisions.ts:74`). In the Docker image that is `/app/revisions`, mounted from
+> `SONGBOOK_REVISIONS_DIR`. See
+> [ADR-0016](../explanation/decisions/0016-revisions-live-outside-the-library.md).
 
 ## Layout
 
@@ -26,13 +32,15 @@ content/
       <song-id>/
         meta.yaml
         <lang>.cho
-        .revisions/
-          <lang>/
-            <timestamp>.cho
   setlists/
     <setlist-id>.yaml
   users/
     <user-id>.yaml
+
+revisions/
+  <song-id>/
+    <lang>/
+      <timestamp>.cho
 ```
 
 There is one reserved album id, `no-album` (`NO_ALBUM_ID`, `src/lib/content/index.ts:42`). Songs
@@ -172,9 +180,14 @@ rewrites the body.
 ## Revisions
 
 A revision is a timestamped copy of one translation, written to
-`.revisions/<lang>/<timestamp>.cho` before the file is overwritten or deleted. Saves, reverts, and
-translation deletion all produce one. The filename is the ISO timestamp with `:` and `.` replaced
-so it is filesystem-safe and sorts in time order.
+`revisions/<song-id>/<lang>/<timestamp>.cho` before the file is overwritten or deleted. Saves,
+reverts, and translation deletion all produce one. The filename is the ISO timestamp with `:` and
+`.` replaced so it is filesystem-safe and sorts in time order.
+
+The revision tree sits next to `content/`, not inside the library. Snapshots are keyed by song id,
+so moving a song to another album leaves them alone; renaming a song moves its folder in the
+revision tree. See
+[ADR-0016](../explanation/decisions/0016-revisions-live-outside-the-library.md).
 
 ## Reserved ids
 

@@ -1,35 +1,190 @@
-import { readdir, readFile, writeFile, mkdir, cp } from 'fs/promises';
+import { readdir, readFile, mkdir, cp, rename, rm } from 'fs/promises';
 import { existsSync } from 'fs';
 import path from 'path';
+import { findSongPath } from './paths';
+
+/**
+ * Revision snapshots of song translations.
+ *
+ * Revisions live in their own top-level tree, next to the content directory
+ * and outside the library:
+ *
+ *   content/
+ *     library/<album>/<song>/<lang>.cho    # the live translation
+ *   revisions/
+ *     <song-id>/<lang>/
+ *       2026-10-21T18-34-32-794Z.cho       # a snapshot of that translation
+ *
+ * Snapshots are plain copies of the `.cho` file. They are written before the
+ * file is overwritten or deleted, and they are keyed by song id — so moving a
+ * song between albums never touches them.
+ *
+ * Timestamps: on disk the colons and dots of an ISO timestamp are replaced by
+ * dashes (`2026-10-21T18-34-32-794Z.cho`). In the API and the UI the same
+ * moment is a proper ISO string (`2026-10-21T18:34:32.794Z`). The two
+ * formats convert both ways; see `timestampToRevisionFile`.
+ */
+
+/** Directory name of the revision tree, next to the content directory. */
+export const REVISIONS_DIR = 'revisions';
+
+/** Legacy directory name, used before revisions moved out of the library. */
+const LEGACY_REVISIONS_DIR = '.revisions';
+
+/** `2026-10-21T18-34-32-794Z`, optionally with a `-1` collision suffix. */
+const REVISION_FILE_RE = /^(\d{4}-\d{2}-\d{2})T(\d{2})-(\d{2})-(\d{2})-(\d{3})Z(?:-\d+)?$/;
+
+/** `2026-10-21T18:34:32.794Z` */
+const ISO_TIMESTAMP_RE = /^(\d{4}-\d{2}-\d{2})T(\d{2}):(\d{2}):(\d{2})\.(\d{3})Z$/;
+
+/** Ids and language codes become path segments, so they must stay boring. */
+const SAFE_SEGMENT_RE = /^[A-Za-z0-9._-]+$/;
+
+/** Snapshot file names: letters, digits, dots, dashes, underscores. */
+const SAFE_FILE_RE = /^[A-Za-z0-9._-]+\.cho$/;
+
+function isSafeSegment(value: string): boolean {
+  return SAFE_SEGMENT_RE.test(value) && value !== '.' && value !== '..';
+}
+
+function assertSafeSegment(value: string, label: string): string {
+  if (!isSafeSegment(value)) {
+    throw new Error(`Invalid ${label}: ${value}`);
+  }
+  return value;
+}
+
+/**
+ * The root of the revision tree. It sits next to the content directory and
+ * outside the library. `REVISIONS_DIR` overrides the location; the default is
+ * `<cwd>/revisions` (`/app/revisions` in the Docker image).
+ */
+export function getRevisionsRoot(): string {
+  const configured = process.env.REVISIONS_DIR;
+  if (configured) return path.resolve(configured);
+  return path.join(process.cwd(), REVISIONS_DIR);
+}
+
+/** `<revisions-root>/<song-id>/<lang>` */
+export function getRevisionsDir(songId: string, lang: string): string {
+  return path.join(
+    getRevisionsRoot(),
+    assertSafeSegment(songId, 'song id'),
+    assertSafeSegment(lang, 'language')
+  );
+}
+
+/** The revisions folder of one song, across all of its languages. */
+export function getSongRevisionsDir(songId: string): string {
+  return path.join(getRevisionsRoot(), assertSafeSegment(songId, 'song id'));
+}
+
+/**
+ * The snapshot file name of an ISO timestamp.
+ * `2026-10-21T18:34:32.794Z` → `2026-10-21T18-34-32-794Z.cho`
+ */
+export function timestampToRevisionFile(timestamp: string): string {
+  const match = ISO_TIMESTAMP_RE.exec(timestamp);
+  if (!match) {
+    throw new Error(`Invalid revision timestamp: ${timestamp}`);
+  }
+  const [, date, hh, mm, ss, ms] = match;
+  return `${date}T${hh}-${mm}-${ss}-${ms}Z.cho`;
+}
+
+/**
+ * The ISO timestamp of a snapshot file name, or null if the name is not a
+ * snapshot file name. `2026-10-21T18-34-32-794Z.cho` →
+ * `2026-10-21T18:34:32.794Z`
+ */
+export function revisionFileToTimestamp(file: string): string | null {
+  const match = REVISION_FILE_RE.exec(file.replace(/\.cho$/, ''));
+  if (!match) return null;
+  const [, date, hh, mm, ss, ms] = match;
+  return `${date}T${hh}:${mm}:${ss}.${ms}Z`;
+}
+
+/**
+ * The collision suffix of a snapshot file name: `-1` for the second snapshot
+ * of the same millisecond, `0` for the first one.
+ */
+function revisionFileSuffix(file: string): number {
+  const match = /-(\d+)$/.exec(file.replace(/\.cho$/, ''));
+  return match ? Number(match[1]) : 0;
+}
+
+/**
+ * Move the snapshots of a legacy `<songDir>/.revisions/` folder into the
+ * revision tree. Called lazily, so an instance that was never migrated by
+ * the migration script still finds its snapshots.
+ *
+ * Failures are swallowed on purpose: the content directory may be mounted
+ * read-only, and a song whose folder cannot be touched still has to serve
+ * the snapshots that are already in the revision tree.
+ */
+export async function migrateLegacyRevisions(songId: string, songDir?: string | null): Promise<void> {
+  try {
+    const dir = songDir ?? (await findSongPath(songId));
+    if (!dir) return;
+    const legacyDir = path.join(dir, LEGACY_REVISIONS_DIR);
+    if (!existsSync(legacyDir)) return;
+
+    const entries = await readdir(legacyDir, { withFileTypes: true });
+    for (const entry of entries) {
+      if (!entry.isDirectory()) continue;
+      if (!isSafeSegment(entry.name)) continue;
+      const from = path.join(legacyDir, entry.name);
+      const to = getRevisionsDir(songId, entry.name);
+      await mkdir(to, { recursive: true });
+      for (const file of await readdir(from)) {
+        if (!file.endsWith('.cho')) continue;
+        await moveFile(path.join(from, file), path.join(to, file));
+      }
+      await rm(from, { recursive: true, force: true });
+    }
+    await rm(legacyDir, { recursive: true, force: true });
+  } catch {
+    // Read-only content dir, or a folder that vanished underneath us.
+  }
+}
+
+/**
+ * Move a file, keeping both copies when the destination already exists.
+ * The destination gets a `-1`, `-2`, … suffix so no snapshot is ever lost.
+ */
+async function moveFile(from: string, to: string): Promise<void> {
+  if (!existsSync(to)) {
+    await rename(from, to);
+    return;
+  }
+  const { dir, name, ext } = path.parse(to);
+  let suffix = 1;
+  let target = path.join(dir, `${name}-${suffix}${ext}`);
+  while (existsSync(target)) {
+    suffix++;
+    target = path.join(dir, `${name}-${suffix}${ext}`);
+  }
+  await rename(from, target);
+}
 
 /**
  * Save a revision snapshot of a song translation.
- * Revisions are stored as timestamped copies alongside the .cho file.
- * 
- * Structure:
- *   content/library/<album>/<song>/
- *     en.cho                    # current version
- *     .revisions/
- *       en/
- *         2024-03-01T12-00-00.cho   # revision snapshot
- *         2024-03-02T14-30-00.cho
+ * `sourceFile` is the `.cho` file to copy; `songId` says where the snapshot
+ * goes. Returns the snapshot file name without its extension, or an empty
+ * string when there was nothing to snapshot.
  */
-
-function getRevisionsDir(songDir: string, lang: string): string {
-  return path.join(songDir, '.revisions', lang);
-}
-
 export async function saveRevision(
-  songDir: string,
+  songId: string,
   lang: string,
-  userId?: string
+  sourceFile: string
 ): Promise<string> {
-  const choFile = path.join(songDir, `${lang}.cho`);
-  if (!existsSync(choFile)) return '';
-  
-  const revDir = getRevisionsDir(songDir, lang);
+  if (!existsSync(sourceFile)) return '';
+
+  await migrateLegacyRevisions(songId, path.dirname(sourceFile));
+
+  const revDir = getRevisionsDir(songId, lang);
   await mkdir(revDir, { recursive: true });
-  
+
   const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
   let revFile = path.join(revDir, `${timestamp}.cho`);
   let suffix = 1;
@@ -39,42 +194,117 @@ export async function saveRevision(
     revFile = path.join(revDir, `${timestamp}-${suffix}.cho`);
     suffix++;
   }
-  await cp(choFile, revFile);
-  
+  await cp(sourceFile, revFile);
+
   return path.basename(revFile, '.cho');
 }
 
+/**
+ * The snapshots of one translation, newest first.
+ */
 export async function listRevisions(
-  songDir: string,
+  songId: string,
   lang: string
 ): Promise<{ timestamp: string; file: string }[]> {
-  const revDir = getRevisionsDir(songDir, lang);
+  await migrateLegacyRevisions(songId);
+
+  const revDir = getRevisionsDir(songId, lang);
   try {
     const entries = await readdir(revDir);
     return entries
       .filter((f) => f.endsWith('.cho'))
-      .sort()
+      .map((f) => ({
+        timestamp: revisionFileToTimestamp(f) ?? f.replace(/\.cho$/, ''),
+        suffix: revisionFileSuffix(f),
+        file: f,
+      }))
+      // Oldest first, so that reversing puts the newest snapshot on top. Two
+      // snapshots of the same millisecond are ordered by their suffix.
+      .sort((a, b) =>
+        a.timestamp === b.timestamp
+          ? a.suffix - b.suffix
+          : a.timestamp < b.timestamp
+            ? -1
+            : 1
+      )
       .reverse()
-      .map((f) => {
-        const ts = f.replace('.cho', '');
-        // Convert from stored format (2024-03-01T12-00-00) back to ISO (2024-03-01T12:00:00)
-        const isoTimestamp = ts.replace(/-/g, (match, offset) => {
-          if (offset > 13) return ':'; // time part separators
-          return '-'; // date part separators
-        });
-        return { timestamp: isoTimestamp, file: f };
-      });
+      .map(({ timestamp, file }) => ({ timestamp, file }));
   } catch {
     return [];
   }
 }
 
+/**
+ * The content of one snapshot.
+ */
 export async function getRevision(
-  songDir: string,
+  songId: string,
   lang: string,
   file: string
 ): Promise<string> {
-  const revDir = getRevisionsDir(songDir, lang);
-  const filePath = path.join(revDir, file);
+  await migrateLegacyRevisions(songId);
+
+  const revDir = getRevisionsDir(songId, lang);
+  const filePath = await resolveRevisionFile(revDir, file);
   return readFile(filePath, 'utf-8');
+}
+
+/**
+ * Resolve a snapshot file name to a file inside the revision folder.
+ * The name comes from a URL, so it is checked twice: it has to look like a
+ * snapshot file name, and it has to stay inside the folder.
+ */
+async function resolveRevisionFile(revDir: string, file: string): Promise<string> {
+  if (!SAFE_FILE_RE.test(file) || path.basename(file) !== file) {
+    throw new Error(`Invalid revision file: ${file}`);
+  }
+
+  const revRoot = path.resolve(revDir);
+  const resolveInside = (candidate: string): string => {
+    const resolved = path.resolve(candidate);
+    if (!resolved.startsWith(revRoot + path.sep)) {
+      throw new Error(`Invalid revision file: ${file}`);
+    }
+    return resolved;
+  };
+
+  const direct = resolveInside(path.join(revDir, file));
+  if (existsSync(direct)) return direct;
+
+  // A snapshot saved in the same millisecond as another one carries a
+  // `-1`, `-2`, … suffix. The timestamp alone cannot tell them apart, so
+  // fall back to the suffixed files.
+  const { dir, name, ext } = path.parse(file);
+  for (let suffix = 1; suffix <= 100; suffix++) {
+    const target = resolveInside(path.join(dir, `${name}-${suffix}${ext}`));
+    if (existsSync(target)) return target;
+  }
+
+  return direct;
+}
+
+/**
+ * Move the snapshots of a song to a new song id. Used when a song is
+ * renamed, so the history follows the song.
+ */
+export async function moveRevisions(oldSongId: string, newSongId: string): Promise<void> {
+  if (oldSongId === newSongId) return;
+
+  const from = getSongRevisionsDir(oldSongId);
+  if (!existsSync(from)) return;
+  const to = getSongRevisionsDir(newSongId);
+
+  await mkdir(to, { recursive: true });
+  const entries = await readdir(from, { withFileTypes: true });
+  for (const entry of entries) {
+    if (!entry.isDirectory()) continue;
+    if (!isSafeSegment(entry.name)) continue;
+    const langDir = path.join(to, entry.name);
+    await mkdir(langDir, { recursive: true });
+    for (const file of await readdir(path.join(from, entry.name))) {
+      if (!file.endsWith('.cho')) continue;
+      await moveFile(path.join(from, entry.name, file), path.join(langDir, file));
+    }
+  }
+  await rm(from, { recursive: true, force: true });
 }

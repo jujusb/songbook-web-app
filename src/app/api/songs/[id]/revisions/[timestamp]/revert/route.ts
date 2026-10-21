@@ -1,8 +1,9 @@
 import { NextResponse } from "next/server";
+import path from "path";
 import { getSession, canEdit, canEditSong, getCurrentUser } from "@/lib/auth";
 import { isReadOnlyFor } from "@/lib/readonly";
-import { findSongPath, saveSongTranslation, getSongTranslation } from "@/lib/content";
-import { getRevision, listRevisions, saveRevision as saveRevisionLib } from "@/lib/content/revisions";
+import { findSongPath, saveSongTranslation, getSongTranslation, timestampToRevisionFile } from "@/lib/content";
+import { getRevision, saveRevision as saveRevisionLib } from "@/lib/content/revisions";
 
 export async function POST(
   request: Request,
@@ -28,11 +29,12 @@ export async function POST(
       return NextResponse.json({ error: "Song not found" }, { status: 404 });
     }
 
-    // Convert timestamp to filename (ISO with colons replaced by dashes)
-    const file = timestamp.replace(/:/g, '-').replace(/\./g, '-') + '.cho';
+    // The timestamp is an ISO string; the snapshot file name is the same
+    // moment with the colons and dots replaced by dashes.
+    const file = timestampToRevisionFile(timestamp);
     
     // Get the revision content
-    const revisionContent = await getRevision(songPath, lang, file);
+    const revisionContent = await getRevision(id, lang, file);
     
     // Parse the revision content (might have frontmatter)
     const { meta: currentMeta } = await getSongTranslation(id, lang);
@@ -45,7 +47,7 @@ export async function POST(
     const body = parsed.content.trim();
 
     // Save current version as revision first
-    await saveRevisionLib(songPath, lang);
+    await saveRevisionLib(id, lang, path.join(songPath, `${lang}.cho`));
     
     // Apply the revision as current
     await saveSongTranslation(id, lang, frontmatter, body);

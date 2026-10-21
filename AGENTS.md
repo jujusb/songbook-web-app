@@ -52,7 +52,10 @@ content/
       <song-id>/
         meta.yaml          — shared song metadata
         <lang>.cho         — ChordPro file per language (en.cho, es.cho, …)
-        .revisions/        — timestamped .cho snapshots
+
+revisions/          — timestamped .cho snapshots, next to content/ (`REVISIONS_DIR`, default ./revisions)
+  <song-id>/
+    <lang>/<ts>.cho
 ```
 
 All content schemas are Zod-validated in `src/lib/content/schemas.ts`. CRUD operations are in `src/lib/content/index.ts` using `fs/promises`.
@@ -79,6 +82,6 @@ Optional OIDC support configured in `site.yaml` (`oidc:` block). Uses standard A
 
 - Songs use ChordPro format (`.cho` extension) with YAML frontmatter
 - Multi-language: one `.cho` file per language per song, language code as filename
-- Revisions are timestamped `.cho` snapshots in `.revisions/` subdirectories
+- Revisions are timestamped `.cho` snapshots in the `revisions/` tree next to `content/` (root: `REVISIONS_DIR` env or `<cwd>/revisions`)
 - API routes live under `src/app/api/`; pages are server components by default
 - `run.sh` is a wrapper for `docker compose` that sets up networking and env vars

@@ -22,8 +22,10 @@ with `1138128` (*"album management, no-album"*, 2026-09-24).
 
 ## Decision
 
-- A song is a folder: `meta.yaml` for shared metadata, `<lang>.cho` per translation, `.revisions/`
-  for snapshots, and (optionally) audio links and partition links in `meta.yaml`.
+- A song is a folder: `meta.yaml` for shared metadata, `<lang>.cho` per translation, and
+  (optionally) audio links and partition links in `meta.yaml`. Revision snapshots live in their own
+  tree, `revisions/<song-id>/<lang>/` (see
+  [ADR-0016](./0016-revisions-live-outside-the-library.md)).
 - The body is ChordPro with YAML frontmatter, parsed with `chordsheetjs` and rendered by a custom
   `VisualChordEditor`/`ChordSheet` pipeline (`src/lib/chordpro/*`). The custom renderer was added in
   `fb02185` (2026-09-19, *"visual chord rendering"*) for exact text alignment over chord positions.
@@ -53,8 +55,9 @@ with `1138128` (*"album management, no-album"*, 2026-09-24).
 **Carried forward**
 
 - The flat-`content/songs/` sketch in the spec is stale; the code uses the album-folder layout.
-- No automatic git commit on save was ever built; revision snapshots live next to the content
-  (see [ADR-0009](./0009-revisions-are-snapshots.md)).
+- No automatic git commit on save was ever built; revision snapshots are plain copies in their own
+  tree (see [ADR-0009](./0009-revisions-are-snapshots.md) and
+  [ADR-0016](./0016-revisions-live-outside-the-library.md)).
 
 ## Evidence
 

@@ -5,6 +5,7 @@ import tmp from 'tmp-promise';
 export interface TempContentDir {
   path: string;
   contentPath: string;
+  revisionsPath: string;
   cleanup: () => Promise<void>;
   writeFile: (relativePath: string, content: string) => Promise<void>;
   readFile: (relativePath: string) => Promise<string>;
@@ -14,10 +15,13 @@ export interface TempContentDir {
 
 export async function createTempContentDir(): Promise<TempContentDir> {
   const { path: tempPath, cleanup } = await tmp.dir({ prefix: 'songbook-test-', unsafeCleanup: true });
-  
+
   // The content module expects a 'content' subdirectory
   const contentPath = path.join(tempPath, 'content');
-  
+
+  // Revisions live next to the content directory, not inside it
+  const revisionsPath = path.join(tempPath, 'revisions');
+
   const dirs = [
     'library',
     'library/no-album',
@@ -26,10 +30,11 @@ export async function createTempContentDir(): Promise<TempContentDir> {
     'users',
     'setlists',
   ];
-  
+
   for (const dir of dirs) {
     await mkdir(path.join(contentPath, dir), { recursive: true });
   }
+  await mkdir(revisionsPath, { recursive: true });
   
   await writeFile(
     path.join(contentPath, 'config', 'site.yaml'),
@@ -52,6 +57,7 @@ export async function createTempContentDir(): Promise<TempContentDir> {
   return {
     path: tempPath,
     contentPath,
+    revisionsPath,
     originalCwd,
     cleanup: async () => {
       process.chdir(originalCwd);

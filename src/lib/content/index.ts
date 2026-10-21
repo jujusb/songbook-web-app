@@ -3,10 +3,12 @@ import { existsSync } from 'fs';
 import path from 'path';
 import matter from 'gray-matter';
 import * as yaml from 'js-yaml';
-import { saveRevision, listRevisions, getRevision } from './revisions';
+import { saveRevision, moveRevisions } from './revisions';
+import { getContentDir, getLibraryDir, findSongPath, findSongAlbumId } from './paths';
 import { syncSongToMusicDir } from '@/lib/lyrics-sync';
 import { FALLBACK_LANGUAGES } from '@/lib/i18n/labels';
 export { resolveSongListTitle } from '../song-titles';
+export { getContentDir, findSongPath } from './paths';
 import {
   SongMetaSchema,
   SongTranslationFrontmatterSchema,
@@ -24,14 +26,6 @@ import {
   type Setlist,
   type SetlistInput,
 } from './schemas';
-
-export function getContentDir(): string {
-  return path.join(process.cwd(), 'content');
-}
-
-function getLibraryDir(): string {
-  return path.join(getContentDir(), 'library');
-}
 
 /**
  * Special pseudo-album for songs that don't belong to any album. Songs live in
@@ -55,40 +49,6 @@ export async function ensureVariousArtists(): Promise<void> {
   if (!existsSync(filePath)) {
     await saveArtist(VARIOUS_ARTISTS);
   }
-}
-
-// --- Helper: find which album folder a song lives in ---
-
-export async function findSongPath(songId: string): Promise<string | null> {
-  const libDir = getLibraryDir();
-  try {
-    const albumDirs = await readdir(libDir, { withFileTypes: true });
-    for (const albumDir of albumDirs) {
-      if (!albumDir.isDirectory()) continue;
-      const songDir = path.join(libDir, albumDir.name, songId);
-      if (existsSync(songDir)) {
-        return songDir;
-      }
-    }
-  } catch {
-    // library dir doesn't exist
-  }
-  return null;
-}
-
-async function findSongAlbumId(songId: string): Promise<string | null> {
-  const libDir = getLibraryDir();
-  try {
-    const albumDirs = await readdir(libDir, { withFileTypes: true });
-    for (const albumDir of albumDirs) {
-      if (!albumDir.isDirectory()) continue;
-      const songDir = path.join(libDir, albumDir.name, songId);
-      if (existsSync(songDir)) {
-        return albumDir.name;
-      }
-    }
-  } catch {}
-  return null;
 }
 
 // --- Songs ---
@@ -390,14 +350,14 @@ export async function saveSongTranslation(
   if (!songPath) throw new Error(`Song not found: ${id}`);
 
   // Save revision of current version before overwriting
-  if (existsSync(path.join(songPath, `${lang}.cho`))) {
-    await saveRevision(songPath, lang);
+  const filePath = path.join(songPath, `${lang}.cho`);
+  if (existsSync(filePath)) {
+    await saveRevision(id, lang, filePath);
   }
 
   // Update lastModified
   const updatedFrontmatter = { ...validated, lastModified: new Date().toISOString() };
 
-  const filePath = path.join(songPath, `${lang}.cho`);
   const content = matter.stringify(body, updatedFrontmatter as Record<string, unknown>);
   await writeFile(filePath, content, 'utf-8');
 
@@ -448,7 +408,7 @@ export async function deleteSongTranslation(id: string, lang: string): Promise<s
   }
 
   const filePath = path.join(songPath, `${lang}.cho`);
-  await saveRevision(songPath, lang);
+  await saveRevision(id, lang, filePath);
   await rm(filePath);
   return remaining;
 }
@@ -792,8 +752,8 @@ export async function deleteSong(songId: string): Promise<void> {
  * Change a song's ID. The song directory is renamed, the meta.yaml `id` is
  * kept in sync, and every reference to the old ID is updated: the parent
  * album's `songs` list and any setlist `songs[].songId`. All per-language
- * `.cho` files and `.revisions/` snapshots move with the directory, so none
- * of the song content is touched.
+ * `.cho` files move with the directory, and the revision snapshots are
+ * renamed in `content/revisions/`, so the song keeps its history.
  */
 export async function renameSong(oldId: string, newId: string): Promise<string | null> {
   if (!oldId || !newId) throw new Error('Song ID is required');
@@ -809,6 +769,14 @@ export async function renameSong(oldId: string, newId: string): Promise<string |
   const oldDir = path.join(getLibraryDir(), albumId, oldId);
   const newDir = path.join(getLibraryDir(), albumId, newId);
   await rename(oldDir, newDir);
+
+  // The revision snapshots live outside the library, keyed by song id —
+  // they have to be renamed separately.
+  try {
+    await moveRevisions(oldId, newId);
+  } catch (err) {
+    console.error(`renameSong: failed to move revisions from ${oldId} to ${newId}`, err);
+  }
 
   // Keep meta.yaml `id` in sync with the new directory name
   const meta = await getSong(newId);
@@ -880,9 +848,10 @@ export async function renameAlbum(oldId: string, newId: string): Promise<void> {
 
 /**
  * Move a song into a different album. The song folder is physically moved to
- * the target album's directory (carrying the per-language `.cho` files and
- * `.revisions/` with it), the song is removed from the old album's `songs`
- * list and added to the new one.
+ * the target album's directory (carrying the per-language `.cho` files with
+ * it), the song is removed from the old album's `songs` list and added to
+ * the new one. The revision snapshots live in `content/revisions/<song-id>/`
+ * and are keyed by song id, so they stay where they are.
  *
  * `NO_ALBUM_ID` (the "No Album" pseudo-album) is special: songs assigned there
  * live in `content/library/no-album/<song-id>/` and are NOT registered in any
@@ -978,4 +947,13 @@ export async function moveNoAlbumSongsIntoAlbum(
   return moved;
 }
 
-export { listRevisions, getRevision, saveRevision } from './revisions';
+export {
+  listRevisions,
+  getRevision,
+  saveRevision,
+  moveRevisions,
+  getRevisionsRoot,
+  getRevisionsDir,
+  timestampToRevisionFile,
+  revisionFileToTimestamp,
+} from './revisions';

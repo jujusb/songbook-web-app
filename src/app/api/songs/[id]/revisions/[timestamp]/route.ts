@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { getSession, canEdit, canEditSong, getCurrentUser } from "@/lib/auth";
 import { isReadOnlyFor } from "@/lib/readonly";
-import { getRevision, findSongPath } from "@/lib/content";
+import { getRevision, findSongPath, timestampToRevisionFile } from "@/lib/content";
 
 export async function GET(
   request: Request,
@@ -27,10 +27,10 @@ export async function GET(
       return NextResponse.json({ error: "Song not found" }, { status: 404 });
     }
 
-    // Convert timestamp to filename format (ISO with colons replaced by dashes)
-    // timestamp comes in as ISO format like "2024-03-01T12:00:00.000Z"
-    const file = timestamp.replace(/:/g, '-').replace(/\./g, '-') + '.cho';
-    const content = await getRevision(songPath, lang, file);
+    // The timestamp is an ISO string; the snapshot file name is the same
+    // moment with the colons and dots replaced by dashes.
+    const file = timestampToRevisionFile(timestamp);
+    const content = await getRevision(id, lang, file);
     return NextResponse.json({ content, timestamp, songId: id, lang });
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : "Failed to get revision";

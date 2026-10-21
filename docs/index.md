@@ -58,9 +58,12 @@ content/                              the database, as files
     <song-id>/
       meta.yaml                       shared song metadata: titles, key, tags, references, partitions
       <lang>.cho                      one file per language; ChordPro body + YAML frontmatter
-      .revisions/<lang>/<ts>.cho      timestamped snapshots
   setlists/<setlist-id>.yaml          ordered songs, owner, share token/slug, voice shares
   users/<user-id>.yaml                bcrypt hash, role, permissions, auth provider
+
+revisions/                            revision history, next to the content directory
+  <song-id>/
+    <lang>/<ts>.cho                   timestamped snapshots of a translation
 
 src/app/                              Next.js App Router: pages + API routes + server actions
 src/lib/content/                      file-based CRUD + Zod schemas
@@ -78,8 +81,8 @@ Vocabulary you will meet everywhere:
   is the folder name.
 - **Translation** — a single `<lang>.cho` file for a song. It has its own frontmatter (language,
   translator, status) and its own `published` flag.
-- **Revision** — a timestamped snapshot of one translation, written to `.revisions/` before an
-  edit that comes through the editor or the revision API.
+- **Revision** — a timestamped snapshot of one translation, written to the `revisions/` tree
+  (next to `content/`) before an edit that comes through the editor or the revision API.
 - **Setlist** — an ordered list of songs, each pinned to a language, with an owner. Shareable
   through a public flag, a random token, or a custom slug.
 - **Role** — one of `public`, `setlist_creator`, `reviewer`, `admin`. Auth is checked per route;

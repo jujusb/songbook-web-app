@@ -1,8 +1,9 @@
 # Restore or publish an earlier revision
 
 Every save of an existing translation snapshots the previous version into
-`.revisions/<lang>/<timestamp>.cho`. The revisions sidebar lists those snapshots and lets you look
-at one, roll the current translation back to it, or publish it directly.
+`revisions/<song-id>/<lang>/<timestamp>.cho` — a tree next to the content directory, outside the
+library. The revisions sidebar lists those snapshots and lets you look at one, roll the current
+translation back to it, or publish it directly.
 
 ## Open the revisions sidebar
 
@@ -29,12 +30,10 @@ song, editor, list, and browse paths.
 ## The underlying files
 
 ```
-content/library/<album>/<song>/
-  es.cho
-  .revisions/
-    es/
-      2026-10-05T14-22-01-123Z.cho
-      2026-10-05T14-40-55-004Z.cho
+revisions/<song-id>/
+  es/
+    2026-10-05T14-22-01-123Z.cho
+    2026-10-05T14-40-55-004Z.cho
 ```
 
 Filenames are timestamps with characters that are awkward in filenames replaced, so they sort
@@ -50,7 +49,7 @@ filename, so you never have to construct paths by hand. See
 Because revisions are plain files, you can also restore one outside the app:
 
 ```bash
-cp content/library/classic-hymns/amazing-grace/.revisions/es/<timestamp>.cho \
+cp revisions/amazing-grace/es/<timestamp>.cho \
    content/library/classic-hymns/amazing-grace/es.cho
 ```
 
@@ -61,4 +60,5 @@ snapshot's old value; the app will update it on the next save.
 
 - [Tutorial 2](../tutorials/02-add-a-translation.md) — where revisions first appear
 - [ADR-0009 — Revisions are snapshots](../explanation/decisions/0009-revisions-are-snapshots.md)
+- [ADR-0016 — Revisions live outside the library](../explanation/decisions/0016-revisions-live-outside-the-library.md)
 - [Server actions reference](../reference/server-actions.md)

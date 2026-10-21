@@ -1,9 +1,10 @@
 # 0009 — Revisions are timestamped file snapshots
 
-- **Status:** Accepted
+- **Status:** Accepted; the location was changed by
+  [ADR-0016](./0016-revisions-live-outside-the-library.md)
 - **Date:** 2026-10-05
 - **Relevant code:** `src/lib/content/revisions.ts`,
-  `.revisions/<lang>/<timestamp>.cho` under each song folder
+  `revisions/<song-id>/<lang>/<timestamp>.cho` (see ADR-0016 for the move out of the song folder)
 
 ## Context
 
@@ -11,7 +12,7 @@ The editor autosaves by writing the `.cho` file, and the founding spec (§4.1) f
 "git-commit-on-save" as a safety net. Git-on-save couples the app to a repo, forces commits to
 carry the wrong content over time, and complicates a content folder that is often a plain mount.
 The alternative — copy the file out before overwriting — is trivial with `fs/promises` and stores
-nothing outside the song folder.
+nothing but snapshots of the file itself.
 
 Revision management landed in `071b53e` (2026-10-05), with timestamp-format revisions in
 `9cc428e` and publishable revisions in `a164b24`.
@@ -19,20 +20,18 @@ Revision management landed in `071b53e` (2026-10-05), with timestamp-format revi
 ## Decision
 
 - Every overwrite of an existing translation snapshots the current file first: save, revert, and
-  delete each write to `.revisions/<lang>/<timestamp>.cho` via `saveRevision` before touching the
-  live file.
+  delete each write to a `<timestamp>.cho` file via `saveRevision` before touching the live file.
 - Revision operations distinguish **revert** (snapshot current, then restore the revision — a
   normal undo, leaves the public file visible during the swap) from **publish** (apply the revision
   without snapshotting, then mark the translation published with `publishedRevision`).
 - Revisions are stored as copies; nothing diffs, compresses, or garbage-collects them.
+- Where the snapshots live was decided separately, in ADR-0016.
 
 ## Consequences
 
 **Positive**
 
-- Restore is a file copy — no history backend, no git, no database. A song folder is self-contained.
-- Because snapshots live beside the live file, the story survives backup/restore of the content
-  folder wholesale.
+- Restore is a file copy — no history backend, no git, no database.
 - Revert doesn't touch the `published` flag's meaning: publish is the *explicit* step that both
   applies and re-publishes.
 

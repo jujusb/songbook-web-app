@@ -3,7 +3,7 @@ import { cookies } from 'next/headers';
 import { POST } from '@/app/api/songs/[id]/revisions/[timestamp]/revert/route';
 import { createTempContentDir, mockContentDir } from '../../utils/temp-content';
 import { createUser, createSession } from '@/lib/auth';
-import { createSong, saveSongTranslation, findSongPath, listRevisions } from '@/lib/content';
+import { createSong, saveSongTranslation, listRevisions } from '@/lib/content';
 
 function createMockRequest(method: string, url: string) {
   return {
@@ -44,8 +44,7 @@ describe('API /api/songs/[id]/revisions/[timestamp]/revert', () => {
       { language: 'en', title: 'Second Title', translator: null, modifiedBy: 'admin', status: 'draft', published: false },
       '{title: Original}\nVerse 1\nVerse 2'
     );
-    const songPath = await findSongPath('rev-song');
-    const revisions = await listRevisions(songPath!, 'en');
+    const revisions = await listRevisions('rev-song', 'en');
     timestamp = revisions[0].timestamp;
   });
 

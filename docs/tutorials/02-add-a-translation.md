@@ -62,14 +62,16 @@ Click **Save**.
 
 When you save, the server:
 
-1. snapshots the **previous** contents of `es.cho` into `.revisions/es/<timestamp>.cho`, and
+1. snapshots the **previous** contents of `es.cho` into
+   `revisions/how-great-thou-art/es/<timestamp>.cho` (the revision tree lives next to `content/`), and
 2. writes the new body with an updated `lastModified` in its frontmatter.
 
 The snapshot happens on every save of an existing translation. That is your undo history — you
 never have to think about it. To see it, open the **Revisions** sidebar from the editor toolbar;
 each entry can be previewed, reverted to, or published. See
-[Restore a revision](../how-to/restore-a-revision.md) and
-[ADR-0009](../explanation/decisions/0009-revisions-are-snapshots.md).
+[Restore a revision](../how-to/restore-a-revision.md),
+[ADR-0009](../explanation/decisions/0009-revisions-are-snapshots.md), and
+[ADR-0016](../explanation/decisions/0016-revisions-live-outside-the-library.md).
 
 ## 4. Publish the translation
 
@@ -108,14 +110,14 @@ translation.
 
 ```bash
 ls content/library/classic-hymns/how-great-thou-art
-# en.cho  es.cho  meta.yaml  .revisions
+# en.cho  es.cho  meta.yaml
 
-ls content/library/classic-hymns/how-great-thou-art/.revisions/es
+ls revisions/how-great-thou-art/es
 # 2026-...T....cho
 ```
 
-The song folder gained a translation and a revision. `meta.yaml` may have gained a `titles.es`
-entry if you set a translated title. Everything is still plain files.
+The song folder gained a translation, and the revision tree gained a snapshot. `meta.yaml` may have
+gained a `titles.es` entry if you set a translated title. Everything is still plain files.
 
 ## What you learned
 

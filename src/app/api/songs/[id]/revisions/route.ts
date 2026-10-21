@@ -1,8 +1,7 @@
 import { NextResponse } from "next/server";
 import { getSession, canEdit, canEditSong, getCurrentUser } from "@/lib/auth";
 import { isReadOnlyFor } from "@/lib/readonly";
-import { listRevisions, getRevision, findSongPath } from "@/lib/content";
-import { saveRevision as saveRevisionLib } from "@/lib/content/revisions";
+import { listRevisions, findSongPath } from "@/lib/content";
 
 export async function GET(
   request: Request,
@@ -28,7 +27,7 @@ export async function GET(
       return NextResponse.json({ error: "Song not found" }, { status: 404 });
     }
 
-    const revisions = await listRevisions(songPath, lang);
+    const revisions = await listRevisions(id, lang);
     return NextResponse.json({ revisions, songId: id, lang });
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : "Failed to list revisions";

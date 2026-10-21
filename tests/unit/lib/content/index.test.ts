@@ -109,8 +109,7 @@ describe('content/index.ts', () => {
       }, '{title: Updated}\nVerse 1\nVerse 2');
       
       const { listRevisions } = await import('@/lib/content/revisions');
-      const songPath = await (await import('@/lib/content')).findSongPath('test-song');
-      const revisions = await listRevisions(songPath!, 'en');
+      const revisions = await listRevisions('test-song', 'en');
       // First save in beforeEach creates the file, then two saves in test create 2 revisions
       expect(revisions.length).toBe(2);
     });

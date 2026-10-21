@@ -16,13 +16,18 @@ services:
       - "9000:3000"
     volumes:
       - ./content:/app/content:ro
+      - ./revisions:/app/revisions:ro
       - ./music:/app/music:ro
       - ./partitions:/app/partitions:ro
     environment:
       - SONGBOOK_READONLY=1
+      - REVISIONS_DIR=/app/revisions
       - JWT_SECRET=...
       - SONGBOOK_PUBLIC_URL=https://songbook.example.com
 ```
+
+The revision tree is mounted read-only too, so the public instance can list and read snapshots
+without being able to write them.
 
 The repository's own `docker-compose.yml` already defines this service; `SONGBOOK_PUBLIC_PORT`
 chooses its port, and it defaults to 9000.

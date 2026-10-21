@@ -27,7 +27,7 @@ You can still treat it as a standalone repository by making it a submodule or a 
 | `artists/**` | yes | artist metadata |
 | `setlists/**` | usually | setlists may contain share tokens; decide per project |
 | `users/**` | **no** | bcrypt hashes, emails, and OIDC subjects are account data |
-| `library/**/.revisions/**` | your call | every save writes a snapshot; committing them is a second history |
+| `revisions/**` (the tree next to `content/`) | your call | every save writes a snapshot; committing them is a second history |
 
 The app repository ignores `content/users/admin.yaml` for this reason. Add a `.gitignore` inside
 your content repository to exclude the whole users directory:

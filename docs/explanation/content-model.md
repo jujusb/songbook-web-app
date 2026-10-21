@@ -7,9 +7,9 @@ Why the content tree is shaped the way it is. The exact schemas are in the
 
 A song is always several things that change at different rates: the English text, the Spanish
 translation, the key, the transliterated titles, the references, the sheet-music links. Making a
-song a *folder* (`meta.yaml` + `<lang>.cho` files + `.revisions/`) lets the app write one language
-without touching another, keeps the shared metadata in one place, and grows a revision history as a
-subdirectory. The early design sketch in `songbook-web-app.md` put songs under a flat
+song a *folder* (`meta.yaml` + `<lang>.cho` files) lets the app write one language
+without touching another and keeps the shared metadata in one place. The early design sketch in
+`songbook-web-app.md` put songs under a flat
 `content/songs/`; the implementation moved them under `content/library/<album>/` so that folder =
 song and parent folder = album are both true statements about the layout.
 
@@ -37,11 +37,12 @@ deliberate; it is why creating a song with no album target still works.
 
 The revision system does not diff, does not compress, and does not use git. Every meaningful
 overwrite (save of an existing translation, delete, revert) first copies the current file to
-`.revisions/<lang>/<timestamp>.cho`, then writes. Copies are dead simple, trivially independent of
-any history backend, and cheap at this scale. The cost: every autosave doubles the translation's
-file count, and a big session can grow the tree noticeably. `git` on the content folder gives a
-second, more compact history if you want one. See
-[ADR-0009](./decisions/0009-revisions-are-snapshots.md).
+`revisions/<song-id>/<lang>/<timestamp>.cho`, then writes. Copies are dead simple, trivially
+independent of any history backend, and cheap at this scale. The cost: every autosave doubles the
+translation's file count, and a big session can grow the tree noticeably. `git` on the content folder
+gives a second, more compact history if you want one. See
+[ADR-0009](./decisions/0009-revisions-are-snapshots.md) and
+[ADR-0016](./decisions/0016-revisions-live-outside-the-library.md).
 
 ## Languages come from configuration, not a file
 

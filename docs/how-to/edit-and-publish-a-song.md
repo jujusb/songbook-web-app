@@ -25,8 +25,8 @@ Two save paths exist:
   same server action runs underneath.
 
 Every save of an existing translation first snapshots the previous contents into
-`.revisions/<lang>/<timestamp>.cho`. That is automatic and is what the revisions sidebar reads. See
-[Restore a revision](./restore-a-revision.md) and
+`revisions/<song-id>/<lang>/<timestamp>.cho`. That is automatic and is what the revisions sidebar
+reads. See [Restore a revision](./restore-a-revision.md) and
 [ADR-0009](../explanation/decisions/0009-revisions-are-snapshots.md).
 
 ## Change the title and key

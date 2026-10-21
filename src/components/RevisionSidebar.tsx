@@ -31,7 +31,9 @@ export function RevisionSidebar({ songId, lang }: RevisionSidebarProps) {
       return;
     }
     try {
-      const res = await fetch(`/api/songs/${songId}/revisions/${timestamp}?lang=${lang}`);
+      const res = await fetch(
+        `/api/songs/${songId}/revisions/${encodeURIComponent(timestamp)}?lang=${lang}`
+      );
       if (!res.ok) throw new Error("Failed to load revision");
       const data = await res.json();
       setRevisionContent(data.content);
@@ -54,7 +56,7 @@ export function RevisionSidebar({ songId, lang }: RevisionSidebarProps) {
         setRevisions(list);
         if (list.length > 0) {
           const contentRes = await fetch(
-            `/api/songs/${songId}/revisions/${list[0].timestamp}?lang=${lang}`
+            `/api/songs/${songId}/revisions/${encodeURIComponent(list[0].timestamp)}?lang=${lang}`
           );
           if (!contentRes.ok) throw new Error("Failed to load revision");
           const contentData = await contentRes.json();

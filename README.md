@@ -146,7 +146,10 @@ content/
         meta.yaml          # title, tags, key, tempo, references, spotify
         en.cho             # English lyrics + chords (ChordPro format)
         es.cho             # Spanish translation
-        .revisions/        # timestamped .cho snapshots
+
+revisions/                    # revision history, next to content/
+  <song-id>/
+    <lang>/<timestamp>.cho    # timestamped .cho snapshots
 ```
 
 Spotify links live in `meta.yaml` (`spotify.song` / `spotify.album` for the track and its album) and optionally in `album.yaml` (`spotify` for the album page). They take precedence over the automatic Spotify lookup and the Navidrome share links when the song is viewed in the site's default language.
