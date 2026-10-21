@@ -1,4 +1,4 @@
-import { readdir, readFile, mkdir, cp, rename, rm } from 'fs/promises';
+import { readdir, readFile, mkdir, cp, rename, rm, copyFile } from 'fs/promises';
 import { existsSync } from 'fs';
 import path from 'path';
 import { findSongPath } from './paths';
@@ -163,7 +163,7 @@ export async function migrateLegacyRevisions(songId: string, songDir?: string | 
  */
 async function moveFile(from: string, to: string): Promise<void> {
   if (!existsSync(to)) {
-    await rename(from, to);
+    await moveAcrossDevices(from, to);
     return;
   }
   const { dir, name, ext } = path.parse(to);
@@ -173,7 +173,25 @@ async function moveFile(from: string, to: string): Promise<void> {
     suffix++;
     target = path.join(dir, `${name}-${suffix}${ext}`);
   }
-  await rename(from, target);
+  await moveAcrossDevices(from, target);
+}
+
+/**
+ * Move a file to another place.
+ *
+ * `rename` cannot cross filesystems, and the content directory and the
+ * revision tree are usually two different bind mounts — so a plain rename is
+ * refused with `EXDEV`. In that case the file is copied and the original is
+ * removed, which is slower but does the same thing.
+ */
+async function moveAcrossDevices(from: string, to: string): Promise<void> {
+  try {
+    await rename(from, to);
+  } catch (err) {
+    if ((err as NodeJS.ErrnoException).code !== 'EXDEV') throw err;
+    await copyFile(from, to);
+    await rm(from, { force: true });
+  }
 }
 
 /**
