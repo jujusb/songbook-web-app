@@ -444,153 +444,78 @@ export function PdfExportView({
           <span className="text-sm">{t("pdf.includeReferences")}</span>
         </label>
 
-        {type === "chords" && (
-          <div className="mt-4 space-y-2">
-            <label className="block text-sm font-medium">{t("pdf.chordsLabel")}</label>
-            <div className="flex gap-2">
+        <div className="mt-4 space-y-2">
+          <label className="block text-sm font-medium mb-1 mt-2">
+            {t("pdf.orientation")}
+          </label>
+          <div className="flex gap-1">
+            {orientationOptions.map((o) => (
               <button
+                key={o}
                 type="button"
                 onClick={() => {
-                  const next = !showChords;
-                  setShowChords(next);
-                  const query = buildQuery({ showChords: next ? "1" : "" });
+                  setOrientation(o);
+                  const query = buildQuery({ orientation: o });
                   router.push(`/pdf?${query.toString()}`);
                 }}
-                className={`px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
-                  showChords
+                className={`px-2 py-1 rounded-md text-xs font-medium transition-colors ${
+                  orientation === o
                     ? "bg-blue-50 text-blue-700 dark:bg-blue-950/40 dark:text-blue-300"
                     : "bg-neutral-100 text-neutral-600 hover:bg-neutral-200 dark:bg-neutral-800 dark:text-neutral-300"
                 }`}
               >
-                {t("pdf.chordsOn")}
+                {o === "portrait" ? t("pdf.portrait") : t("pdf.landscape")}
               </button>
-              <button
-                type="button"
-                onClick={() => {
-                  const next = !showChords;
-                  setShowChords(next);
-                  const query = buildQuery({ showChords: next ? "1" : "" });
-                  router.push(`/pdf?${query.toString()}`);
-                }}
-                className={`px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
-                  !showChords
-                    ? "bg-blue-50 text-blue-700 dark:bg-blue-950/40 dark:text-blue-300"
-                    : "bg-neutral-100 text-neutral-600 hover:bg-neutral-200 dark:bg-neutral-800 dark:text-neutral-300"
-                }`}
-              >
-                {t("pdf.chordsOff")}
-              </button>
-            </div>
-            <label className="flex items-center gap-2 cursor-pointer mt-2">
-              <input
-                type="checkbox"
-                checked={showRepeats}
-                onChange={(e) => {
-                  const next = e.target.checked;
-                  setShowRepeats(next);
-                  const query = buildQuery({ repeatChorus: next ? "1" : "" });
-                  router.push(`/pdf?${query.toString()}`);
-                }}
-                className="accent-blue-600"
-              />
-              <span className="text-sm">{t("pdf.showRepeats")}</span>
-            </label>
-            <label className="block text-sm font-medium mb-1 mt-2">
-              {t("pdf.chordNotation")}
-            </label>
-            <div className="flex gap-1">
-              {["letters", "solfege", "roman", "nashville"].map((n) => (
-                <button
-                  key={n}
-                  type="button"
-                  onClick={() => {
-                    setChordNotation(n as ChordNotation);
-                    const query = buildQuery({ chordNotation: n });
-                    router.push(`/pdf?${query.toString()}`);
-                  }}
-                  className={`px-2 py-1 rounded-md text-xs font-medium transition-colors ${
-                    chordNotation === n
-                      ? "bg-blue-50 text-blue-700 dark:bg-blue-950/40 dark:text-blue-300"
-                      : "bg-neutral-100 text-neutral-600 hover:bg-neutral-200 dark:bg-neutral-800 dark:text-neutral-300"
-                  }`}
-                >
-                  {t(`pdf.notation${n.charAt(0).toUpperCase() + n.slice(1)}`)}
-                </button>
-              ))}
-            </div>
-            <label className="block text-sm font-medium mb-1 mt-2">
-              {t("pdf.orientation")}
-            </label>
-            <div className="flex gap-1">
-              {orientationOptions.map((o) => (
-                <button
-                  key={o}
-                  type="button"
-                  onClick={() => {
-                    setOrientation(o);
-                    const query = buildQuery({ orientation: o });
-                    router.push(`/pdf?${query.toString()}`);
-                  }}
-                  className={`px-2 py-1 rounded-md text-xs font-medium transition-colors ${
-                    orientation === o
-                      ? "bg-blue-50 text-blue-700 dark:bg-blue-950/40 dark:text-blue-300"
-                      : "bg-neutral-100 text-neutral-600 hover:bg-neutral-200 dark:bg-neutral-800 dark:text-neutral-300"
-                  }`}
-                >
-                  {o === "portrait" ? t("pdf.portrait") : t("pdf.landscape")}
-                </button>
-              ))}
-            </div>
-            <label className="block text-sm font-medium mb-1 mt-2">
-              {t("pdf.columns")}
-            </label>
-            <div className="flex gap-1">
-              {bodyColumnOptions.map((c) => (
-                <button
-                  key={c}
-                  type="button"
-                  onClick={() => {
-                    setColumns(c);
-                    const query = buildQuery({ columns: c });
-                    router.push(`/pdf?${query.toString()}`);
-                  }}
-                  className={`px-2 py-1 rounded-md text-xs font-medium transition-colors ${
-                    columns === c
-                      ? "bg-blue-50 text-blue-700 dark:bg-blue-950/40 dark:text-blue-300"
-                      : "bg-neutral-100 text-neutral-600 hover:bg-neutral-200 dark:bg-neutral-800 dark:text-neutral-300"
-                  }`}
-                >
-                  {c}
-                </button>
-              ))}
-            </div>
-            <label className="block text-sm font-medium mb-1 mt-2">
-              {t("pdf.tocColumns")}
-            </label>
-            <div className="flex gap-1">
-              {tocColumnOptions.map((c) => (
-                <button
-                  key={c}
-                  type="button"
-                  onClick={() => {
-                    setTocColumns(c);
-                    const query = buildQuery({ tocColumns: c });
-                    router.push(`/pdf?${query.toString()}`);
-                  }}
-                  className={`px-2 py-1 rounded-md text-xs font-medium transition-colors ${
-                    tocColumns === c
-                      ? "bg-blue-50 text-blue-700 dark:bg-blue-950/40 dark:text-blue-300"
-                      : "bg-neutral-100 text-neutral-600 hover:bg-neutral-200 dark:bg-neutral-800 dark:text-neutral-300"
-                  }`}
-                >
-                  {c}
-                </button>
-              ))}
-            </div>
+            ))}
           </div>
-        )}
-
-      {type === "instrumental" && (
+          <label className="block text-sm font-medium mb-1 mt-2">
+            {t("pdf.columns")}
+          </label>
+          <div className="flex gap-1">
+            {bodyColumnOptions.map((c) => (
+              <button
+                key={c}
+                type="button"
+                onClick={() => {
+                  setColumns(c);
+                  const query = buildQuery({ columns: c });
+                  router.push(`/pdf?${query.toString()}`);
+                }}
+                className={`px-2 py-1 rounded-md text-xs font-medium transition-colors ${
+                  columns === c
+                    ? "bg-blue-50 text-blue-700 dark:bg-blue-950/40 dark:text-blue-300"
+                    : "bg-neutral-100 text-neutral-600 hover:bg-neutral-200 dark:bg-neutral-800 dark:text-neutral-300"
+                }`}
+              >
+                {c}
+              </button>
+            ))}
+          </div>
+          <label className="block text-sm font-medium mb-1 mt-2">
+            {t("pdf.tocColumns")}
+          </label>
+          <div className="flex gap-1">
+            {tocColumnOptions.map((c) => (
+              <button
+                key={c}
+                type="button"
+                onClick={() => {
+                  setTocColumns(c);
+                  const query = buildQuery({ tocColumns: c });
+                  router.push(`/pdf?${query.toString()}`);
+                }}
+                className={`px-2 py-1 rounded-md text-xs font-medium transition-colors ${
+                  tocColumns === c
+                    ? "bg-blue-50 text-blue-700 dark:bg-blue-950/40 dark:text-blue-300"
+                    : "bg-neutral-100 text-neutral-600 hover:bg-neutral-200 dark:bg-neutral-800 dark:text-neutral-300"
+                }`}
+              >
+                {c}
+              </button>
+))}
+          </div>
+        </div>
+        {type === "instrumental" && (
         <div>
           <label className="block text-sm font-medium mb-2">
             {t("pdf.instrument")}

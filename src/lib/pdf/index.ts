@@ -35,6 +35,7 @@ export async function generatePdfFromUrl(
       format: 'A4',
       printBackground: true,
       preferCSSPageSize: true,
+      displayHeaderFooter: false,
     });
     // Copy into a dedicated ArrayBuffer so the body is a plain ArrayBuffer
     // (PDF bytes from the browser are not guaranteed to be backed by one).
