@@ -167,11 +167,42 @@ Chorus`;
       const source = `{bridge: Bridge section}
 {chorus}
 Chorus`;
-      
-      const html = renderVisualChordSheet(source);
-      
+
+      const html = renderVisualChordSheet(source, { repeatChorus: true });
+
       // bridge renders as lyrics (not a section label in current implementation)
       expect(html).toContain('vce-lines');
+    });
+
+    it('shows section title instead of nothing when repeats are hidden', () => {
+      const source = `{start_of_chorus}
+Chorus body
+{end_of_chorus}
+{chorus}
+{start_of_instrumental}
+Intro riff
+{end_of_instrumental}
+{instrumental}`;
+
+      const html = renderVisualChordSheet(source, { repeatChorus: false });
+
+      expect(html).toContain('vce-section-label--repeat');
+      expect(html).toContain('Chorus');
+      expect(html).toContain('Instrumental');
+      expect(html).toContain('Chorus body');
+      expect(html).toContain('Intro riff');
+    });
+
+    it('shows alternate label for labeled repeat when repeats are hidden', () => {
+      const source = `{start_of_chorus}
+Chorus body
+{end_of_chorus}
+{chorus: Refrain}`;
+
+      const html = renderVisualChordSheet(source, { repeatChorus: false });
+
+      expect(html).toContain('Refrain');
+      expect(html).toContain('Chorus body');
     });
   });
 });

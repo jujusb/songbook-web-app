@@ -90,6 +90,7 @@ export function renderVisualChordSheet(
     byLabel: new Map<string, string>(),
   });
 
+  let skipSection = false;
   const repeats: Record<RepeatType, {
     capturing: boolean;
     label: string | null;
@@ -100,6 +101,12 @@ export function renderVisualChordSheet(
     verse: createRepeatState(),
     chorus: createRepeatState(),
     instrumental: createRepeatState(),
+  };
+
+  const lastSectionLabel: Record<RepeatType, string | null> = {
+    verse: null,
+    chorus: null,
+    instrumental: null,
   };
 
   const emit = (html: string) => {
@@ -158,13 +165,19 @@ export function renderVisualChordSheet(
         `^\\{(?:end_of_|e)(${SECTION_TYPES_RE})\\}$`,
         "i"
       ).test(raw);
+      const isEndOfInstrumental = /^\{(?:end_of_|e)instrumental\}$/i.test(raw);
 
       if (labeledRepeat) {
         finalizeAll();
         const type = labeledRepeat[1].toLowerCase() as RepeatType;
         const { primary, aliases } = splitSectionAliases(labeledRepeat[2]);
         const display = aliases[0] ?? null;
-        
+        const label = display || primary;
+
+        if (!repeatChorus) {
+          out.push(`  <div class="vce-section-label vce-section-label--repeat">${escapeHtml(label)}</div>`);
+          continue;
+        }
         if (repeatChorus || type !== 'chorus') {
           if (type === 'instrumental') {
             const html = lookup(type, primary);
@@ -172,12 +185,13 @@ export function renderVisualChordSheet(
               const relabeled = display
                 ? html.replace(
                     /<div class="vce-section-label">([^<]*)<\/div>/,
-                    (_m, label) =>
-                      label.trim()
+                    (_m, lbl) =>
+                      lbl.trim()
                         ? `<div class="vce-section-label">${escapeHtml(display)}</div>`
                         : _m
                   )
                 : html;
+              out.push(`  <div class="vce-section-label">${escapeHtml(label)}</div>`);
               out.push(`  ${relabeled}`);
               const st = repeats[type];
               st.lastHtml = relabeled;
@@ -187,6 +201,8 @@ export function renderVisualChordSheet(
                 st.byLabel.set(norm, relabeled);
                 st.byLabel.set(`${type} ${norm}`, relabeled);
               }
+            } else {
+              out.push(`  <div class="vce-section-label">${escapeHtml(label)}</div>`);
             }
             continue;
           }
@@ -197,12 +213,13 @@ export function renderVisualChordSheet(
             const relabeled = display
               ? html.replace(
                   /<div class="vce-section-label">([^<]*)<\/div>/,
-                  (_m, label) =>
-                    label.trim()
+                  (_m, lbl) =>
+                    lbl.trim()
                       ? `<div class="vce-section-label">${escapeHtml(display)}</div>`
                       : _m
                 )
               : html;
+            out.push(`  <div class="vce-section-label">${escapeHtml(label)}</div>`);
             out.push(`  ${relabeled}`);
             // Register any aliases ("{verse: 1. : 4.}" → "4.") so later
             // repeats or lookups can replay the section by either name.
@@ -218,22 +235,46 @@ export function renderVisualChordSheet(
           }
         }
         // Show only the section label when repeatChorus is false (for chorus)
-        const label = display || primary;
         out.push(`  <div class="vce-section-label vce-section-label--repeat">${escapeHtml(label)}</div>`);
+        continue;
+      }
+
+      if (isEndOfInstrumental) {
+        skipSection = false;
+        finalizeAll();
         continue;
       }
 
       if (bareRepeat) {
         finalizeAll();
+        if (!repeatChorus) {
+          const label = lastSectionLabel[bareRepeat] ?? null;
+          if (label) {
+            out.push(`  <div class="vce-section-label vce-section-label--repeat">${escapeHtml(label)}</div>`);
+          }
+          continue;
+        }
         if (repeatChorus || bareRepeat !== 'chorus') {
           if (bareRepeat === 'instrumental') {
             const html = repeats[bareRepeat].lastHtml;
-            if (html) out.push(`  ${html}`);
+            if (html) {
+              if (repeats[bareRepeat].label) {
+                out.push(`  <div class="vce-section-label">${escapeHtml(repeats[bareRepeat].label)}</div>`);
+              }
+              out.push(`  ${html}`);
+            } else if (repeats[bareRepeat].label) {
+              out.push(`  <div class="vce-section-label">${escapeHtml(repeats[bareRepeat].label)}</div>`);
+            }
             continue;
           }
           const html = repeats[bareRepeat].lastHtml;
-          if (html) out.push(`  ${html}`);
-          continue;
+          if (html) {
+            if (repeats[bareRepeat].label) {
+              out.push(`  <div class="vce-section-label">${escapeHtml(repeats[bareRepeat].label)}</div>`);
+            }
+            out.push(`  ${html}`);
+            continue;
+          }
         }
         // Show section label for bare repeat when repeatChorus is false
         const st = repeats[bareRepeat];
@@ -251,6 +292,27 @@ export function renderVisualChordSheet(
         } else if (isEndOfSection || sectionLabel) {
           finalizeAll();
         }
+      } else {
+        if (startType) {
+          finalizeAll();
+          lastSectionLabel[startType] = sectionLabel ?? null;
+          if (startType === 'instrumental' || startType === 'chorus') {
+            if (sectionLabel) {
+              emit(`  <div class="vce-section-label vce-section-label--repeat">${escapeHtml(sectionLabel)}</div>`);
+            }
+            skipSection = true;
+            continue;
+          }
+        } else if (isEndOfSection) {
+          finalizeAll();
+          skipSection = false;
+        } else if (sectionLabel) {
+          finalizeAll();
+        }
+      }
+
+      if (skipSection) {
+        continue;
       }
 
       if (sectionLabel) {

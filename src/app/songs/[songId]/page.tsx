@@ -382,6 +382,7 @@ export default async function SongPage({
               references={meta.references}
               lang={lang}
               showChords={currentUser?.showChords !== false}
+              showRepeats={currentUser?.showRepeats !== false}
               chordNotation={(currentUser?.chordNotation as any) || "letters"}
             />
 

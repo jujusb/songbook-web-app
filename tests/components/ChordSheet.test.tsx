@@ -97,7 +97,7 @@ describe('ChordSheet Component', () => {
   });
 
   it('toggles repeat sections', () => {
-    renderWithProviders(<ChordSheet initialSource={sampleSource} songKey="C" repeatChorus={true} />);
+    renderWithProviders(<ChordSheet initialSource={sampleSource} songKey="C" showRepeats={true} />);
 
     const toggleButton = screen.getByRole('button', { name: /hide repeats/i });
     expect(toggleButton).toBeInTheDocument();

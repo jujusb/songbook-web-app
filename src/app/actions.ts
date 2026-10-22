@@ -964,3 +964,27 @@ export async function updateMyChordNotationAction(notation: string | null) {
     };
   }
 }
+
+/**
+ * Save the logged-in user's preference for showing repeated sections on song pages.
+ */
+export async function updateMyRepeatsPreferenceAction(showRepeats: boolean | null) {
+  const session = await getSession();
+  if (!session) {
+    return { ok: false as const, error: "Unauthorized" };
+  }
+  const user = await getCurrentUser();
+  if (!user) {
+    return { ok: false as const, error: "Unauthorized" };
+  }
+  const value = showRepeats === null ? undefined : showRepeats;
+  try {
+    await saveUser({ ...user, showRepeats: value }, { allowReadOnly: true });
+    return { ok: true as const };
+  } catch (err) {
+    return {
+      ok: false as const,
+      error: err instanceof Error ? err.message : "FAILED",
+    };
+  }
+}

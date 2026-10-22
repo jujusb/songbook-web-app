@@ -395,7 +395,7 @@ export function ChordSheet({
   idPrefix = "",
   lang = "en",
   inlineChords = false,
-  repeatChorus = true,
+  showRepeats = true,
   showChords = true,
   chordNotation = "letters",
 }: {
@@ -406,13 +406,13 @@ export function ChordSheet({
   idPrefix?: string;
   lang?: string;
   inlineChords?: boolean;
-  repeatChorus?: boolean;
+  showRepeats?: boolean;
   showChords?: boolean;
   chordNotation?: "letters" | "solfege" | "roman" | "nashville";
 }) {
   const { t } = useTranslation();
   const [semitones, setSemitones] = useState(0);
-  const [showRepeats, setShowRepeats] = useState(repeatChorus);
+  const [localShowRepeats, setLocalShowRepeats] = useState(showRepeats);
   const [localShowChords, setLocalShowChords] = useState(showChords);
   const [localNotation, setLocalNotation] = useState<"letters" | "solfege" | "roman" | "nashville">(chordNotation);
   const isMobile = useSyncExternalStore(
@@ -484,7 +484,7 @@ export function ChordSheet({
   const html = useMemo(() => {
     const transposed = transposeSource(initialSource, semitones);
     const withMarkers = injectMarkersIntoSource(transposed, footnotesByLine);
-    let rendered = renderSource(withMarkers, { inlineChords: useInlineChords, repeatChorus: showRepeats });
+    let rendered = renderSource(withMarkers, { inlineChords: useInlineChords, repeatChorus: localShowRepeats });
     if (localNotation !== "letters" && localShowChords) {
       rendered = rendered.replace(/class="vce-chord"([^>]*)>([^<]+)<\/span>/g, (_m, attrs, chord) => {
         const converted = convertChord(chord, localNotation, songKey);
@@ -524,7 +524,7 @@ export function ChordSheet({
     }
 
     return rendered;
-  }, [initialSource, semitones, footnotesByLine, footnotes.length, idPrefix, referenceGroups, useInlineChords, showRepeats, localNotation, localShowChords, songKey]);
+  }, [initialSource, semitones, footnotesByLine, footnotes.length, idPrefix, referenceGroups, useInlineChords, localShowRepeats, localNotation, localShowChords, songKey]);
 
   // General (non-line) references
   const generalRefs = references.filter(
@@ -538,48 +538,14 @@ export function ChordSheet({
   return (
     <div>
       <div className="flex items-center gap-2 mb-4 flex-wrap">
-        <span className="text-sm text-neutral-500 shrink-0">{t('common.transpose')}:</span>
         <button
           type="button"
-          onClick={() => setSemitones((s) => s - 1)}
-          className="w-10 h-10 flex items-center justify-center border border-neutral-300 dark:border-neutral-700 rounded-md hover:bg-neutral-100 dark:hover:bg-neutral-800 text-base font-mono transition-colors touch-manipulation"
-          aria-label={t('common.transpose') + " down"}
-        >
-          &minus;
-        </button>
-        <span className="text-base font-mono w-10 text-center select-none">
-          {semitones > 0 ? `+${semitones}` : semitones}
-        </span>
-        <button
-          type="button"
-          onClick={() => setSemitones((s) => s + 1)}
-          className="w-10 h-10 flex items-center justify-center border border-neutral-300 dark:border-neutral-700 rounded-md hover:bg-neutral-100 dark:hover:bg-neutral-800 text-base font-mono transition-colors touch-manipulation"
-          aria-label={t('common.transpose') + " up"}
-        >
-          +
-        </button>
-        {semitones !== 0 && (
-          <button
-            type="button"
-            onClick={() => setSemitones(0)}
-            className="px-3 py-2 text-sm text-neutral-500 hover:text-foreground rounded-md hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors touch-manipulation"
-          >
-            {t('common.reset')}
-          </button>
-        )}
-        {songKey && (
-          <span className="text-sm text-neutral-400 ml-2 shrink-0">
-            {t('common.originalKey', { key: songKey })}
-          </span>
-        )}
-        {songCapo !== undefined && songCapo !== null && songCapo > 0 && (
-          <span className="text-sm text-neutral-400 ml-2 shrink-0">
-            Capo {songCapo}
-          </span>
-        )}
-        <button
-          type="button"
-          onClick={() => setLocalShowChords(!localShowChords)}
+          onClick={() => {
+            setLocalShowChords(!localShowChords);
+            if (localShowChords) {
+              setSemitones(0);
+            }
+          }}
           className={`px-3 py-1.5 border border-neutral-300 dark:border-neutral-700 rounded-md text-xs transition-colors ${
             localShowChords
               ? "bg-blue-50 text-blue-700 dark:bg-blue-950 dark:text-blue-300"
@@ -590,29 +556,71 @@ export function ChordSheet({
           {localShowChords ? t('presentation.chordsOff') : t('presentation.chordsOn')}
         </button>
         {localShowChords && (
-          <select
-            value={localNotation}
-            onChange={(e) => setLocalNotation(e.target.value as any)}
-            className="px-2 py-1.5 border border-neutral-300 dark:border-neutral-700 rounded-md text-xs bg-transparent"
-            title={t('profile.notation')}
-          >
-            <option value="letters">{t('profile.notationLetters')}</option>
-            <option value="solfege">{t('profile.notationSolfege')}</option>
-            <option value="roman">{t('profile.notationRoman')}</option>
-            <option value="nashville">{t('profile.notationNashville')}</option>
-          </select>
+          <>
+            <span className="text-sm text-neutral-500 shrink-0">{t('common.transpose')}:</span>
+            <button
+              type="button"
+              onClick={() => setSemitones((s) => s - 1)}
+              className="w-10 h-10 flex items-center justify-center border border-neutral-300 dark:border-neutral-700 rounded-md hover:bg-neutral-100 dark:hover:bg-neutral-800 text-base font-mono transition-colors touch-manipulation"
+              aria-label={t('common.transpose') + " down"}
+            >
+              &minus;
+            </button>
+            <span className="text-base font-mono w-10 text-center select-none">
+              {semitones > 0 ? `+${semitones}` : semitones}
+            </span>
+            <button
+              type="button"
+              onClick={() => setSemitones((s) => s + 1)}
+              className="w-10 h-10 flex items-center justify-center border border-neutral-300 dark:border-neutral-700 rounded-md hover:bg-neutral-100 dark:hover:bg-neutral-800 text-base font-mono transition-colors touch-manipulation"
+              aria-label={t('common.transpose') + " up"}
+            >
+              +
+            </button>
+            {semitones !== 0 && (
+              <button
+                type="button"
+                onClick={() => setSemitones(0)}
+                className="px-3 py-2 text-sm text-neutral-500 hover:text-foreground rounded-md hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors touch-manipulation"
+              >
+                {t('common.reset')}
+              </button>
+            )}
+            {songKey && (
+              <span className="text-sm text-neutral-400 ml-2 shrink-0">
+                {t('common.originalKey', { key: songKey })}
+              </span>
+            )}
+            {songCapo !== undefined && songCapo !== null && songCapo > 0 && (
+              <span className="text-sm text-neutral-400 ml-2 shrink-0">
+                Capo {songCapo}
+              </span>
+            )}
+            <select
+              value={localNotation}
+              onChange={(e) => setLocalNotation(e.target.value as any)}
+              className="px-2 py-1.5 border border-neutral-300 dark:border-neutral-700 rounded-md text-xs bg-transparent"
+              title={t('profile.notation')}
+            >
+              <option value="letters">{t('profile.notationLetters')}</option>
+              <option value="solfege">{t('profile.notationSolfege')}</option>
+              <option value="roman">{t('profile.notationRoman')}</option>
+              <option value="nashville">{t('profile.notationNashville')}</option>
+            </select>
+          </>
         )}
+        {/* Show/hide repeated sections - always available on the song page */}
         <button
           type="button"
-          onClick={() => setShowRepeats(!showRepeats)}
+          onClick={() => setLocalShowRepeats(!localShowRepeats)}
           className={`px-3 py-1.5 border border-neutral-300 dark:border-neutral-700 rounded-md text-xs transition-colors ${
-            showRepeats
+            localShowRepeats
               ? "bg-blue-50 text-blue-700 dark:bg-blue-950 dark:text-blue-300"
               : "hover:bg-neutral-100 dark:hover:bg-neutral-800"
           }`}
-          title={showRepeats ? "Show repeated sections" : "Hide repeated sections"}
+          title={localShowRepeats ? "Show repeated sections" : "Hide repeated sections"}
         >
-          {showRepeats ? "Hide Repeats" : "Show Repeats"}
+          {localShowRepeats ? "Hide Repeats" : "Show Repeats"}
         </button>
       </div>
 
