@@ -1,5 +1,7 @@
 import Link from "next/link";
 import { cookies } from "next/headers";
+import { getSession } from "@/lib/auth";
+import { canCreateSetlist } from "@/lib/auth";
 import { getLocale } from "@/lib/i18n/server";
 import { createT } from "@/lib/i18n/server";
 import { getLanguagesConfig } from "@/lib/content";
@@ -9,6 +11,8 @@ export default async function HomePage() {
   const langConfig = await getLanguagesConfig().catch(() => ({ default: 'en', languages: ['en'] }));
   const uiLocale = getLocale(cookieStore, langConfig.default);
   const t = createT(uiLocale);
+  const session = await getSession();
+  const canCreate = canCreateSetlist(session?.role ?? null);
 
   return (
     <div className="flex flex-col items-center justify-center min-h-[calc(100vh-3.5rem)] px-4">
@@ -23,12 +27,14 @@ export default async function HomePage() {
         >
           {t('home.browseSongs')}
         </Link>
-        <Link
-          href="/setlists/new"
-          className="px-6 py-2.5 border border-neutral-300 dark:border-neutral-700 rounded-lg font-medium text-sm text-neutral-700 dark:text-neutral-300 hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors"
-        >
-          {t('home.newSetlist')}
-        </Link>
+        {canCreate && (
+          <Link
+            href="/setlists/new"
+            className="px-6 py-2.5 border border-neutral-300 dark:border-neutral-700 rounded-lg font-medium text-sm text-neutral-700 dark:text-neutral-300 hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors"
+          >
+            {t('home.newSetlist')}
+          </Link>
+        )}
       </div>
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 w-full max-w-5xl">
         <FeatureCard

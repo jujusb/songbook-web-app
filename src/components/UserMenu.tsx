@@ -36,7 +36,7 @@ export function UserMenu({ variant = "full" }: { variant?: "full" | "compact" | 
     return (
       <Link
         href="/login"
-        className="text-xs text-neutral-400 hover:text-foreground transition-colors"
+        className="shrink-0 whitespace-nowrap rounded-full border border-neutral-300 dark:border-neutral-700 px-3 py-1 text-xs font-medium text-neutral-600 dark:text-neutral-400 hover:bg-neutral-100 hover:text-foreground dark:hover:bg-neutral-800 transition-colors"
       >
         {t('auth.login')}
       </Link>

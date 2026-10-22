@@ -26,17 +26,17 @@ const APP_NAME = process.env.SONGBOOK_APP_NAME || "Songbook";
 const CONTACT_EMAIL = process.env.SONGBOOK_CONTACT_EMAIL || "";
 const GITHUB_URL =  "https://github.com/jujusb/songbook-web-app";
 
-/** Navigation entry: a pill button on phones, a plain link on wide screens. */
+/** Navigation entry: pill button on all screens. */
 const NAV_LINK_CLASS =
-  "shrink-0 whitespace-nowrap rounded-full border border-neutral-300 dark:border-neutral-700 px-3 py-1 text-xs font-medium text-neutral-600 dark:text-neutral-400 hover:bg-neutral-100 hover:text-foreground dark:hover:bg-neutral-800 transition-colors sm:border-0 sm:rounded-none sm:px-0 sm:py-0 sm:text-sm sm:font-normal";
+  "shrink-0 whitespace-nowrap rounded-full border border-neutral-300 dark:border-neutral-700 px-3 py-1 text-xs font-medium text-neutral-600 dark:text-neutral-400 hover:bg-neutral-100 hover:text-foreground dark:hover:bg-neutral-800 transition-colors";
 
 /** Primary navigation action (new song, new setlist). */
 const NAV_ACTION_CLASS =
-  "shrink-0 whitespace-nowrap rounded-full px-3 py-1 text-xs font-medium bg-neutral-900 dark:bg-white text-white dark:text-neutral-900 hover:opacity-90 transition-opacity sm:rounded-md sm:px-3 sm:py-1.5 sm:text-sm";
+  "shrink-0 whitespace-nowrap rounded-full px-3 py-1 text-xs font-medium bg-neutral-900 dark:bg-white text-white dark:text-neutral-900 hover:opacity-90 transition-opacity";
 
 /** Secondary navigation action (convert to PDF). */
 const NAV_OUTLINE_CLASS =
-  "shrink-0 whitespace-nowrap rounded-full border border-neutral-300 dark:border-neutral-700 px-3 py-1 text-xs font-medium hover:bg-neutral-100 dark:hover:bg-neutral-800 hover:text-foreground transition-colors sm:rounded-md sm:px-3 sm:py-1.5 sm:text-sm";
+  "shrink-0 whitespace-nowrap rounded-full border border-neutral-300 dark:border-neutral-700 px-3 py-1 text-xs font-medium hover:bg-neutral-100 dark:hover:bg-neutral-800 hover:text-foreground transition-colors";
 
 export const metadata: Metadata = {
   title: APP_NAME,
@@ -90,15 +90,16 @@ export default async function RootLayout({
     >
       <body className="min-h-full flex flex-col bg-background text-foreground">
         <header className="border-b border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-950 sticky top-0 z-50">
-          <nav className="max-w-full mx-auto px-4 sm:px-6 lg:px-8 py-2 sm:py-0 sm:h-14 min-h-14 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-3">
+          <nav className="max-w-full mx-auto px-4 sm:px-6 lg:px-8 py-4 flex flex-col items-center justify-between gap-4">
             {/*
-              Top bar: songbook title on the left, language selector and the
-              signed-in user (name + role) on the right.
+              One consistent header on all screens:
+              top bar with title left and language + user right,
+              then a scrollable button strip with all actions.
             */}
-            <div className="w-full sm:w-auto flex flex-col sm:flex-row sm:items-center justify-between gap-2 sm:gap-3">
+            <div className="w-full flex flex-col items-center justify-between gap-3">
               <Link
                 href="/"
-                className="min-w-0 flex-1 sm:flex-none font-bold text-lg tracking-tight truncate"
+                className="min-w-0 flex-1 font-bold text-lg tracking-tight truncate"
               >
                 {APP_NAME}
               </Link>
@@ -108,11 +109,7 @@ export default async function RootLayout({
               </div>
             </div>
 
-            {/*
-              Button strip: all navigation buttons plus the profile and
-              login/logout buttons. Scrollable horizontally on phones.
-            */}
-            <div className="w-full sm:w-auto flex min-w-0 items-center gap-2 overflow-x-auto sm:flex-wrap sm:overflow-visible sm:justify-end [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+            <div className="w-full flex min-w-0 items-center gap-2 overflow-x-auto justify-end [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
               <Link href="/browse" className={NAV_LINK_CLASS}>
                 <T k="nav.browse" />
               </Link>
