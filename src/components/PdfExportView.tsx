@@ -444,6 +444,83 @@ export function PdfExportView({
           <span className="text-sm">{t("pdf.includeReferences")}</span>
         </label>
 
+        {type === "chords" && (
+          <div className="mt-4 space-y-2">
+            <label className="block text-sm font-medium">{t("pdf.chordsLabel")}</label>
+            <div className="flex gap-2">
+              <button
+                type="button"
+                onClick={() => {
+                  const next = !showChords;
+                  setShowChords(next);
+                  const query = buildQuery({ showChords: next ? "1" : "" });
+                  router.push(`/pdf?${query.toString()}`);
+                }}
+                className={`px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
+                  showChords
+                    ? "bg-blue-50 text-blue-700 dark:bg-blue-950/40 dark:text-blue-300"
+                    : "bg-neutral-100 text-neutral-600 hover:bg-neutral-200 dark:bg-neutral-800 dark:text-neutral-300"
+                }`}
+              >
+                {t("pdf.chordsOn")}
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  const next = !showChords;
+                  setShowChords(next);
+                  const query = buildQuery({ showChords: next ? "1" : "" });
+                  router.push(`/pdf?${query.toString()}`);
+                }}
+                className={`px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
+                  !showChords
+                    ? "bg-blue-50 text-blue-700 dark:bg-blue-950/40 dark:text-blue-300"
+                    : "bg-neutral-100 text-neutral-600 hover:bg-neutral-200 dark:bg-neutral-800 dark:text-neutral-300"
+                }`}
+              >
+                {t("pdf.chordsOff")}
+              </button>
+            </div>
+            <label className="flex items-center gap-2 cursor-pointer mt-2">
+              <input
+                type="checkbox"
+                checked={showRepeats}
+                onChange={(e) => {
+                  const next = e.target.checked;
+                  setShowRepeats(next);
+                  const query = buildQuery({ repeatChorus: next ? "1" : "" });
+                  router.push(`/pdf?${query.toString()}`);
+                }}
+                className="accent-blue-600"
+              />
+              <span className="text-sm">{t("pdf.showRepeats")}</span>
+            </label>
+            <label className="block text-sm font-medium mb-1 mt-2">
+              {t("pdf.chordNotation")}
+            </label>
+            <div className="flex gap-1">
+              {["letters", "solfege", "roman", "nashville"].map((n) => (
+                <button
+                  key={n}
+                  type="button"
+                  onClick={() => {
+                    setChordNotation(n as ChordNotation);
+                    const query = buildQuery({ chordNotation: n });
+                    router.push(`/pdf?${query.toString()}`);
+                  }}
+                  className={`px-2 py-1 rounded-md text-xs font-medium transition-colors ${
+                    chordNotation === n
+                      ? "bg-blue-50 text-blue-700 dark:bg-blue-950/40 dark:text-blue-300"
+                      : "bg-neutral-100 text-neutral-600 hover:bg-neutral-200 dark:bg-neutral-800 dark:text-neutral-300"
+                  }`}
+                >
+                  {t(`pdf.notation${n.charAt(0).toUpperCase() + n.slice(1)}`)}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
         <div className="mt-4 space-y-2">
           <label className="block text-sm font-medium mb-1 mt-2">
             {t("pdf.orientation")}
