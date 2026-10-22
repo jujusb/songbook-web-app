@@ -19,6 +19,8 @@ interface PrintPageClientProps {
   languages: string[];
   showRefs: boolean;
   repeatChorus: boolean;
+  showChords: boolean;
+  chordNotation: "letters" | "solfege" | "roman" | "nashville";
   primaryLang: string;
 }
 
@@ -33,9 +35,13 @@ export function PrintPageClient({
   languages,
   showRefs,
   repeatChorus: initialRepeatChorus,
+  showChords: initialShowChords,
+  chordNotation: initialChordNotation,
   primaryLang,
 }: PrintPageClientProps) {
   const [repeatChorus, setRepeatChorus] = useState(initialRepeatChorus);
+  const [showChords, setShowChords] = useState(initialShowChords);
+  const [chordNotation, setChordNotation] = useState<"letters" | "solfege" | "roman" | "nashville">(initialChordNotation);
   const router = useRouter();
   const searchParams = useSearchParams();
 
@@ -43,6 +49,20 @@ export function PrintPageClient({
     setRepeatChorus(checked);
     const params = new URLSearchParams(searchParams.toString());
     params.set("repeatChorus", checked ? "true" : "false");
+    router.push(`/print/${primaryLang}?${params.toString()}`);
+  };
+
+  const handleShowChordsChange = (checked: boolean) => {
+    setShowChords(checked);
+    const params = new URLSearchParams(searchParams.toString());
+    params.set("showChords", checked ? "true" : "false");
+    router.push(`/print/${primaryLang}?${params.toString()}`);
+  };
+
+  const handleChordNotationChange = (next: "letters" | "solfege" | "roman" | "nashville") => {
+    setChordNotation(next);
+    const params = new URLSearchParams(searchParams.toString());
+    params.set("chordNotation", next);
     router.push(`/print/${primaryLang}?${params.toString()}`);
   };
 
@@ -55,6 +75,7 @@ export function PrintPageClient({
       backHref={backHref}
       backLabel={backLabel}
       emptyText={emptyText}
+      showChords={showChords}
       toolbarChildren={
         <>
           <span className="text-sm text-neutral-500">
@@ -66,12 +87,38 @@ export function PrintPageClient({
           <label className="flex items-center gap-2 ml-4 text-sm">
             <input
               type="checkbox"
+              checked={showChords}
+              onChange={(e) => handleShowChordsChange(e.target.checked)}
+              className="w-4 h-4 border border-neutral-300 dark:border-neutral-700 rounded text-blue-600 focus:ring-2 focus:ring-blue-500"
+            />
+            <span className="text-neutral-500">Show chords</span>
+          </label>
+          <label className="flex items-center gap-2 ml-4 text-sm">
+            <input
+              type="checkbox"
               checked={repeatChorus}
               onChange={(e) => handleRepeatChorusChange(e.target.checked)}
               className="w-4 h-4 border border-neutral-300 dark:border-neutral-700 rounded text-blue-600 focus:ring-2 focus:ring-blue-500"
             />
             <span className="text-neutral-500">Show repeated sections</span>
           </label>
+          <div className="flex items-center gap-1 ml-4">
+            <span className="text-xs text-neutral-400">Notation:</span>
+            {["letters", "solfege", "roman", "nashville"].map((n) => (
+              <button
+                key={n}
+                type="button"
+                onClick={() => handleChordNotationChange(n as "letters" | "solfege" | "roman" | "nashville")}
+                className={`px-2 py-1 rounded text-xs font-medium transition-colors ${
+                  chordNotation === n
+                    ? "bg-blue-50 text-blue-700 dark:bg-blue-950/40 dark:text-blue-300"
+                    : "bg-neutral-100 text-neutral-600 hover:bg-neutral-200 dark:bg-neutral-800 dark:text-neutral-300"
+                }`}
+              >
+                {n === "letters" ? "Letters" : n === "solfege" ? "Solfège" : n === "roman" ? "Roman" : "Nashville"}
+              </button>
+            ))}
+          </div>
         </>
       }
     />

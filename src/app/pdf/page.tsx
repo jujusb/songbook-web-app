@@ -208,6 +208,9 @@ export default async function PdfPage({
         selectedLangs={langs}
         includeRefs={includeRefs}
         canExport={type === "chords" ? viewerSongs.length > 0 : instrumentalFiles.length > 0}
+        initialShowChords={currentUser?.showChords !== false}
+        initialShowRepeats={currentUser?.showRepeats !== false}
+        initialChordNotation={currentUser?.chordNotation ?? "letters"}
       />
     </div>
   );

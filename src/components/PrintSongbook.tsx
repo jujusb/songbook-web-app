@@ -24,6 +24,7 @@ export function PrintSongbook({
   backLabel,
   toolbarChildren,
   emptyText,
+  showChords = true,
 }: {
   printSongs: PrintSong[];
   pageTitle: string;
@@ -34,6 +35,7 @@ export function PrintSongbook({
   backLabel: string;
   toolbarChildren?: React.ReactNode;
   emptyText: string;
+  showChords?: boolean;
 }) {
   return (
     <div className="print-layout">
@@ -167,7 +169,7 @@ export function PrintSongbook({
                   <h2 className="text-2xl font-bold">{song.title}</h2>
                   <div className="flex items-center gap-3 text-xs text-neutral-400">
                     {song.key && <span>Key: {song.key}</span>}
-                    {song.capo && song.capo > 0 && <span>Capo {song.capo}</span>}
+                    {showChords && song.capo && song.capo > 0 && <span>Capo {song.capo}</span>}
                     {showLangLabels && (
                       <span>{languageLabelFor(song.lang)}</span>
                     )}

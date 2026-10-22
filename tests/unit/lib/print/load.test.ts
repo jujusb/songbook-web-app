@@ -115,6 +115,7 @@ describe('print/load.ts', () => {
       expect(m.renderToHtml).toHaveBeenCalledWith('body', {
         inlineChords: false,
         repeatChorus: true,
+        showChords: true,
       });
     });
 

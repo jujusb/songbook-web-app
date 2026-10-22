@@ -6,6 +6,7 @@ import {
   extractBodyCapo,
 } from '@/lib/content';
 import { renderToHtml, renderReferencesHtml } from '@/lib/chordpro';
+import { convertChord, type ChordNotation } from '@/lib/chordpro/notation';
 import type { PrintSong } from '@/lib/print/types';
 import type { ResolvedScopeSong } from '@/lib/export/song-scope';
 
@@ -73,6 +74,8 @@ export async function loadPrintSongs(
   showRefs: boolean,
   inlineChords: boolean = false,
   repeatChorus: boolean = true,
+  showChords: boolean = true,
+  chordNotation: ChordNotation = "letters",
 ): Promise<PrintSong[]> {
   const printSongs: PrintSong[] = [];
 
@@ -98,13 +101,18 @@ export async function loadPrintSongs(
           ?? (resolved.meta as { choTitles?: Record<string, string> } | null | undefined)?.choTitles?.[lang]
           ?? resolved.meta?.title
           ?? songId;
+        const key = resolved.meta?.key ?? meta?.key;
+        let html = renderToHtml(body, { inlineChords, repeatChorus, showChords });
+        if (chordNotation !== "letters" && showChords) {
+          html = applyNotation(html, chordNotation, key ?? null);
+        }
         printSongs.push({
           id: songId,
           title,
-          key: resolved.meta?.key ?? meta?.key,
+          key,
           capo,
           lang,
-          html: renderToHtml(body, { inlineChords, repeatChorus }),
+          html,
           refsHtml:
             showRefs && meta?.references?.length
               ? renderReferencesHtml(meta.references, lang)
@@ -117,4 +125,21 @@ export async function loadPrintSongs(
   }
 
   return printSongs;
+}
+
+/**
+ * Convert every chord token in the rendered sheet HTML to the target notation.
+ * Mirrors the client-side conversion in ChordSheet.
+ */
+function applyNotation(html: string, notation: ChordNotation, keyRoot?: string | null): string {
+  if (notation === "letters") return html;
+  html = html.replace(
+    /class="vce-chord"([^>]*)>([^<]+)<\/span>/g,
+    (_m, attrs, chord) => `class="vce-chord"${attrs}>${convertChord(chord, notation, keyRoot ?? null)}</span>`,
+  );
+  html = html.replace(
+    /class="vce-inline-chord"([^>]*)>([^<]+)<\/span>/g,
+    (_m, attrs, chord) => `class="vce-inline-chord"${attrs}>${convertChord(chord, notation, keyRoot ?? null)}</span>`,
+  );
+  return html;
 }

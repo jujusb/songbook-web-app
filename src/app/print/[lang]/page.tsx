@@ -21,6 +21,8 @@ export default async function PrintPage({
     refs?: string;
     langs?: string;
     repeatChorus?: string;
+    showChords?: string;
+    chordNotation?: string;
   }>;
 }) {
   const { lang: primaryLang } = await params;
@@ -32,6 +34,8 @@ export default async function PrintPage({
     refs: showRefsParam,
     langs: langsParam,
     repeatChorus: repeatChorusParam,
+    showChords: showChordsParam,
+    chordNotation: chordNotationParam,
   } = await searchParams;
 
   const session = await getSession();
@@ -39,6 +43,11 @@ export default async function PrintPage({
 
   const showRefs = showRefsParam === "1" || showRefsParam === "true";
   const repeatChorus = repeatChorusParam !== "false"; // default true
+  const showChords = showChordsParam !== "false"; // default true
+  const chordNotation: "letters" | "solfege" | "roman" | "nashville" =
+    chordNotationParam === "solfege" || chordNotationParam === "roman" || chordNotationParam === "nashville"
+      ? chordNotationParam
+      : "letters";
 
   // Determine which languages to include
   let languages: string[];
@@ -66,7 +75,7 @@ export default async function PrintPage({
   const scopeId = songId ?? albumId ?? artistId ?? bookId ?? null;
   const resolved = await resolveScopeSongs(scope, scopeId, { role: isEditor ? 'admin' : 'public', lang: primaryLang });
 
-  const printSongs = await loadPrintSongs(resolved.songs, languages, showRefs, true, repeatChorus);
+  const printSongs = await loadPrintSongs(resolved.songs, languages, showRefs, true, repeatChorus, showChords, chordNotation);
 
   const langLabel = languageLabelFor;
 
@@ -111,6 +120,8 @@ export default async function PrintPage({
       languages={languages}
       showRefs={showRefs}
       repeatChorus={repeatChorus}
+      showChords={showChords}
+      chordNotation={chordNotation}
       primaryLang={primaryLang}
       emptyText="No songs found for the selected language(s)."
     />

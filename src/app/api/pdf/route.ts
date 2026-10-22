@@ -15,6 +15,7 @@ import {
   mergePdfBuffers,
 } from "@/lib/pdf";
 import { languageLabelFor } from "@/lib/i18n/labels";
+import type { ChordNotation } from "@/lib/chordpro/notation";
 
 // --- Shared helpers -------------------------------------------------------
 
@@ -35,6 +36,9 @@ function buildChordsPrintUrl({
   lang,
   langs,
   refs,
+  showChords,
+  repeatChorus,
+  chordNotation,
 }: {
   scope: string;
   id: string | null;
@@ -42,12 +46,18 @@ function buildChordsPrintUrl({
   lang: string;
   langs: string[];
   refs: boolean;
+  showChords: boolean;
+  repeatChorus: boolean;
+  chordNotation: ChordNotation;
 }): string {
   const params = new URLSearchParams();
   if (scope === "setlist" && id) {
     return (
       `${baseUrl()}/setlists/${encodeURIComponent(id)}/print` +
       `?lang=${encodeURIComponent(lang)}` +
+      `&showChords=${showChords}` +
+      `&repeatChorus=${repeatChorus}` +
+      `&chordNotation=${encodeURIComponent(chordNotation)}` +
       (share ? `&share=${encodeURIComponent(share)}` : "")
     );
   }
@@ -56,6 +66,9 @@ function buildChordsPrintUrl({
   if (scope === "song" && id) params.set("song", id);
   if (scope === "book" && id) params.set("book", id);
   if (refs) params.set("refs", "1");
+  params.set("showChords", String(showChords));
+  params.set("repeatChorus", String(repeatChorus));
+  params.set("chordNotation", chordNotation);
   if (langs.length === 1) {
     const qs = params.toString();
     return `${baseUrl()}/print/${encodeURIComponent(langs[0])}${qs ? `?${qs}` : ""}`;
@@ -73,6 +86,9 @@ interface ChordsRequest {
   lang?: string | null;
   langs?: string[] | null;
   refs?: boolean | null;
+  showChords?: boolean | null;
+  repeatChorus?: boolean | null;
+  chordNotation?: ChordNotation | null;
 }
 
 interface InstrumentalRequest {
@@ -175,6 +191,9 @@ async function handleChords(
   }
 
   const refs = !!body.refs;
+  const showChords = body.showChords ?? true;
+  const repeatChorus = body.repeatChorus ?? true;
+  const chordNotation: ChordNotation = body.chordNotation ?? "letters";
   const url = buildChordsPrintUrl({
     scope: body.scope,
     id: body.id ?? null,
@@ -182,6 +201,9 @@ async function handleChords(
     lang: body.lang ?? langConfig.default,
     langs,
     refs,
+    showChords,
+    repeatChorus,
+    chordNotation,
   });
 
   try {

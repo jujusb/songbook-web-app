@@ -4,6 +4,7 @@ import { useState, useMemo, useSyncExternalStore } from "react";
 import ChordSheetJS from "chordsheetjs";
 import { renderVisualChordSheet } from "@/lib/chordpro/visual-render";
 import { SECTION_TYPES, splitSectionAliases } from "@/lib/chordpro/chord-utils";
+import { convertChord } from "@/lib/chordpro/notation";
 import { getReferenceText, getHighlight } from "@/lib/content/references";
 import { useTranslation } from "@/lib/i18n";
 
@@ -321,70 +322,6 @@ function renderInlineRefText(
   }
 
   return html;
-}
-
-const LETTERS = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"] as const;
-const FLATS: Record<string, string> = {
-  Db: "C#",
-  Eb: "D#",
-  Gb: "F#",
-  Ab: "G#",
-  Bb: "A#",
-};
-const SOLFEGE = ["Do", "Di", "Re", "Ri", "Mi", "Fa", "Fi", "Sol", "Si", "La", "Li", "Ti"] as const;
-const ROMAN: string[] = ["I", "#I", "II", "#II", "III", "IV", "#IV", "V", "#V", "VI", "#VI", "VII"];
-const NASHVILLE: string[] = ["1", "#1", "2", "#2", "3", "4", "#4", "5", "#5", "6", "#6", "7"];
-
-function normalizeRoot(root: string): string {
-  if (FLATS[root]) return FLATS[root];
-  return root;
-}
-
-function toIndex(root: string): number | null {
-  const n = normalizeRoot(root);
-  const idx = LETTERS.indexOf(n as any);
-  return idx >= 0 ? idx : null;
-}
-
-function convertChord(chord: string, notation: "letters" | "solfege" | "roman" | "nashville", keyRoot?: string | null): string {
-  if (notation === "letters") return chord;
-  if (!chord) return chord;
-  // Handle bass note: C/E
-  const parts = chord.split("/");
-  const convertOne = (c: string): string => {
-    if (!c) return c;
-    // Match root + optional modifiers
-    const m = c.match(/^([A-Ga-g][#b]?)(.*)$/);
-    if (!m) return c;
-    let root = m[1];
-    // uppercase
-    root = root[0].toUpperCase() + root.slice(1);
-    const rest = m[2];
-    const idx = toIndex(root);
-    if (idx === null) return c;
-    if (notation === "solfege") {
-      return SOLFEGE[idx] + rest;
-    }
-    if (notation === "roman" || notation === "nashville") {
-      let keyIdx = toIndex(keyRoot || "C");
-      if (keyIdx === null) keyIdx = 0;
-      let rel = (idx - keyIdx + 12) % 12;
-      // Use Nashville for 1-7, Roman for I-VII
-      if (notation === "nashville") {
-        // Map to scale degrees (1-based with sharps)
-        const map = ["1", "#1", "2", "#2", "3", "4", "#4", "5", "#5", "6", "#6", "7"];
-        return map[rel] + rest;
-      }
-      // roman numerals
-      const mapR = ["I", "#I", "II", "#II", "III", "IV", "#IV", "V", "#V", "VI", "#VI", "VII"];
-      return mapR[rel] + rest;
-    }
-    return c;
-  };
-  if (parts.length === 2) {
-    return convertOne(parts[0]) + "/" + convertOne(parts[1]);
-  }
-  return convertOne(parts[0]);
 }
 
 export function ChordSheet({

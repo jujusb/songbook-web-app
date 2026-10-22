@@ -3,6 +3,7 @@
 import { useState, useCallback, useEffect, useRef } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useTranslation } from "@/lib/i18n";
+import type { ChordNotation } from "@/lib/chordpro/notation";
 
 export interface ScopeOption {
   id: string;
@@ -47,6 +48,9 @@ export function PdfExportView({
   selectedLangs,
   includeRefs,
   canExport,
+  initialShowChords = true,
+  initialShowRepeats = true,
+  initialChordNotation = "letters",
 }: {
   type: PdfType;
   scope: string;
@@ -65,6 +69,9 @@ export function PdfExportView({
   selectedLangs: string[];
   includeRefs: boolean;
   canExport: boolean;
+  initialShowChords?: boolean;
+  initialShowRepeats?: boolean;
+  initialChordNotation?: ChordNotation;
 }) {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -79,6 +86,21 @@ export function PdfExportView({
   const [previewLoading, setPreviewLoading] = useState(false);
   const [previewError, setPreviewError] = useState<string | null>(null);
   const previewUrlRef = useRef<string | null>(null);
+
+  const [showChords, setShowChords] = useState(() => {
+    const v = searchParams.get("showChords");
+    return v === null ? initialShowChords : v === "true";
+  });
+  const [showRepeats, setShowRepeats] = useState(() => {
+    const v = searchParams.get("repeatChorus");
+    return v === null ? initialShowRepeats : v === "true";
+  });
+  const [chordNotation, setChordNotation] = useState<ChordNotation>(() => {
+    const v = searchParams.get("chordNotation");
+    return v && ["letters", "solfege", "roman", "nashville"].includes(v)
+      ? (v as ChordNotation)
+      : initialChordNotation;
+  });
 
   // Build the request body for the current selection — shared by the preview
   // and the download so both produce the exact same PDF.
@@ -100,6 +122,9 @@ export function PdfExportView({
           lang: selectedLangs[0],
           langs: selectedLangs.slice(1),
           refs: includeRefs,
+          showChords,
+          repeatChorus: showRepeats,
+          chordNotation,
         };
   }, [
     type,
@@ -110,6 +135,9 @@ export function PdfExportView({
     checkedFiles,
     selectedLangs,
     includeRefs,
+    showChords,
+    showRepeats,
+    chordNotation,
   ]);
 
   const generatePdf = useCallback(async (): Promise<Blob> => {
@@ -386,6 +414,83 @@ export function PdfExportView({
           />
           <span className="text-sm">{t("pdf.includeReferences")}</span>
         </label>
+
+        {type === "chords" && (
+          <div className="mt-4 space-y-2">
+            <label className="block text-sm font-medium">{t("pdf.chordsLabel")}</label>
+            <div className="flex gap-2">
+              <button
+                type="button"
+                onClick={() => {
+                  const next = !showChords;
+                  setShowChords(next);
+                  const query = buildQuery({ showChords: next ? "1" : "" });
+                  router.push(`/pdf?${query.toString()}`);
+                }}
+                className={`px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
+                  showChords
+                    ? "bg-blue-50 text-blue-700 dark:bg-blue-950/40 dark:text-blue-300"
+                    : "bg-neutral-100 text-neutral-600 hover:bg-neutral-200 dark:bg-neutral-800 dark:text-neutral-300"
+                }`}
+              >
+                {t("pdf.chordsOn")}
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  const next = !showChords;
+                  setShowChords(next);
+                  const query = buildQuery({ showChords: next ? "1" : "" });
+                  router.push(`/pdf?${query.toString()}`);
+                }}
+                className={`px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
+                  !showChords
+                    ? "bg-blue-50 text-blue-700 dark:bg-blue-950/40 dark:text-blue-300"
+                    : "bg-neutral-100 text-neutral-600 hover:bg-neutral-200 dark:bg-neutral-800 dark:text-neutral-300"
+                }`}
+              >
+                {t("pdf.chordsOff")}
+              </button>
+            </div>
+            <label className="flex items-center gap-2 cursor-pointer mt-2">
+              <input
+                type="checkbox"
+                checked={showRepeats}
+                onChange={(e) => {
+                  const next = e.target.checked;
+                  setShowRepeats(next);
+                  const query = buildQuery({ repeatChorus: next ? "1" : "" });
+                  router.push(`/pdf?${query.toString()}`);
+                }}
+                className="accent-blue-600"
+              />
+              <span className="text-sm">{t("pdf.showRepeats")}</span>
+            </label>
+            <label className="block text-sm font-medium mb-1 mt-2">
+              {t("pdf.chordNotation")}
+            </label>
+            <div className="flex gap-1">
+              {["letters", "solfege", "roman", "nashville"].map((n) => (
+                <button
+                  key={n}
+                  type="button"
+                  onClick={() => {
+                    setChordNotation(n as ChordNotation);
+                    const query = buildQuery({ chordNotation: n });
+                    router.push(`/pdf?${query.toString()}`);
+                  }}
+                  className={`px-2 py-1 rounded-md text-xs font-medium transition-colors ${
+                    chordNotation === n
+                      ? "bg-blue-50 text-blue-700 dark:bg-blue-950/40 dark:text-blue-300"
+                      : "bg-neutral-100 text-neutral-600 hover:bg-neutral-200 dark:bg-neutral-800 dark:text-neutral-300"
+                  }`}
+                >
+                  {t(`pdf.notation${n.charAt(0).toUpperCase() + n.slice(1)}`)}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
 
       {type === "instrumental" && (
         <div>

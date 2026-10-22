@@ -14,8 +14,13 @@ export function parseChordPro(source: string) {
  * Render a ChordPro source string to HTML using the same
  * character-aligned layout as the visual editor.
  */
-export function renderToHtml(source: string, options?: { inlineChords?: boolean; repeatChorus?: boolean }): string {
-  return renderVisualChordSheet(source, { repeatChorus: options?.repeatChorus ?? true, inlineChords: options?.inlineChords });
+export function renderToHtml(source: string, options?: { inlineChords?: boolean; repeatChorus?: boolean; showChords?: boolean; hideInstrumentals?: boolean }): string {
+  return renderVisualChordSheet(source, {
+    repeatChorus: options?.repeatChorus ?? true,
+    inlineChords: options?.inlineChords,
+    showChords: options?.showChords ?? true,
+    hideInstrumentals: options?.hideInstrumentals,
+  });
 }
 
 /**

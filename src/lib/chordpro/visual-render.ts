@@ -28,6 +28,8 @@ export interface VisualRenderOptions {
    * Useful for responsive layouts (mobile, PDF) where separate rows wrap independently. */
   inlineChords?: boolean;
   hideInstrumentals?: boolean;
+  /** When false, chord rows are not rendered (chords hidden). */
+  showChords?: boolean;
 }
 
 function renderMetadataDirective(raw: string): string | null {
@@ -69,6 +71,7 @@ export function renderVisualChordSheet(
     repeatChorus = false,
     inlineChords = false,
     hideInstrumentals = false,
+    showChords = true,
   } = options;
   const lines = parseChordProSource(source);
   const out: string[] = ['<div class="vce-lines">'];
@@ -378,7 +381,7 @@ export function renderVisualChordSheet(
     const lineAttr = dataContentLine ? ` data-content-line="${contentLine}"` : "";
     emit(
       `  <div class="vce-line"${lineAttr}>` +
-        `    <div class="vce-chord-row">${chordParts.join("")}</div>` +
+        `${showChords ? `    <div class="vce-chord-row">${chordParts.join("")}</div>` : ""}` +
         `    <div class="vce-lyrics-row"><div class="vce-lyrics-text">${lyricsHtml}</div></div>` +
         "  </div>"
     );
