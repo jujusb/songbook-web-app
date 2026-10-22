@@ -5,6 +5,7 @@ import { getLocale, createT } from "@/lib/i18n/server";
 import { ProfileVoiceForm } from "@/components/ProfileVoiceForm";
 import { ProfileChordsForm } from "@/components/ProfileChordsForm";
 import { ProfileRepeatsForm } from "@/components/ProfileRepeatsForm";
+import { ProfilePartitionsForm } from "@/components/ProfilePartitionsForm";
 import { ProfileNotationForm } from "@/components/ProfileNotationForm";
 
 export default async function ProfilePage() {
@@ -24,6 +25,7 @@ export default async function ProfilePage() {
       <ProfileVoiceForm initialVoice={user.voice} />
       <ProfileChordsForm initialShowChords={user.showChords} />
       <ProfileRepeatsForm initialShowRepeats={user.showRepeats} />
+      <ProfilePartitionsForm initialInstrument={user.partitionsInstrument} />
       <ProfileNotationForm initialNotation={user.chordNotation} />
     </div>
   );

@@ -10,7 +10,7 @@ import {
   getLanguagesConfig,
 } from "@/lib/content";
 import { getLocale, createT } from "@/lib/i18n/server";
-import { getSession, canEdit, canViewSetlist } from "@/lib/auth";
+import { getSession, getCurrentUser, canEdit, canViewSetlist } from "@/lib/auth";
 import { resolveScopeSongs } from "@/lib/export/song-scope";
 import { planSongbookChapters } from "@/lib/print/load";
 import { resolveSongListTitle } from "@/lib/song-titles";
@@ -80,6 +80,7 @@ export default async function PdfPage({
   const songs: ScopeOption[] = songsData.map((s) => ({ id: s.id, title: s.title }));
   const session = await getSession();
   const isEditor = canEdit(session?.role ?? null);
+  const currentUser = await getCurrentUser();
   const setlists: ScopeOption[] = [];
   for (const s of setlistsData) {
     if (canViewSetlist(s, share ?? undefined, isEditor)) {
@@ -148,7 +149,9 @@ export default async function PdfPage({
     const selectedInstrument =
       rawInstrument && instrumentSet.has(rawInstrument)
         ? rawInstrument
-        : instruments[0]?.slug ?? null;
+        : currentUser?.partitionsInstrument && instrumentSet.has(currentUser.partitionsInstrument)
+          ? currentUser.partitionsInstrument
+          : instruments[0]?.slug ?? null;
 
     if (selectedInstrument) {
       const files: InstrumentalFile[] = [];

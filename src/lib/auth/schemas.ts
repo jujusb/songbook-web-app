@@ -36,6 +36,8 @@ export type VoiceSection = z.infer<typeof VoiceSectionSchema>;
     showRepeats: z.boolean().optional(),
     /** Chord notation to display: letters, solfège, roman numerals, or Nashville numbers. */
     chordNotation: z.enum(['letters', 'solfege', 'roman', 'nashville']).optional(),
+    /** Default partition instrument the user wants to view in the PDF/partition viewer. */
+    partitionsInstrument: z.string().optional(),
   });
 
 export type User = z.infer<typeof UserSchema>;

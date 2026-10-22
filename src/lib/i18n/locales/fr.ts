@@ -281,6 +281,13 @@ const fr: Translations = {
     repeatsSaved: "Préférence de répétitions enregistrée",
     repeatsFailed: "Impossible d'enregistrer ta préférence de répétitions.",
     repeatsNotes: 'Tu peux basculer les répétitions sur la page de la chanson à tout moment.',
+    partitions: 'Instrument de partition par défaut',
+    partitionsDesc: 'Choisis l\'instrument dont les partitions sont affichées par défaut dans les vues PDF/partition.',
+    partitionsSave: "Enregistrer la préférence d'instrument de partition",
+    partitionsSaving: 'Enregistrement...',
+    partitionsSaved: "Préférence d'instrument de partition enregistrée",
+    partitionsFailed: "Impossible d'enregistrer ta préférence d'instrument de partition.",
+    partitionsNotes: 'Entre le slug de l\'instrument tel qu\'il apparaît sur les fichiers de partition (ex. guitare, piano).',
   },
   voice: {
     boys: 'Garçons',
