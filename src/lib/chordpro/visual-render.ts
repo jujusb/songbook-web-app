@@ -197,8 +197,8 @@ export function renderVisualChordSheet(
     if (line.type === "directive") {
       const raw = line.raw.trim();
       const sectionLabel = directiveLabel(line.raw);
-      const labeledRepeat = raw.match(
-        new RegExp(`^\\{(${RE_REPEAT_TYPES})\\s*:\\s*(.+?)\\}$`, "i")
+const labeledRepeat = raw.match(
+        new RegExp(`^\\{(${RE_REPEAT_TYPES})(?!\\w)\\s*:\\s*(.+?)\\}$`, "i")
       );
       const bareRepeat = REPEAT_TYPES.find((t) => isRepeatBare(t, raw));
       const startType = isStartOfType(raw);
