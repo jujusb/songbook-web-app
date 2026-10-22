@@ -159,7 +159,7 @@ export default async function RootLayout({
           </nav>
         </header>
         <main className="flex-1 flex-grow">{children}</main>
-        <footer className="border-t border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-950 mt-auto">
+        <footer className="border-t border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-950 mt-auto no-print">
           <div className="mx-auto w-full max-w-3xl px-4 sm:px-6 lg:px-8 py-4 flex flex-col items-center gap-2 text-center text-sm text-neutral-500 dark:text-neutral-400">
             {CONTACT_EMAIL && (
               <p className="flex max-w-full flex-col items-center gap-0.5 sm:flex-row sm:gap-1.5">

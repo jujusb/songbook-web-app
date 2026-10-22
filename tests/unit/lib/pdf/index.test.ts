@@ -18,6 +18,7 @@ function makeBrowser(pdfBytes = new Uint8Array([1, 2, 3])) {
   const page = {
     setCookie: vi.fn().mockResolvedValue(undefined),
     goto: vi.fn().mockResolvedValue(undefined),
+    emulateMediaType: vi.fn().mockResolvedValue(undefined),
     pdf: vi.fn().mockResolvedValue(pdfBytes),
   };
   const browser = {

@@ -108,6 +108,7 @@ export function renderVisualChordSheet(
     lines: [] as string[],
     lastHtml: null as string | null,
     byLabel: new Map<string, string>(),
+    seenLabels: new Set<string>(),
   });
 
   let skipSection = false;
@@ -117,10 +118,11 @@ export function renderVisualChordSheet(
     lines: string[];
     lastHtml: string | null;
     byLabel: Map<string, string>;
+    seenLabels: Set<string>;
   }> = {
-    verse: createRepeatState(),
-    chorus: createRepeatState(),
-    instrumental: createRepeatState(),
+    verse: { ...createRepeatState(), seenLabels: new Set() },
+    chorus: { ...createRepeatState(), seenLabels: new Set() },
+    instrumental: { ...createRepeatState(), seenLabels: new Set() },
   };
 
   const lastSectionLabel: Record<RepeatType, string | null> = {
@@ -134,9 +136,17 @@ export function renderVisualChordSheet(
 
   const emit = (html: string) => {
     // Don't output to final if we're currently capturing a section type
-    // that has a corresponding bare repeat directive (to avoid duplicates).
-    if (currentCapturingType !== null && repeatedSectionTypes.has(currentCapturingType)) {
-      // We're capturing a section that will be repeated, don't output inline
+    // that has a corresponding bare repeat directive AND we've already
+    // finalized this exact label before (to avoid duplicates).
+    if (
+      currentCapturingType !== null &&
+      repeatedSectionTypes.has(currentCapturingType) &&
+      repeats[currentCapturingType].seenLabels.has(
+        (repeats[currentCapturingType].label ?? "").toLowerCase().trim()
+      )
+    ) {
+      // We're capturing a section that will be repeated AND we've already
+      // finalized this exact label before, don't output inline
     } else {
       out.push(html);
     }
@@ -152,6 +162,7 @@ export function renderVisualChordSheet(
       if (st.label) {
         const normalized = st.label.toLowerCase().trim();
         st.byLabel.set(normalized, st.lastHtml);
+        st.seenLabels.add(normalized);
         if (!normalized.startsWith(`${type} `)) {
           st.byLabel.set(`${type} ${normalized}`, st.lastHtml);
         }

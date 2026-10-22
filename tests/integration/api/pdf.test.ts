@@ -9,7 +9,7 @@ const mocks = vi.hoisted(() => ({
 }));
 
 const puppeteerMocks = vi.hoisted(() => {
-  const page = { setCookie: vi.fn(), goto: vi.fn(), pdf: vi.fn() };
+  const page = { setCookie: vi.fn(), goto: vi.fn(), pdf: vi.fn(), emulateMediaType: vi.fn() };
   const browser = { newPage: vi.fn(), close: vi.fn() };
   return { page, browser };
 });

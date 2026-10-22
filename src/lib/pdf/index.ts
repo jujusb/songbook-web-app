@@ -31,6 +31,8 @@ export async function generatePdfFromUrl(
       });
     }
     await page.goto(url, { waitUntil: 'networkidle0', timeout: 60000 });
+    // Enable print media CSS so @media print styles (like .no-print) are applied
+    await page.emulateMediaType('print');
     const pdf = await page.pdf({
       format: 'A4',
       printBackground: true,
