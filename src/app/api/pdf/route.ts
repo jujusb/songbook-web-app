@@ -15,7 +15,7 @@ import {
   mergePdfBuffers,
 } from "@/lib/pdf";
 import { languageLabelFor } from "@/lib/i18n/labels";
-import type { ChordNotation } from "@/lib/chordpro/notation";
+import type { ChordNotation, Orientation } from "@/lib/chordpro/notation";
 
 // --- Shared helpers -------------------------------------------------------
 
@@ -39,6 +39,9 @@ function buildChordsPrintUrl({
   showChords,
   repeatChorus,
   chordNotation,
+  orientation,
+  columns,
+  tocColumns,
 }: {
   scope: string;
   id: string | null;
@@ -49,6 +52,9 @@ function buildChordsPrintUrl({
   showChords: boolean;
   repeatChorus: boolean;
   chordNotation: ChordNotation;
+  orientation: Orientation;
+  columns: "1" | "2";
+  tocColumns: "1" | "2" | "3";
 }): string {
   const params = new URLSearchParams();
   if (scope === "setlist" && id) {
@@ -58,6 +64,9 @@ function buildChordsPrintUrl({
       `&showChords=${showChords}` +
       `&repeatChorus=${repeatChorus}` +
       `&chordNotation=${encodeURIComponent(chordNotation)}` +
+      `&orientation=${orientation}` +
+      `&columns=${columns}` +
+      `&tocColumns=${tocColumns}` +
       (share ? `&share=${encodeURIComponent(share)}` : "")
     );
   }
@@ -69,6 +78,9 @@ function buildChordsPrintUrl({
   params.set("showChords", String(showChords));
   params.set("repeatChorus", String(repeatChorus));
   params.set("chordNotation", chordNotation);
+  params.set("orientation", orientation);
+  params.set("columns", columns);
+  params.set("tocColumns", tocColumns);
   if (langs.length === 1) {
     const qs = params.toString();
     return `${baseUrl()}/print/${encodeURIComponent(langs[0])}${qs ? `?${qs}` : ""}`;
@@ -89,6 +101,9 @@ interface ChordsRequest {
   showChords?: boolean | null;
   repeatChorus?: boolean | null;
   chordNotation?: ChordNotation | null;
+  orientation?: Orientation | null;
+  columns?: "1" | "2" | null;
+  tocColumns?: "1" | "2" | "3" | null;
 }
 
 interface InstrumentalRequest {
@@ -194,6 +209,9 @@ async function handleChords(
   const showChords = body.showChords ?? true;
   const repeatChorus = body.repeatChorus ?? true;
   const chordNotation: ChordNotation = body.chordNotation ?? "letters";
+  const orientation: Orientation = body.orientation ?? "portrait";
+  const columns: "1" | "2" = body.columns ?? "1";
+  const tocColumns: "1" | "2" | "3" = body.tocColumns ?? "1";
   const url = buildChordsPrintUrl({
     scope: body.scope,
     id: body.id ?? null,
@@ -204,6 +222,9 @@ async function handleChords(
     showChords,
     repeatChorus,
     chordNotation,
+    orientation,
+    columns,
+    tocColumns,
   });
 
   try {

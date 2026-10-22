@@ -9,6 +9,7 @@ const FLATS: Record<string, string> = {
 const SOLFEGE = ["Do", "Di", "Re", "Ri", "Mi", "Fa", "Fi", "Sol", "Si", "La", "Li", "Ti"] as const;
 
 export type ChordNotation = "letters" | "solfege" | "roman" | "nashville";
+export type Orientation = "portrait" | "landscape";
 
 function normalizeRoot(root: string): string {
   if (FLATS[root]) return FLATS[root];

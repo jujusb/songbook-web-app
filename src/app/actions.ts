@@ -1012,3 +1012,39 @@ export async function updateMyPartitionInstrumentAction(instrument: string | nul
     };
   }
 }
+
+/**
+ * Save the logged-in user's default PDF layout preferences:
+ * page orientation, song body columns, and titles summary columns.
+ */
+export async function updateMyPdfLayoutAction(opts: {
+  orientation: 'portrait' | 'landscape' | null;
+  columns: '1' | '2' | null;
+  tocColumns: '1' | '2' | '3' | null;
+}) {
+  const session = await getSession();
+  if (!session) {
+    return { ok: false as const, error: "Unauthorized" };
+  }
+  const user = await getCurrentUser();
+  if (!user) {
+    return { ok: false as const, error: "Unauthorized" };
+  }
+  try {
+    await saveUser(
+      {
+        ...user,
+        pdfOrientation: opts.orientation ?? undefined,
+        pdfColumns: opts.columns ?? undefined,
+        pdfTocColumns: opts.tocColumns ?? undefined,
+      },
+      { allowReadOnly: true }
+    );
+    return { ok: true as const };
+  } catch (err) {
+    return {
+      ok: false as const,
+      error: err instanceof Error ? err.message : "FAILED",
+    };
+  }
+}

@@ -3,7 +3,7 @@
 import { useState, useCallback, useEffect, useRef } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useTranslation } from "@/lib/i18n";
-import type { ChordNotation } from "@/lib/chordpro/notation";
+import type { ChordNotation, Orientation } from "@/lib/chordpro/notation";
 
 export interface ScopeOption {
   id: string;
@@ -51,6 +51,9 @@ export function PdfExportView({
   initialShowChords = true,
   initialShowRepeats = true,
   initialChordNotation = "letters",
+  initialOrientation = "portrait",
+  initialColumns = "1",
+  initialTocColumns = "1",
 }: {
   type: PdfType;
   scope: string;
@@ -69,9 +72,12 @@ export function PdfExportView({
   selectedLangs: string[];
   includeRefs: boolean;
   canExport: boolean;
-  initialShowChords?: boolean;
-  initialShowRepeats?: boolean;
-  initialChordNotation?: ChordNotation;
+  initialShowChords: boolean;
+  initialShowRepeats: boolean;
+  initialChordNotation: ChordNotation;
+  initialOrientation: Orientation;
+  initialColumns: "1" | "2";
+  initialTocColumns: "1" | "2" | "3";
 }) {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -101,6 +107,22 @@ export function PdfExportView({
       ? (v as ChordNotation)
       : initialChordNotation;
   });
+  const [orientation, setOrientation] = useState<Orientation>(() => {
+    const v = searchParams.get("orientation");
+    return v === "landscape" ? "landscape" : initialOrientation;
+  });
+  const [columns, setColumns] = useState<"1" | "2">(() => {
+    const v = searchParams.get("columns");
+    return v === "1" || v === "2" ? v : initialColumns;
+  });
+  const [tocColumns, setTocColumns] = useState<"1" | "2" | "3">(() => {
+    const v = searchParams.get("tocColumns");
+    return v === "1" || v === "2" || v === "3" ? v : initialTocColumns;
+  });
+
+  const orientationOptions: Orientation[] = ["portrait", "landscape"];
+  const bodyColumnOptions: ("1" | "2")[] = ["1", "2"];
+  const tocColumnOptions: ("1" | "2" | "3")[] = ["1", "2", "3"];
 
   // Build the request body for the current selection — shared by the preview
   // and the download so both produce the exact same PDF.
@@ -113,6 +135,7 @@ export function PdfExportView({
           share: share || null,
           instrument: selectedInstrument || null,
           files: checkedFiles.length > 0 ? checkedFiles : null,
+          orientation,
         }
       : {
           type: "chords" as const,
@@ -125,6 +148,9 @@ export function PdfExportView({
           showChords,
           repeatChorus: showRepeats,
           chordNotation,
+          orientation,
+          columns,
+          tocColumns,
         };
   }, [
     type,
@@ -138,6 +164,9 @@ export function PdfExportView({
     showChords,
     showRepeats,
     chordNotation,
+    orientation,
+    columns,
+    tocColumns,
   ]);
 
   const generatePdf = useCallback(async (): Promise<Blob> => {
@@ -486,6 +515,75 @@ export function PdfExportView({
                   }`}
                 >
                   {t(`pdf.notation${n.charAt(0).toUpperCase() + n.slice(1)}`)}
+                </button>
+              ))}
+            </div>
+            <label className="block text-sm font-medium mb-1 mt-2">
+              {t("pdf.orientation")}
+            </label>
+            <div className="flex gap-1">
+              {orientationOptions.map((o) => (
+                <button
+                  key={o}
+                  type="button"
+                  onClick={() => {
+                    setOrientation(o);
+                    const query = buildQuery({ orientation: o });
+                    router.push(`/pdf?${query.toString()}`);
+                  }}
+                  className={`px-2 py-1 rounded-md text-xs font-medium transition-colors ${
+                    orientation === o
+                      ? "bg-blue-50 text-blue-700 dark:bg-blue-950/40 dark:text-blue-300"
+                      : "bg-neutral-100 text-neutral-600 hover:bg-neutral-200 dark:bg-neutral-800 dark:text-neutral-300"
+                  }`}
+                >
+                  {o === "portrait" ? t("pdf.portrait") : t("pdf.landscape")}
+                </button>
+              ))}
+            </div>
+            <label className="block text-sm font-medium mb-1 mt-2">
+              {t("pdf.columns")}
+            </label>
+            <div className="flex gap-1">
+              {bodyColumnOptions.map((c) => (
+                <button
+                  key={c}
+                  type="button"
+                  onClick={() => {
+                    setColumns(c);
+                    const query = buildQuery({ columns: c });
+                    router.push(`/pdf?${query.toString()}`);
+                  }}
+                  className={`px-2 py-1 rounded-md text-xs font-medium transition-colors ${
+                    columns === c
+                      ? "bg-blue-50 text-blue-700 dark:bg-blue-950/40 dark:text-blue-300"
+                      : "bg-neutral-100 text-neutral-600 hover:bg-neutral-200 dark:bg-neutral-800 dark:text-neutral-300"
+                  }`}
+                >
+                  {c}
+                </button>
+              ))}
+            </div>
+            <label className="block text-sm font-medium mb-1 mt-2">
+              {t("pdf.tocColumns")}
+            </label>
+            <div className="flex gap-1">
+              {tocColumnOptions.map((c) => (
+                <button
+                  key={c}
+                  type="button"
+                  onClick={() => {
+                    setTocColumns(c);
+                    const query = buildQuery({ tocColumns: c });
+                    router.push(`/pdf?${query.toString()}`);
+                  }}
+                  className={`px-2 py-1 rounded-md text-xs font-medium transition-colors ${
+                    tocColumns === c
+                      ? "bg-blue-50 text-blue-700 dark:bg-blue-950/40 dark:text-blue-300"
+                      : "bg-neutral-100 text-neutral-600 hover:bg-neutral-200 dark:bg-neutral-800 dark:text-neutral-300"
+                  }`}
+                >
+                  {c}
                 </button>
               ))}
             </div>

@@ -116,6 +116,7 @@ describe('print/load.ts', () => {
         inlineChords: false,
         repeatChorus: true,
         showChords: true,
+        hideInstrumentals: false,
       });
     });
 

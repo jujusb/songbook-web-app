@@ -3,9 +3,17 @@ import { PrintButton } from "@/components/PrintButton";
 import { printStyles } from "@/lib/print/styles";
 import { languageLabelFor } from "@/lib/i18n/labels";
 import type { PrintSong } from "@/lib/print/types";
+import type { Orientation } from "@/lib/chordpro/notation";
 
 function isAlbumHeader(song: PrintSong): boolean {
   return song.id.startsWith("__album_");
+}
+
+/**
+ * Builds the page-orientation @page rule used in print mode.
+ */
+function pageSizeCss(orientation: Orientation): string {
+  return orientation === "landscape" ? "@page { size: A4 landscape; }" : "@page { size: A4; }";
 }
 
 /**
@@ -25,6 +33,9 @@ export function PrintSongbook({
   toolbarChildren,
   emptyText,
   showChords = true,
+  orientation = "portrait",
+  columns = "1",
+  tocColumns = "1",
 }: {
   printSongs: PrintSong[];
   pageTitle: string;
@@ -36,10 +47,21 @@ export function PrintSongbook({
   toolbarChildren?: React.ReactNode;
   emptyText: string;
   showChords?: boolean;
+  orientation?: Orientation;
+  columns?: "1" | "2";
+  tocColumns?: "1" | "2" | "3";
 }) {
   return (
     <div className="print-layout">
       <style dangerouslySetInnerHTML={{ __html: printStyles }} />
+      <style
+        dangerouslySetInnerHTML={{
+          __html: `${pageSizeCss(orientation)}
+          .print-columns { column-count: ${columns}; column-gap: 1.5cm; column-fill: auto; }
+          .toc-columns { column-count: ${tocColumns}; column-gap: 1cm; }
+        `,
+        }}
+      />
 
       {/* Toolbar (screen only) */}
       <div className="no-print max-w-full mx-auto px-4 sm:px-6 lg:px-8 py-4 mb-8 bg-neutral-100 dark:bg-neutral-900 rounded-lg flex items-center gap-4 flex-wrap">
@@ -64,7 +86,7 @@ export function PrintSongbook({
             <h2 className="text-xl font-bold mb-4 mt-8">
               {tocTitle ?? "Table of Contents"} - Alphabetical (A-Z)
             </h2>
-            <ol className="list-decimal pl-6 space-y-1">
+            <ol className="list-decimal pl-6 space-y-1 toc-columns">
               {printSongs
                 .filter((song) => !isAlbumHeader(song))
                 .sort((a, b) => a.title.localeCompare(b.title))
@@ -115,7 +137,7 @@ export function PrintSongbook({
               return Array.from(albumGroups.entries()).map(([albumTitle, group], albumIndex) => (
                 <div key={`toc-album-${albumIndex}`} className="mb-4">
                   <h3 className="font-bold text-neutral-900 dark:text-white mb-2">{albumTitle}</h3>
-                  <ol className="list-decimal pl-6 space-y-1">
+            <ol className="list-decimal pl-6 space-y-1 toc-columns">
                     {group.songs.map((song, songIndex) => (
                       <li key={`toc-album-${albumIndex}-${song.id}-${song.lang}`}>
                         <a

@@ -102,7 +102,7 @@ export async function loadPrintSongs(
           ?? resolved.meta?.title
           ?? songId;
         const key = resolved.meta?.key ?? meta?.key;
-        let html = renderToHtml(body, { inlineChords, repeatChorus, showChords });
+        let html = renderToHtml(body, { inlineChords, repeatChorus, showChords, hideInstrumentals: !showChords });
         if (chordNotation !== "letters" && showChords) {
           html = applyNotation(html, chordNotation, key ?? null);
         }

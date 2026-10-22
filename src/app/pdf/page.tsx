@@ -211,6 +211,9 @@ export default async function PdfPage({
         initialShowChords={currentUser?.showChords !== false}
         initialShowRepeats={currentUser?.showRepeats !== false}
         initialChordNotation={currentUser?.chordNotation ?? "letters"}
+        initialOrientation={currentUser?.pdfOrientation ?? "portrait"}
+        initialColumns={currentUser?.pdfColumns ?? "1"}
+        initialTocColumns={currentUser?.pdfTocColumns ?? "1"}
       />
     </div>
   );

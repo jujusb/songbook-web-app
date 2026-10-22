@@ -38,6 +38,12 @@ export type VoiceSection = z.infer<typeof VoiceSectionSchema>;
     chordNotation: z.enum(['letters', 'solfege', 'roman', 'nashville']).optional(),
     /** Default partition instrument the user wants to view in the PDF/partition viewer. */
     partitionsInstrument: z.string().optional(),
+    /** Default page orientation for PDF export: portrait or landscape. */
+    pdfOrientation: z.enum(['portrait', 'landscape']).optional(),
+    /** Default number of columns for PDF song body: 1 or 2. */
+    pdfColumns: z.enum(['1', '2']).optional(),
+    /** Default number of columns for the titles summary (TOC): 1, 2, or 3. */
+    pdfTocColumns: z.enum(['1', '2', '3']).optional(),
   });
 
 export type User = z.infer<typeof UserSchema>;

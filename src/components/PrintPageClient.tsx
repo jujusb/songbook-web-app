@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { PrintSongbook } from "@/components/PrintSongbook";
 import { languageLabelFor } from "@/lib/i18n/labels";
 import type { PrintSong } from "@/lib/print/types";
+import type { Orientation } from "@/lib/chordpro/notation";
 
 const langLabel = languageLabelFor;
 
@@ -21,6 +22,9 @@ interface PrintPageClientProps {
   repeatChorus: boolean;
   showChords: boolean;
   chordNotation: "letters" | "solfege" | "roman" | "nashville";
+  orientation: Orientation;
+  columns: "1" | "2";
+  tocColumns: "1" | "2" | "3";
   primaryLang: string;
 }
 
@@ -37,11 +41,17 @@ export function PrintPageClient({
   repeatChorus: initialRepeatChorus,
   showChords: initialShowChords,
   chordNotation: initialChordNotation,
+  orientation: initialOrientation,
+  columns: initialColumns,
+  tocColumns: initialTocColumns,
   primaryLang,
 }: PrintPageClientProps) {
   const [repeatChorus, setRepeatChorus] = useState(initialRepeatChorus);
   const [showChords, setShowChords] = useState(initialShowChords);
   const [chordNotation, setChordNotation] = useState<"letters" | "solfege" | "roman" | "nashville">(initialChordNotation);
+  const [orientation] = useState<Orientation>(initialOrientation);
+  const [columns] = useState<"1" | "2">(initialColumns);
+  const [tocColumns] = useState<"1" | "2" | "3">(initialTocColumns);
   const router = useRouter();
   const searchParams = useSearchParams();
 
@@ -76,6 +86,9 @@ export function PrintPageClient({
       backLabel={backLabel}
       emptyText={emptyText}
       showChords={showChords}
+      orientation={orientation}
+      columns={columns}
+      tocColumns={tocColumns}
       toolbarChildren={
         <>
           <span className="text-sm text-neutral-500">

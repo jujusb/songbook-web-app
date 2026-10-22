@@ -23,6 +23,9 @@ export default async function PrintPage({
     repeatChorus?: string;
     showChords?: string;
     chordNotation?: string;
+    orientation?: string;
+    columns?: string;
+    tocColumns?: string;
   }>;
 }) {
   const { lang: primaryLang } = await params;
@@ -36,6 +39,9 @@ export default async function PrintPage({
     repeatChorus: repeatChorusParam,
     showChords: showChordsParam,
     chordNotation: chordNotationParam,
+    orientation: orientationParam,
+    columns: columnsParam,
+    tocColumns: tocColumnsParam,
   } = await searchParams;
 
   const session = await getSession();
@@ -48,6 +54,11 @@ export default async function PrintPage({
     chordNotationParam === "solfege" || chordNotationParam === "roman" || chordNotationParam === "nashville"
       ? chordNotationParam
       : "letters";
+  const orientation: "portrait" | "landscape" =
+    orientationParam === "landscape" ? "landscape" : "portrait";
+  const columns: "1" | "2" = columnsParam === "2" ? "2" : "1";
+  const tocColumns: "1" | "2" | "3" =
+    tocColumnsParam === "2" || tocColumnsParam === "3" ? tocColumnsParam : "1";
 
   // Determine which languages to include
   let languages: string[];
@@ -122,6 +133,9 @@ export default async function PrintPage({
       repeatChorus={repeatChorus}
       showChords={showChords}
       chordNotation={chordNotation}
+      orientation={orientation}
+      columns={columns}
+      tocColumns={tocColumns}
       primaryLang={primaryLang}
       emptyText="No songs found for the selected language(s)."
     />
