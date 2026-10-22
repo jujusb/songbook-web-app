@@ -12,16 +12,13 @@ interface UserInfo {
   displayName?: string;
 }
 
-export function UserMenu() {
+export function UserMenu({ variant = "full" }: { variant?: "full" | "compact" | "buttons" } = {}) {
   const router = useRouter();
   const pathname = usePathname();
   const { t } = useTranslation();
   const [user, setUser] = useState<UserInfo | null>(null);
   const [loaded, setLoaded] = useState(false);
 
-  // The header lives in the root layout, so it is not remounted on client-side
-  // navigations. Re-fetch on every route change so login/logout is reflected
-  // immediately instead of staying stale until a full reload.
   useEffect(() => {
     fetch("/api/auth/me", { cache: "no-store" })
       .then((r) => r.json())
@@ -35,10 +32,11 @@ export function UserMenu() {
   if (!loaded) return null;
 
   if (!user) {
+    if (variant === "compact") return null;
     return (
       <Link
         href="/login"
-        className="text-sm text-neutral-600 dark:text-neutral-400 hover:text-foreground transition-colors"
+        className="text-xs text-neutral-400 hover:text-foreground transition-colors"
       >
         {t('auth.login')}
       </Link>
@@ -49,7 +47,6 @@ export function UserMenu() {
     const res = await fetch("/api/auth/logout", { method: "POST" });
     const data = await res.json();
     if (data.redirectUrl) {
-      // OIDC provider logout — redirect to the provider's logout endpoint
       window.location.href = data.redirectUrl;
     } else {
       router.push("/");
@@ -57,27 +54,49 @@ export function UserMenu() {
     }
   };
 
+  const nameBadge = (
+    <span className="text-xs text-neutral-400">
+      {user.displayName || user.username}
+      <span className="ml-1 px-1.5 py-0.5 bg-neutral-100 dark:bg-neutral-800 rounded text-[10px]">
+        {user.role}
+      </span>
+    </span>
+  );
+
+  if (variant === "compact") return nameBadge;
+
+  const profileLink = (
+    <Link
+      href="/profile"
+      className="text-xs text-neutral-400 hover:text-foreground transition-colors"
+    >
+      {t('nav.profile')}
+    </Link>
+  );
+  const logoutButton = (
+    <button
+      type="button"
+      onClick={handleLogout}
+      className="text-xs text-neutral-400 hover:text-red-500 transition-colors"
+    >
+      {t('auth.logout')}
+    </button>
+  );
+
+  if (variant === "buttons") {
+    return (
+      <>
+        {profileLink}
+        {logoutButton}
+      </>
+    );
+  }
+
   return (
     <div className="flex shrink-0 items-center gap-3">
-      <span className="text-xs text-neutral-400">
-        {user.displayName || user.username}
-        <span className="ml-1 px-1.5 py-0.5 bg-neutral-100 dark:bg-neutral-800 rounded text-[10px]">
-          {user.role}
-        </span>
-      </span>
-      <Link
-        href="/profile"
-        className="text-xs text-neutral-400 hover:text-foreground transition-colors"
-      >
-        {t('nav.profile')}
-      </Link>
-      <button
-        type="button"
-        onClick={handleLogout}
-        className="text-xs text-neutral-400 hover:text-red-500 transition-colors"
-      >
-        {t('auth.logout')}
-      </button>
+      {nameBadge}
+      {profileLink}
+      {logoutButton}
     </div>
   );
 }

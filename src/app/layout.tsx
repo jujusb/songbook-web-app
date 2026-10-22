@@ -90,12 +90,29 @@ export default async function RootLayout({
     >
       <body className="min-h-full flex flex-col bg-background text-foreground">
         <header className="border-b border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-950 sticky top-0 z-50">
-          <nav className="max-w-full mx-auto px-4 sm:px-6 lg:px-8 py-2 sm:py-0 sm:h-14 min-h-14 flex flex-col sm:flex-row sm:items-center justify-between gap-2 sm:gap-3">
+          <nav className="max-w-full mx-auto px-4 sm:px-6 lg:px-8 py-2 sm:py-0 sm:h-14 min-h-14 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-3">
             {/*
-              On phones the navigation is a row of buttons above the title; on
-              wider screens it sits on the right of the title as before.
+              Top bar: songbook title on the left, language selector and the
+              signed-in user (name + role) on the right.
             */}
-            <div className="order-1 sm:order-2 w-full sm:w-auto sm:flex-1 flex min-w-0 items-center gap-2 overflow-x-auto sm:flex-wrap sm:overflow-visible sm:justify-end [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+            <div className="w-full sm:w-auto flex flex-col sm:flex-row sm:items-center justify-between gap-2 sm:gap-3">
+              <Link
+                href="/"
+                className="min-w-0 flex-1 sm:flex-none font-bold text-lg tracking-tight truncate"
+              >
+                {APP_NAME}
+              </Link>
+              <div className="flex shrink-0 items-center gap-2">
+                <LocaleSwitcher />
+                <UserMenu variant="compact" />
+              </div>
+            </div>
+
+            {/*
+              Button strip: all navigation buttons plus the profile and
+              login/logout buttons. Scrollable horizontally on phones.
+            */}
+            <div className="w-full sm:w-auto flex min-w-0 items-center gap-2 overflow-x-auto sm:flex-wrap sm:overflow-visible sm:justify-end [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
               <Link href="/browse" className={NAV_LINK_CLASS}>
                 <T k="nav.browse" />
               </Link>
@@ -140,18 +157,7 @@ export default async function RootLayout({
               >
                 Convert to PDF
               </Link>
-            </div>
-            <div className="order-2 sm:order-1 sm:contents flex items-center justify-between gap-3 w-full sm:w-auto min-w-0">
-              <Link
-                href="/"
-                className="order-2 sm:order-1 min-w-0 flex-1 sm:flex-none font-bold text-lg tracking-tight truncate"
-              >
-                {APP_NAME}
-              </Link>
-              <div className="order-3 flex shrink-0 items-center gap-2">
-                <LocaleSwitcher />
-                <UserMenu />
-              </div>
+              <UserMenu variant="buttons" />
             </div>
           </nav>
         </header>
