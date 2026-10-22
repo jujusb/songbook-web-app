@@ -27,6 +27,7 @@ export interface VisualRenderOptions {
   /** Render chords inline with lyrics (in brackets) instead of on a separate row.
    * Useful for responsive layouts (mobile, PDF) where separate rows wrap independently. */
   inlineChords?: boolean;
+  hideInstrumentals?: boolean;
 }
 
 function renderMetadataDirective(raw: string): string | null {
@@ -67,6 +68,7 @@ export function renderVisualChordSheet(
     highlightRange,
     repeatChorus = false,
     inlineChords = false,
+    hideInstrumentals = false,
   } = options;
   const lines = parseChordProSource(source);
   const out: string[] = ['<div class="vce-lines">'];
@@ -174,6 +176,9 @@ export function renderVisualChordSheet(
         const display = aliases[0] ?? null;
         const label = display || primary;
 
+        if (hideInstrumentals && type === 'instrumental') {
+          continue;
+        }
         if (!repeatChorus) {
           out.push(`  <div class="vce-section-label vce-section-label--repeat">${escapeHtml(label)}</div>`);
           continue;
@@ -247,6 +252,9 @@ export function renderVisualChordSheet(
 
       if (bareRepeat) {
         finalizeAll();
+        if (hideInstrumentals && bareRepeat === 'instrumental') {
+          continue;
+        }
         if (!repeatChorus) {
           const label = lastSectionLabel[bareRepeat] ?? null;
           if (label) {
@@ -287,6 +295,10 @@ export function renderVisualChordSheet(
       if (repeatChorus) {
         if (startType) {
           finalizeAll();
+          if (hideInstrumentals && startType === 'instrumental') {
+            skipSection = true;
+            continue;
+          }
           repeats[startType].capturing = true;
           repeats[startType].label = sectionLabel ?? null;
         } else if (isEndOfSection || sectionLabel) {
@@ -296,6 +308,10 @@ export function renderVisualChordSheet(
         if (startType) {
           finalizeAll();
           lastSectionLabel[startType] = sectionLabel ?? null;
+          if (hideInstrumentals && startType === 'instrumental') {
+            skipSection = true;
+            continue;
+          }
           if (startType === 'instrumental' || startType === 'chorus') {
             if (sectionLabel) {
               emit(`  <div class="vce-section-label vce-section-label--repeat">${escapeHtml(sectionLabel)}</div>`);

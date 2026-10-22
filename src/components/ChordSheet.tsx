@@ -46,8 +46,8 @@ interface Footnote {
   highlight?: string; // per-location override
 }
 
-function renderSource(source: string, options?: { inlineChords?: boolean; repeatChorus?: boolean }): string {
-  return renderVisualChordSheet(source, { repeatChorus: options?.repeatChorus ?? true, inlineChords: options?.inlineChords });
+function renderSource(source: string, options?: { inlineChords?: boolean; repeatChorus?: boolean; hideInstrumentals?: boolean }): string {
+  return renderVisualChordSheet(source, { repeatChorus: options?.repeatChorus ?? true, inlineChords: options?.inlineChords, hideInstrumentals: options?.hideInstrumentals });
 }
 
 function transposeSource(source: string, semitones: number): string {
@@ -484,7 +484,7 @@ export function ChordSheet({
   const html = useMemo(() => {
     const transposed = transposeSource(initialSource, semitones);
     const withMarkers = injectMarkersIntoSource(transposed, footnotesByLine);
-    let rendered = renderSource(withMarkers, { inlineChords: useInlineChords, repeatChorus: localShowRepeats });
+    let rendered = renderSource(withMarkers, { inlineChords: useInlineChords, repeatChorus: localShowRepeats, hideInstrumentals: !localShowChords });
     if (localNotation !== "letters" && localShowChords) {
       rendered = rendered.replace(/class="vce-chord"([^>]*)>([^<]+)<\/span>/g, (_m, attrs, chord) => {
         const converted = convertChord(chord, localNotation, songKey);
