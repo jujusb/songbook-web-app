@@ -38,7 +38,7 @@ interface Reference {
   line?: number;
   verse?: string;
   chorus?: string;
-  locations?: Array<{ line?: number; verse?: string; chorus?: string; highlight?: string; highlights?: Record<string, string> }>;
+  locations?: ReferenceLocation[];
 }
 
 interface Footnote {
@@ -156,7 +156,12 @@ function injectMarkersIntoSource(
     // This is a content line — check if it has footnotes
     const fns = footnotesByLine.get(contentLineIndex);
     if (fns && fns.length > 0) {
-      const markerText = fns.map((fn) => `(${fn.index})`).join(" ");
+      const markerText = fns
+        .map(
+          (fn) =>
+            `<a href="#footnote-${fn.index}" class="footnote-ref">[${fn.index}]</a>`
+        )
+        .join(" ");
       result.push(line + " " + markerText);
     } else {
       result.push(line);
@@ -220,7 +225,7 @@ function renderFootnoteListHtml(footnotes: Footnote[], lang: string): string {
     if (text) {
       textHtml = `<div class="ref-text">${renderHighlightedHtml(text, hl)}</div>`;
     }
-    return `<li><span class="footnote-marker">[${fn.index}]</span> ${link}${textHtml}</li>`;
+    return `<li id="footnote-${fn.index}"><span class="footnote-marker">[${fn.index}]</span> ${link}${textHtml}</li>`;
   }).join('\n');
   return `<div class="song-references"><div class="ref-header">References</div><ol>${items}</ol></div>`;
 }

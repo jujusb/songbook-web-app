@@ -87,6 +87,21 @@ export function renderVisualChordSheet(
   const REPEAT_TYPES: RepeatType[] = ["verse", "chorus", "instrumental"];
   const RE_REPEAT_TYPES = REPEAT_TYPES.join("|");
 
+  // Pre-scan: detect which section types have bare repeat directives (e.g., {verse}, {chorus})
+  // This helps avoid duplicate rendering when repeatChorus is true
+  const repeatedSectionTypes = new Set<RepeatType>();
+  if (repeatChorus) {
+    const bareRepeatRegex = new RegExp(`^\\{(${RE_REPEAT_TYPES})\\}$`, "i");
+    for (const line of lines) {
+      if (line.type === "directive") {
+        const match = line.raw.trim().match(bareRepeatRegex);
+        if (match) {
+          repeatedSectionTypes.add(match[1].toLowerCase() as RepeatType);
+        }
+      }
+    }
+  }
+
   const createRepeatState = () => ({
     capturing: false,
     label: null as string | null,
@@ -114,8 +129,17 @@ export function renderVisualChordSheet(
     instrumental: null,
   };
 
+  // Track which section type is currently being captured (so we only suppress output for that type)
+  let currentCapturingType: RepeatType | null = null;
+
   const emit = (html: string) => {
-    out.push(html);
+    // Don't output to final if we're currently capturing a section type
+    // that has a corresponding bare repeat directive (to avoid duplicates).
+    if (currentCapturingType !== null && repeatedSectionTypes.has(currentCapturingType)) {
+      // We're capturing a section that will be repeated, don't output inline
+    } else {
+      out.push(html);
+    }
     for (const type of REPEAT_TYPES) {
       if (repeats[type].capturing) repeats[type].lines.push(html);
     }
@@ -138,6 +162,7 @@ export function renderVisualChordSheet(
     }
     st.capturing = false;
     st.label = null;
+    if (currentCapturingType === type) currentCapturingType = null;
   };
 
   const finalizeAll = () => REPEAT_TYPES.forEach(finalize);
@@ -304,6 +329,7 @@ export function renderVisualChordSheet(
           }
           repeats[startType].capturing = true;
           repeats[startType].label = sectionLabel ?? null;
+          currentCapturingType = startType;
         } else if (isEndOfSection || sectionLabel) {
           finalizeAll();
         }
