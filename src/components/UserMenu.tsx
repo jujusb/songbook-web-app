@@ -65,10 +65,14 @@ export function UserMenu({ variant = "full" }: { variant?: "full" | "compact" | 
 
   if (variant === "compact") return nameBadge;
 
+  // Pill-styled buttons that match the navigation buttons (mobile header).
+  const pillClass =
+    "shrink-0 whitespace-nowrap rounded-full border border-neutral-300 dark:border-neutral-700 px-3 py-1 text-xs font-medium text-neutral-600 dark:text-neutral-400 hover:bg-neutral-100 hover:text-foreground transition-colors";
+
   const profileLink = (
     <Link
       href="/profile"
-      className="text-xs text-neutral-400 hover:text-foreground transition-colors"
+      className={`${pillClass} border-blue-500 bg-blue-50 text-blue-700 dark:border-blue-400 dark:bg-blue-950/40 dark:text-blue-300`}
     >
       {t('nav.profile')}
     </Link>
@@ -77,7 +81,7 @@ export function UserMenu({ variant = "full" }: { variant?: "full" | "compact" | 
     <button
       type="button"
       onClick={handleLogout}
-      className="text-xs text-neutral-400 hover:text-red-500 transition-colors"
+      className={`${pillClass} border-red-500 bg-red-50 text-red-700 dark:border-red-400 dark:bg-red-950/40 dark:text-red-300 hover:bg-red-100 dark:hover:bg-red-800`}
     >
       {t('auth.logout')}
     </button>
