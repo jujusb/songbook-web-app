@@ -54,12 +54,16 @@ export default async function SetlistSharePage({
         const meta = await getSong(item.songId);
         const translations = await getSongTranslations(item.songId);
         const { body } = await getSongTranslation(item.songId, item.lang);
+        const originalLang = Object.keys(meta.titles ?? {})[0] || item.lang;
         return {
           ...item,
           title: await getSongTitle(item.songId, item.lang),
           key: meta.key,
           translations,
           body,
+          spotify: meta.spotify?.song,
+          youtube: meta.youtube,
+          originalLang,
         };
       } catch {
         return {
@@ -68,6 +72,9 @@ export default async function SetlistSharePage({
           key: undefined,
           translations: [] as string[],
           body: '',
+          spotify: undefined,
+          youtube: undefined,
+          originalLang: item.lang,
         };
       }
     })

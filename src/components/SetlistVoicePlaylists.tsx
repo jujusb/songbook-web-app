@@ -1,11 +1,12 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useTranslation } from '@/lib/i18n';
 import { generateSetlistVoiceSharesAction } from '@/app/actions';
 import type { VoiceShareWithTracks } from '@/app/actions';
 import type { VoiceGender, VoiceSection } from '@/lib/navidrome/voices';
+import { SongAudioEmbed } from '@/components/SongAudioEmbed';
 
 const SECTION_GENDER: Record<VoiceSection, VoiceGender> = {
   tenor: 'Boy',
@@ -21,29 +22,32 @@ const GENDER_SECTIONS: Record<VoiceGender, VoiceSection[]> = {
 
 export const SECTION_ORDER: VoiceSection[] = ['tenor', 'bass', 'alto', 'soprano'];
 
-/**
- * Per-voice shared playlists for a setlist, one Navidrome share per section
- * containing that voice's recordings for every song in the list. Mirrors the
- * song-page voices UI (boys / girls tabs): sections render the shared
- * playlist in an iframe when the share page allows embedding, otherwise an
- * "Open playlist" link plus the section's stream players. When no shares
- * exist yet, editors see a button to generate them.
- *
- * Can be used in controlled mode (activeSection + onSectionChange provided)
- * or uncontrolled mode (internal state).
- */
+interface SetlistSongForAudio {
+  songId: string;
+  lang: string;
+  title: string;
+  spotify?: string;
+  youtube?: string;
+  originalLang?: string;
+  preferredVoice?: VoiceSection;
+}
+
 export function SetlistVoicePlaylists({
   setlistId,
   shares,
   canGenerate,
   activeSection: controlledActiveSection,
   onSectionChange,
+  songs,
+  preferredVoice,
 }: {
   setlistId: string;
   shares: VoiceShareWithTracks[];
   canGenerate: boolean;
   activeSection?: VoiceSection;
   onSectionChange?: (section: VoiceSection) => void;
+  songs: SetlistSongForAudio[];
+  preferredVoice?: VoiceSection;
 }) {
   const { t } = useTranslation();
   const genderLabel = (gender: VoiceGender) =>
@@ -53,6 +57,7 @@ export function SetlistVoicePlaylists({
   const [generating, setGenerating] = useState(false);
   const [done, setDone] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [allTabLoaded, setAllTabLoaded] = useState(false);
 
   const available = shares.filter((share) => share.tracks.length > 0);
   const isControlled = controlledActiveSection !== undefined && onSectionChange !== undefined;
@@ -69,9 +74,15 @@ export function SetlistVoicePlaylists({
     const initial = getInitialShare();
     return initial ? initial.section : 'tenor';
   });
+  const [activeTab, setActiveTab] = useState<'ALL' | VoiceSection>(() => {
+    if (isControlled) return controlledActiveSection ?? 'ALL';
+    return 'ALL';
+  });
 
   const currentActiveSection = isControlled ? controlledActiveSection : activeSection;
   const currentActiveGender = SECTION_GENDER[currentActiveSection];
+  // In controlled mode, activeTab follows controlledActiveSection; in uncontrolled, use internal state
+  const currentActiveTab = isControlled ? (controlledActiveSection ?? 'ALL') : activeTab;
 
   const activeShare =
     available.find((share) => share.section === currentActiveSection) ??
@@ -79,6 +90,13 @@ export function SetlistVoicePlaylists({
     available[0];
 
   const visible = available.length > 0;
+
+  // Sync internal activeTab when controlledActiveSection changes (controlled mode)
+  useEffect(() => {
+    if (isControlled && controlledActiveSection !== undefined) {
+      setActiveTab(controlledActiveSection);
+    }
+  }, [isControlled, controlledActiveSection]);
 
   const handleGenerate = async () => {
     setGenerating(true);
@@ -114,6 +132,20 @@ export function SetlistVoicePlaylists({
       onSectionChange!(section);
     } else {
       setActiveSection(section);
+    }
+  };
+
+  const handleTabChange = (tab: 'ALL' | VoiceSection) => {
+    if (isControlled) {
+      if (tab !== 'ALL' && onSectionChange) {
+        onSectionChange(tab);
+      }
+      // In controlled mode, parent will update controlledActiveSection which triggers useEffect
+    } else {
+      setActiveTab(tab);
+    }
+    if (tab === 'ALL') {
+      setAllTabLoaded(true);
     }
   };
 
@@ -156,12 +188,26 @@ export function SetlistVoicePlaylists({
         : 'text-neutral-500 hover:bg-neutral-100 dark:hover:bg-neutral-800 dark:text-neutral-400'
     }`;
 
+  // Build navidrome share URL map for ALL tab
+  const navidromeShareBySection = new Map(available.map(s => [s.section, s.url]));
+
   return (
     <div className="mb-6 rounded-md border border-neutral-200 dark:border-neutral-800 p-3">
-      <div className="flex flex-wrap items-center gap-1">
+      <div className="flex flex-wrap items-center gap-1 mb-3">
         <span className="mr-1 text-xs font-medium uppercase tracking-wide text-neutral-500">
           {t('setlist.voicePlaylists')}
         </span>
+        
+        {/* ALL tab */}
+        <button
+          type="button"
+          onClick={() => handleTabChange('ALL')}
+          className={tabClass(currentActiveTab === 'ALL')}
+        >
+          {t('setlist.all')}
+        </button>
+
+        {/* Gender tabs */}
         {(['Boy', 'Girl'] as VoiceGender[]).map((gender) => {
           const hasSections = available.some(
             (share) => SECTION_GENDER[share.section] === gender,
@@ -172,7 +218,7 @@ export function SetlistVoicePlaylists({
               key={gender}
               type="button"
               onClick={() => handleGenderChange(gender)}
-              className={tabClass(gender === currentActiveGender)}
+              className={tabClass(currentActiveTab !== 'ALL' && currentActiveGender === gender)}
             >
               {genderLabel(gender)}
             </button>
@@ -181,75 +227,84 @@ export function SetlistVoicePlaylists({
         {sectionGroups.length > 1 && (
           <span className="mx-1 text-neutral-300 dark:text-neutral-700">|</span>
         )}
+        {/* Section tabs */}
         {sectionGroups.map((section) => (
           <button
             key={section}
             type="button"
-            onClick={() => handleSectionChange(section)}
-            className={tabClass(section === activeShare?.section)}
+            onClick={() => handleTabChange(section)}
+            className={tabClass(currentActiveTab === section)}
           >
             {sectionLabel(section)}
           </button>
         ))}
       </div>
 
-      {activeShare ? (
-        <div className="mt-3">
-          <div className="flex flex-wrap items-center gap-3">
-            <a
-              href={activeShare.url}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-xs text-blue-600 dark:text-blue-400 hover:underline"
-            >
-              {t('setlist.openPlaylist')}
-            </a>
-            <span className="text-xs text-neutral-500">
-              {t('setlist.tracks', { n: activeShare.count })}
-            </span>
-          </div>
+      {/* ALL tab content */}
+      {currentActiveTab === 'ALL' && (
+        <div className="space-y-3">
+          {songs.map((song) => {
+            const isOriginalLang = song.originalLang === song.lang;
+            const navidromeShareUrl = isOriginalLang 
+              ? undefined 
+              : navidromeShareBySection.get(song.preferredVoice ?? preferredVoice ?? 'tenor');
+            
+            return (
+              <div key={song.songId} className="flex items-center gap-3 p-2 rounded-md border border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-900">
+                <span className="text-xs font-medium text-neutral-700 dark:text-neutral-300 w-40 truncate">
+                  {song.title}
+                </span>
+                <SongAudioEmbed
+                  songId={song.songId}
+                  lang={song.lang}
+                  title={song.title}
+                  spotify={song.spotify}
+                  youtube={song.youtube}
+                  isOriginalLang={isOriginalLang}
+                  lazyLoad={!allTabLoaded}
+                  navidromeShareUrl={navidromeShareUrl}
+                />
+              </div>
+            );
+          })}
+        </div>
+      )}
 
-          {activeShare.embeddable ? (
-            <iframe
-              src={activeShare.url}
-              title={sectionLabel(activeShare.section)}
-              className="mt-3 h-[80vh] w-full rounded-md border border-neutral-200 dark:border-neutral-800 bg-white"
-            />
-          ) : (
-            <div className="mt-3 flex flex-wrap gap-3">
-              {activeShare.tracks.map((part) => (
-                <div
-                  key={part.streamUrl}
-                  className="flex flex-col gap-1 min-w-0 flex-1 basis-44"
+      {/* Section tab content - Navidrome iframe only */}
+      {currentActiveTab !== 'ALL' && (
+        <div className="mt-3">
+          {activeShare ? (
+            <>
+              <div className="flex flex-wrap items-center gap-3 mb-2">
+                <a
+                  href={activeShare.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-xs text-blue-600 dark:text-blue-400 hover:underline"
                 >
-                  <div className="flex items-start gap-2">
-                    {part.coverArtUrl && (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img
-                        src={part.coverArtUrl}
-                        alt={part.title}
-                        className="h-10 w-10 shrink-0 rounded object-cover"
-                      />
-                    )}
-                    <span className="text-xs font-medium text-neutral-700 dark:text-neutral-300 truncate">
-                      {part.title}
-                    </span>
-                  </div>
-                  <audio
-                    controls
-                    src={part.streamUrl}
-                    className="h-8 w-full max-w-full"
-                  />
+                  {t('setlist.openPlaylist')}
+                </a>
+                <span className="text-xs text-neutral-500">
+                  {t('setlist.tracks', { n: activeShare.count })}
+                </span>
+              </div>
+              {activeShare.embeddable ? (
+                <iframe
+                  src={activeShare.url}
+                  title={sectionLabel(activeShare.section)}
+                  className="w-full h-[80vh] rounded-md border border-neutral-200 dark:border-neutral-800 bg-white"
+                />
+              ) : (
+                <div className="text-center py-4 text-xs text-neutral-400">
+                  {t('voice.noRecordings')}
                 </div>
-              ))}
+              )}
+            </>
+          ) : (
+            <div className="text-center py-4 text-xs text-neutral-400">
+              {t('voice.noRecordings')}
             </div>
           )}
-        </div>
-      ) : (
-        <div className="mt-3 text-center">
-          <span className="text-xs text-neutral-400">
-            {t('voice.noRecordings')}
-          </span>
         </div>
       )}
 

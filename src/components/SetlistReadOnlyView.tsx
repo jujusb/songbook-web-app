@@ -23,6 +23,9 @@ export interface SetlistReadOnlySong {
   translations: string[];
   published?: boolean;
   body?: string;
+  spotify?: string;
+  youtube?: string;
+  originalLang?: string;
 }
 
 interface UserPreferences {
@@ -327,6 +330,62 @@ export function SetlistReadOnlyView({
               {expanded ? <ChevronUpIcon /> : <ChevronDownIcon />}
             </span>
           ) : null}
+          {/* Audio source icons */}
+          <div className="flex items-center gap-1 ml-2">
+            {(song.spotify || song.youtube) && song.lang === song.originalLang ? (
+              <>
+                {song.spotify && (
+                  <a
+                    href={song.spotify}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-xs px-1.5 py-0.5 bg-green-100 dark:bg-green-900 text-green-700 dark:text-green-300 rounded hover:opacity-80 transition-opacity"
+                    title={t('setlist.spotify')}
+                  >
+                    🎵
+                  </a>
+                )}
+                {song.youtube && (
+                  <a
+                    href={song.youtube}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-xs px-1.5 py-0.5 bg-red-100 dark:bg-red-900 text-red-700 dark:text-red-300 rounded hover:opacity-80 transition-opacity"
+                    title={t('setlist.youtube')}
+                  >
+                    ▶
+                  </a>
+                )}
+              </>
+            ) : (
+              <button
+                onClick={() => {
+                  const groups = voiceData.get(song.songId);
+                  if (groups) {
+                    const hasVoice = groups.some((group) =>
+                      group.sections.some((s) => s.section === activeSection && s.parts.length > 0)
+                    );
+                    if (hasVoice) {
+                      // Already on a section with voice content
+                    } else {
+                      // Find first section with content
+                      for (const group of groups) {
+                        const section = group.sections.find((s) => s.parts.length > 0);
+                        if (section) {
+                          setActiveSection(section.section);
+                          break;
+                        }
+                      }
+                    }
+                  }
+                }}
+                className="text-xs px-1.5 py-0.5 bg-purple-100 dark:bg-purple-900 text-purple-700 dark:text-purple-300 rounded hover:opacity-80 transition-opacity"
+                title={t('voice.navidrome')}
+              >
+                🎤
+              </button>
+            )}
+          </div>
         </button>
 
         {/* Expanded Lyrics */}
@@ -409,6 +468,16 @@ export function SetlistReadOnlyView({
         canGenerate={canGenerate}
         activeSection={activeSection}
         onSectionChange={setActiveSection}
+        songs={visible.map((s) => ({
+          songId: s.songId,
+          lang: s.lang,
+          title: s.title,
+          spotify: s.spotify,
+          youtube: s.youtube,
+          originalLang: s.originalLang,
+          preferredVoice: preferredVoice,
+        }))}
+        preferredVoice={preferredVoice}
       />
 
       <div className="border border-neutral-200 dark:border-neutral-800 rounded-lg overflow-hidden">

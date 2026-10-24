@@ -239,6 +239,10 @@ const fr: Translations = {
     lyricsViewAll: 'Tout Développé',
     lyricsViewList: 'Liste Seule',
     removeFromLibrary: 'Retirer de Ma Bibliothèque',
+    all: 'Toutes les voix',
+    spotify: 'Spotify',
+    youtube: 'YouTube',
+    noAudioAvailable: 'Aucun audio disponible pour cette langue',
   },
   auth: {
     login: 'Connexion',

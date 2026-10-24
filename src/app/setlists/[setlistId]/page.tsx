@@ -104,6 +104,7 @@ export default async function SetlistPage({
         const translations = await getSongTranslations(item.songId);
         // Check published status for the selected language
         const { meta: translationMeta, body } = await getSongTranslation(item.songId, item.lang);
+        const originalLang = Object.keys(meta.titles ?? {})[0] || item.lang;
         return { 
           ...item, 
           title: await getSongTitle(item.songId, item.lang), 
@@ -111,9 +112,12 @@ export default async function SetlistPage({
           translations,
           published: translationMeta.published,
           body,
+          spotify: meta.spotify?.song,
+          youtube: meta.youtube,
+          originalLang,
         };
       } catch {
-        return { ...item, title: item.songId, key: undefined, translations: [] as string[], published: false, body: '' };
+        return { ...item, title: item.songId, key: undefined, translations: [] as string[], published: false, body: '', spotify: undefined, youtube: undefined, originalLang: item.lang };
       }
     })
   );

@@ -237,6 +237,10 @@ const en = {
     lyricsViewAll: 'All Expanded',
     lyricsViewList: 'List Only',
     removeFromLibrary: 'Remove from Library',
+    all: 'All Voices',
+    spotify: 'Spotify',
+    youtube: 'YouTube',
+    noAudioAvailable: 'No audio available for this language',
   },
   auth: {
     login: 'Login',
