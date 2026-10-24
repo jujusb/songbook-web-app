@@ -1,11 +1,12 @@
 FROM node:26-alpine AS base
 
-# Install dependencies for Puppeteer
+# Install dependencies for Puppeteer and util-linux (for setpriv --reuid/--regid)
 RUN apk add --no-cache \
     chromium \
     font-noto \
     font-noto-cjk \
-    font-noto-emoji
+    font-noto-emoji \
+    util-linux
 
 ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true
 ENV PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium

@@ -4,7 +4,6 @@ import React, { useState, useCallback } from "react";
 import Link from "next/link";
 import { shouldShowSongInLanguage } from "@/lib/content/client";
 import { languageLabelFor } from "@/lib/i18n/labels";
-import { SetlistVoiceLinks } from "@/components/SetlistVoiceLinks";
 import { transpose, renderVisualChordSheet } from "@/lib/chordpro";
 import {
   updateSetlistLyricsViewAction,
@@ -12,12 +11,6 @@ import {
   updateSetlistTransposeAction,
 } from "@/app/actions";
 import { useTranslation } from "@/lib/i18n";
-
-export interface AudioFile {
-  voice: string;
-  path: string;
-  lang: string;
-}
 
 export interface SetlistReadOnlySong {
   songId: string;
@@ -27,7 +20,6 @@ export interface SetlistReadOnlySong {
   translations: string[];
   published?: boolean;
   body?: string;
-  audioFiles?: AudioFile[];
 }
 
 interface UserPreferences {
@@ -227,7 +219,6 @@ export function SetlistReadOnlyView({
           <span className="text-xs px-1.5 py-0.5 bg-neutral-100 dark:bg-neutral-800 rounded text-neutral-500">
             {languageLabelFor(song.lang)}
           </span>
-          <SetlistVoiceLinks songId={song.songId} lang={song.lang} audioFiles={song.audioFiles ?? []} />
           {hasBody && displayMode === "list" ? (
             <span className="ml-auto text-neutral-400">
               {expanded ? <ChevronUpIcon /> : <ChevronDownIcon />}
@@ -276,7 +267,7 @@ export function SetlistReadOnlyView({
                 </span>
               </div>
             </div>
-            <div className="px-4 py-3 max-h-96 overflow-y-auto">
+            <div className="px-4 py-3">
               <div
                 className={`visual-chord-sheet ${!globalOptions.showChords ? "hide-chords" : ""}`}
                 dangerouslySetInnerHTML={{ __html: renderLyrics(song.songId) || "" }}

@@ -61,7 +61,6 @@ export default async function SetlistSharePage({
           key: meta.key,
           translations,
           body,
-          audioFiles: meta.audioFiles ?? [],
         };
       } catch {
         return {
@@ -70,7 +69,6 @@ export default async function SetlistSharePage({
           key: undefined,
           translations: [] as string[],
           body: '',
-          audioFiles: [],
         };
       }
     })
@@ -179,6 +177,7 @@ export default async function SetlistSharePage({
         setlistId={setlist.id}
         shares={voiceShares}
         canGenerate={false}
+        preferredVoice={currentUser?.voice}
       />
 
       <SetlistReadOnlyView

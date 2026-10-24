@@ -34,7 +34,6 @@ export default async function SetlistPage({
   const userId = session?.userId;
   const role = session?.role ?? null;
   const currentUser = await getCurrentUser();
-  const currentVoice = currentUser?.voice;
   const showEditActions = canEdit(role);
   const showDeleteActions = canAdmin(role);
   const canCreate = canCreateSetlist(role);
@@ -113,10 +112,9 @@ export default async function SetlistPage({
           translations,
           published: translationMeta.published,
           body,
-          audioFiles: meta.audioFiles ?? [],
         };
       } catch {
-        return { ...item, title: item.songId, key: undefined, translations: [] as string[], published: false, body: '', audioFiles: [] };
+        return { ...item, title: item.songId, key: undefined, translations: [] as string[], published: false, body: '' };
       }
     })
   );
@@ -203,7 +201,7 @@ export default async function SetlistPage({
         setlistId={setlist.id}
         shares={voiceShares}
         canGenerate={showVoiceShares}
-        preferredVoice={currentVoice}
+        preferredVoice={currentUser?.voice}
       />
 
       {showEditor ? (
