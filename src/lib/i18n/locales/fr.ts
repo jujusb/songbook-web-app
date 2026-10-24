@@ -243,6 +243,7 @@ const fr: Translations = {
     spotify: 'Spotify',
     youtube: 'YouTube',
     noAudioAvailable: 'Aucun audio disponible pour cette langue',
+    maxSongsReached: 'Maximum {count} chants par liste',
   },
   auth: {
     login: 'Connexion',

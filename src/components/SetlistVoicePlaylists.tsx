@@ -36,16 +36,12 @@ export function SetlistVoicePlaylists({
   setlistId,
   shares,
   canGenerate,
-  activeSection: controlledActiveSection,
-  onSectionChange,
   songs,
   preferredVoice,
 }: {
   setlistId: string;
   shares: VoiceShareWithTracks[];
   canGenerate: boolean;
-  activeSection?: VoiceSection;
-  onSectionChange?: (section: VoiceSection) => void;
   songs: SetlistSongForAudio[];
   preferredVoice?: VoiceSection;
 }) {
@@ -60,29 +56,40 @@ export function SetlistVoicePlaylists({
   const [allTabLoaded, setAllTabLoaded] = useState(false);
 
   const available = shares.filter((share) => share.tracks.length > 0);
-  const isControlled = controlledActiveSection !== undefined && onSectionChange !== undefined;
 
-  // Internal state for uncontrolled mode
+  // Internal state - always uncontrolled, use preferredVoice only for initial selection
   const getInitialShare = () => available[0];
   const [activeGender, setActiveGender] = useState<VoiceGender>(() => {
-    if (isControlled) return 'Boy';
     const initial = getInitialShare();
-    return initial ? SECTION_GENDER[initial.section] : 'Boy';
+    if (initial) return SECTION_GENDER[initial.section];
+    // If preferredVoice is set and has content, use its gender
+    if (preferredVoice) {
+      const prefShare = available.find(s => s.section === preferredVoice);
+      if (prefShare) return SECTION_GENDER[prefShare.section];
+    }
+    return 'Boy';
   });
   const [activeSection, setActiveSection] = useState<VoiceSection>(() => {
-    if (isControlled) return 'tenor';
+    // Use preferredVoice if it has content, otherwise first available section
+    if (preferredVoice) {
+      const prefShare = available.find(s => s.section === preferredVoice);
+      if (prefShare) return preferredVoice;
+    }
     const initial = getInitialShare();
-    return initial ? initial.section : 'tenor';
+    return initial?.section ?? 'tenor';
   });
   const [activeTab, setActiveTab] = useState<'ALL' | VoiceSection>(() => {
-    if (isControlled) return controlledActiveSection ?? 'ALL';
+    // Use preferredVoice if it has content, otherwise start with ALL
+    if (preferredVoice) {
+      const prefShare = available.find(s => s.section === preferredVoice);
+      if (prefShare) return preferredVoice;
+    }
     return 'ALL';
   });
 
-  const currentActiveSection = isControlled ? controlledActiveSection : activeSection;
+  const currentActiveSection = activeSection;
   const currentActiveGender = SECTION_GENDER[currentActiveSection];
-  // In controlled mode, activeTab follows controlledActiveSection; in uncontrolled, use internal state
-  const currentActiveTab = isControlled ? (controlledActiveSection ?? 'ALL') : activeTab;
+  const currentActiveTab = activeTab;
 
   const activeShare =
     available.find((share) => share.section === currentActiveSection) ??
@@ -90,13 +97,6 @@ export function SetlistVoicePlaylists({
     available[0];
 
   const visible = available.length > 0;
-
-  // Sync internal activeTab when controlledActiveSection changes (controlled mode)
-  useEffect(() => {
-    if (isControlled && controlledActiveSection !== undefined) {
-      setActiveTab(controlledActiveSection);
-    }
-  }, [isControlled, controlledActiveSection]);
 
   const handleGenerate = async () => {
     setGenerating(true);
@@ -117,32 +117,24 @@ export function SetlistVoicePlaylists({
   };
 
   const handleGenderChange = (gender: VoiceGender) => {
-    if (isControlled) {
-      const first = available.find((share) => SECTION_GENDER[share.section] === gender);
-      if (first) onSectionChange!(first.section);
-    } else {
-      setActiveGender(gender);
-      const first = available.find((share) => SECTION_GENDER[share.section] === gender);
-      if (first) setActiveSection(first.section);
+    setActiveGender(gender);
+    const first = available.find((share) => SECTION_GENDER[share.section] === gender);
+    if (first) {
+      setActiveSection(first.section);
+      setActiveTab(first.section);
     }
   };
 
   const handleSectionChange = (section: VoiceSection) => {
-    if (isControlled) {
-      onSectionChange!(section);
-    } else {
-      setActiveSection(section);
-    }
+    setActiveSection(section);
+    setActiveTab(section);
   };
 
   const handleTabChange = (tab: 'ALL' | VoiceSection) => {
-    if (isControlled) {
-      if (tab !== 'ALL' && onSectionChange) {
-        onSectionChange(tab);
-      }
-      // In controlled mode, parent will update controlledActiveSection which triggers useEffect
-    } else {
-      setActiveTab(tab);
+    setActiveTab(tab);
+    if (tab !== 'ALL') {
+      setActiveSection(tab);
+      setActiveGender(SECTION_GENDER[tab]);
     }
     if (tab === 'ALL') {
       setAllTabLoaded(true);

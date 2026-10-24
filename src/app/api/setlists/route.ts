@@ -3,6 +3,7 @@ import { listSetlists, getSetlist, saveSetlist, deleteSetlist } from "@/lib/cont
 import { getSession, canEdit, canAdmin, canCreateSetlist } from "@/lib/auth";
 import { isReadOnlyFor } from "@/lib/readonly";
 import { generateSetlistVoiceShares } from "@/lib/navidrome/setlist-shares";
+import { getSetlistMaxSongs } from "@/lib/config";
 import type { Setlist } from "@/lib/content/schemas";
 
 export async function GET() {
@@ -60,6 +61,12 @@ export async function POST(request: Request) {
     if (!data.title || typeof data.title !== 'string' || !data.title.trim()) {
       return NextResponse.json({ error: "title is required" }, { status: 400 });
     }
+    
+    const maxSongs = getSetlistMaxSongs();
+    if (data.songs && data.songs.length > maxSongs) {
+      return NextResponse.json({ error: `Maximum ${maxSongs} songs per setlist` }, { status: 400 });
+    }
+
     const id = data.title
       .toLowerCase()
       .replace(/[^a-z0-9]+/g, "-")
@@ -100,6 +107,11 @@ export async function PUT(request: Request) {
     const data = await request.json();
     if (!data.id) {
       return NextResponse.json({ error: "id is required" }, { status: 400 });
+    }
+
+    const maxSongs = getSetlistMaxSongs();
+    if (data.songs && data.songs.length > maxSongs) {
+      return NextResponse.json({ error: `Maximum ${maxSongs} songs per setlist` }, { status: 400 });
     }
 
     // Load existing to preserve created date and check ownership

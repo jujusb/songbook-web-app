@@ -241,6 +241,7 @@ const en = {
     spotify: 'Spotify',
     youtube: 'YouTube',
     noAudioAvailable: 'No audio available for this language',
+    maxSongsReached: 'Maximum {count} songs per setlist',
   },
   auth: {
     login: 'Login',

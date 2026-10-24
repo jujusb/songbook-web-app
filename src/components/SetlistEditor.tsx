@@ -3,6 +3,9 @@
 import { useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { useTranslation } from "@/lib/i18n";
+import { getSetlistMaxSongs } from "@/lib/config";
+
+const MAX_SONGS = getSetlistMaxSongs();
 
 interface AvailableSong {
   id: string;
@@ -34,7 +37,7 @@ export function SetlistEditor({
   isNew: boolean;
 }) {
   const router = useRouter();
-  const { languageLabel } = useTranslation();
+  const { languageLabel, t } = useTranslation();
   const [title, setTitle] = useState(initialSetlist?.title || "");
   const [description, setDescription] = useState(initialSetlist?.description || "");
   const [date, setDate] = useState(initialSetlist?.date || "");
@@ -48,13 +51,17 @@ export function SetlistEditor({
 
   const addSong = useCallback(
     (songId: string) => {
+      if (songs.length >= MAX_SONGS) {
+        setError(t('setlist.maxSongsReached', { count: MAX_SONGS }));
+        return;
+      }
       const song = songMap.get(songId);
       if (!song) return;
       const lang = song.translations[0] || "en";
       setSongs((prev) => [...prev, { songId, lang }]);
       setSearch("");
     },
-    [songMap]
+    [songMap, songs.length]
   );
 
   const removeSong = useCallback((index: number) => {
@@ -200,8 +207,8 @@ export function SetlistEditor({
 
       {/* Song list */}
       <div>
-        <h2 className="font-semibold mb-3">
-          Songs ({songs.length})
+        <h2 className="font-semibold mb-3 flex items-center gap-2">
+          Songs ({songs.length} / {MAX_SONGS})
         </h2>
 
         {songs.length > 0 && (
@@ -304,10 +311,11 @@ export function SetlistEditor({
             type="text"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            placeholder="Search songs to add..."
-            className="w-full px-3 py-2 border border-neutral-300 dark:border-neutral-700 rounded-md bg-white dark:bg-neutral-900 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+            placeholder={songs.length >= MAX_SONGS ? t('setlist.maxSongsReached', { count: MAX_SONGS }) : "Search songs to add..."}
+            disabled={songs.length >= MAX_SONGS}
+            className="w-full px-3 py-2 border border-neutral-300 dark:border-neutral-700 rounded-md bg-white dark:bg-neutral-900 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
           />
-          {filteredSongs.length > 0 && (
+          {filteredSongs.length > 0 && songs.length < MAX_SONGS && (
             <div className="absolute z-10 mt-1 w-full max-h-60 overflow-auto border border-neutral-200 dark:border-neutral-700 rounded-md bg-white dark:bg-neutral-900 shadow-lg">
               {filteredSongs.slice(0, 20).map((song) => (
                 <button
@@ -333,6 +341,11 @@ export function SetlistEditor({
                 </button>
               ))}
             </div>
+          )}
+          {songs.length >= MAX_SONGS && (
+            <p className="mt-2 text-xs text-neutral-500 text-center">
+              {t('setlist.maxSongsReached', { count: MAX_SONGS })}
+            </p>
           )}
         </div>
       </div>

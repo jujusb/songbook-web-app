@@ -45,6 +45,8 @@ services:
       # - SONGBOOK_VOICES_MATCHING_FILE=/app/content/config/voices.json
       # --- Public/read-only instance base URL (used in setlist share links) ---
       - SONGBOOK_PUBLIC_URL=${SONGBOOK_PUBLIC_URL:-}
+      # --- Setlist limits ---
+      - SETLIST_MAX_SONGS=${SETLIST_MAX_SONGS:-50}
       # --- Branding & Contact (optional) ---
       - SONGBOOK_APP_NAME=${SONGBOOK_APP_NAME:-Songbook}
       - SONGBOOK_CONTACT_EMAIL=${SONGBOOK_CONTACT_EMAIL:-}
@@ -104,6 +106,8 @@ services:
       # - SONGBOOK_VOICES_MATCHING_FILE=/app/content/config/voices.json
       # --- Public/read-only instance base URL (used in setlist share links) ---
       - SONGBOOK_PUBLIC_URL=${SONGBOOK_PUBLIC_URL:-}
+      # --- Setlist limits ---
+      - SETLIST_MAX_SONGS=${SETLIST_MAX_SONGS:-50}
       # --- Branding & Contact (optional) ---
       - SONGBOOK_APP_NAME=${SONGBOOK_APP_NAME:-Songbook}
       - SONGBOOK_CONTACT_EMAIL=${SONGBOOK_CONTACT_EMAIL:-}

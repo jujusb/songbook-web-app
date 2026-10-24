@@ -388,6 +388,18 @@ export function SetlistReadOnlyView({
           </div>
         </button>
 
+        {/* Voice Selector - ALWAYS visible between row and expanded lyrics */}
+        {voiceInitialized && (
+          <SongVoiceSelector
+            songId={song.songId}
+            lang={song.lang}
+            groups={voiceData.get(song.songId) ?? []}
+            activeSection={activeSection}
+            onSectionChange={setActiveSection}
+            compact
+          />
+        )}
+
         {/* Expanded Lyrics */}
         {expanded && hasBody ? (
           <div id={`lyrics-${song.songId}`} className="bg-neutral-50 dark:bg-neutral-900 border-t border-neutral-200 dark:border-neutral-800">
@@ -434,17 +446,6 @@ export function SetlistReadOnlyView({
                 className={`visual-chord-sheet ${!globalOptions.showChords ? "hide-chords" : ""}`}
                 dangerouslySetInnerHTML={{ __html: renderLyrics(song.songId) || "" }}
               />
-              {/* Per-song voice selector */}
-              {voiceInitialized && (
-                <SongVoiceSelector
-                  songId={song.songId}
-                  lang={song.lang}
-                  groups={voiceData.get(song.songId) ?? []}
-                  activeSection={activeSection}
-                  onSectionChange={setActiveSection}
-                  compact
-                />
-              )}
               {voiceLoading && (
                 <div className="text-center py-3">
                   <span className="text-xs text-neutral-400 animate-pulse">
@@ -461,13 +462,11 @@ export function SetlistReadOnlyView({
 
   return (
     <>
-      {/* Top-level voice playlists (controlled by activeSection) */}
+      {/* Top-level voice playlists - use preferredVoice for initial selection only */}
       <SetlistVoicePlaylists
         setlistId={sourceSetlistId}
         shares={voiceShares}
         canGenerate={canGenerate}
-        activeSection={activeSection}
-        onSectionChange={setActiveSection}
         songs={visible.map((s) => ({
           songId: s.songId,
           lang: s.lang,
