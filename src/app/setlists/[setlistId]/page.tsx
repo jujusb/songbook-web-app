@@ -1,4 +1,4 @@
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import Link from "next/link";
 import { cookies } from "next/headers";
 import { getSetlist, listSongs, getSong, getSongTranslation, getSongTranslations, getSongTitle, getLanguagesConfig, shouldShowSongInLanguage, getShareBaseUrl } from "@/lib/content";
@@ -39,9 +39,15 @@ export default async function SetlistPage({
   const canManageShares = canManageSetlistShares(role);
   const isOwner = setlist.ownerId === userId;
   const isSubscriber = userId ? (setlist.subscribers ?? []).includes(userId) : false;
-  const showEditor = showEditActions || (canCreate && isOwner);
   const showShareControls = showEditActions || (canManageShares && isOwner);
   const showVoiceShares = showEditActions || (canCreate && isOwner);
+  // Show editor for admins/reviewers
+  const showEditor = showEditActions;
+
+  // Redirect owner to edit page
+  if (isOwner && !showEditActions) {
+    redirect(`/setlists/${setlistId}/edit`);
+  }
 
   if (!canViewSetlist(setlist, shareParam, showEditor, isSubscriber)) {
     notFound();
@@ -178,6 +184,14 @@ export default async function SetlistPage({
               setlistId={setlist.id}
               shareToken={setlist.shareToken}
             />
+          )}
+          {isOwner && (
+            <Link
+              href={`/setlists/${setlistId}/edit`}
+              className="text-sm px-3 py-1.5 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors"
+            >
+              Edit
+            </Link>
           )}
           {showDeleteActions && (
             <DeleteButton
