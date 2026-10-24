@@ -64,8 +64,8 @@ Routes redirect to `/songs` when `enableArtistPages` is false.
 
 | Route | Query | Renders | Access |
 | --- | --- | --- | --- |
-| `/setlists/[setlistId]` | `?share` | header, Present/PDF, share controls, voice playlists, editor or read-only view | 404 unless `canViewSetlist`; delete Admin; **owner → `/edit`** |
-| `/setlists/[setlistId]/edit` | — | dedicated editor page | 404 unless `canViewSetlist`; owner or Editor |
+| `/setlists/[setlistId]` | `?share` | header, Present/PDF, voice playlists, read-only view for everyone; **Edit** button for the owner/Editor | 404 unless `canViewSetlist`; delete Admin |
+| `/setlists/[setlistId]/edit` | — | song editor + share controls | → /login if anonymous; → view page unless owner (SetlistCreator) or Editor; references are never editable |
 | `/setlists/new` | — | new setlist editor | → /login unless SetlistCreator; 404 in read-only (inert) |
 | `/setlists/[setlistId]/present` | `?display`, `?share` | setlist projection | 404 unless `canViewSetlist` |
 | `/setlists/[setlistId]/print` | `?share`, `?lang` | print songbook for the setlist | 404 unless `canViewSetlist` |

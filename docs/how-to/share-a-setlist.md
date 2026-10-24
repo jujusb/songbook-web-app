@@ -14,7 +14,7 @@ beyond that one setlist.
 
 ## Create a share link
 
-On the setlist page, find the sharing controls panel. It is available to the owner and to
+On the setlist's **Edit** page (`/setlists/<id>/edit`), find the sharing controls panel. It is available to the owner and to
 reviewers/admins.
 
 1. Click **Create share link**. This generates a random `shareToken` and produces a URL:

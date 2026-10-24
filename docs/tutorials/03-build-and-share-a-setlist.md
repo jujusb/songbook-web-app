@@ -22,7 +22,9 @@ The editor has three fields and a song picker:
 Add *Amazing Grace* and choose **Spanish** for it, so the setlist demonstrates a mixed-language
 service. Reorder songs by dragging them. When you are happy, click **Save**.
 
-You land on `/setlists/<setlist-id>`. Because you are an editor (admin/reviewer) you get the **SetlistEditor** inline; someone with the `setlist_creator` role gets redirected to `/setlists/<setlist-id>/edit` for a dedicated editor page; everyone else gets a read-only view on the main page.
+You land on `/setlists/<setlist-id>`, the read-only view with the voice playlists, which everyone
+sees. As the owner (or an editor) you also get an **Edit** button that opens
+`/setlists/<setlist-id>/edit`, where you change the songs and the sharing settings.
 
 ## 2. Present it
 
@@ -46,7 +48,7 @@ from the app's own print page instead of a PDF-drawing library.
 
 ## 4. Share it without an account
 
-Back on the setlist page, the **sharing controls** panel is available to the owner and to
+Click **Edit** on the setlist page. The **sharing controls** panel on the edit page is available to the owner and to
 reviewers/admins. It lets you:
 
 - **Toggles the setlist public** — anyone logged in can see it.

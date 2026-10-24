@@ -1,7 +1,9 @@
 import { notFound, redirect } from "next/navigation";
-import { getSetlist, listSongs, getSongTranslations } from "@/lib/content";
-import { getSession, canEdit, canViewSetlist } from "@/lib/auth";
+import Link from "next/link";
+import { getSetlist, listSongs, getSongTranslations, getShareBaseUrl } from "@/lib/content";
+import { getSession, canEdit, canCreateSetlist, canManageSetlistShares } from "@/lib/auth";
 import { SetlistEditor } from "@/components/SetlistEditor";
+import { SetlistShareControls } from "@/components/SetlistShareControls";
 
 export default async function SetlistEditPage({
   params,
@@ -18,20 +20,20 @@ export default async function SetlistEditPage({
   }
 
   const session = await getSession();
-  const userId = session?.userId;
-  const role = session?.role ?? null;
-  const showEditActions = canEdit(role);
-  const isOwner = setlist.ownerId === userId;
-  const isSubscriber = userId ? (setlist.subscribers ?? []).includes(userId) : false;
-  const showEditor = showEditActions || isOwner;
+  if (!session) redirect("/login");
 
-  if (!canViewSetlist(setlist, undefined, showEditor, isSubscriber)) {
-    notFound();
-  }
+  const role = session.role ?? null;
+  const isEditor = canEdit(role);
+  const isOwner = setlist.ownerId === session.userId;
 
-  if (!isOwner && !showEditActions) {
+  // Only owners (with setlist rights) and editors may edit; references are read-only.
+  const mayEdit = !setlist.sharedFrom && (isEditor || (isOwner && canCreateSetlist(role)));
+  if (!mayEdit) {
     redirect(`/setlists/${setlistId}`);
   }
+
+  const showShareControls = isEditor || (isOwner && canManageSetlistShares(role));
+  const publicUrl = await getShareBaseUrl();
 
   const songs = await listSongs();
   const songsWithLangs = await Promise.all(
@@ -43,15 +45,23 @@ export default async function SetlistEditPage({
 
   return (
     <div className="max-w-full mx-auto px-4 sm:px-6 lg:px-8 py-8">
-      <div className="mb-6">
-        <a
-          href={`/setlists/${setlistId}`}
-          className="text-sm text-blue-600 dark:text-blue-400 hover:underline inline-block mb-4"
-        >
-          &larr; Back to Setlist
-        </a>
-        <h1 className="text-2xl font-bold">Edit: {setlist.title}</h1>
-      </div>
+      <Link
+        href={`/setlists/${setlistId}`}
+        className="text-sm text-blue-600 dark:text-blue-400 hover:underline mb-4 inline-block"
+      >
+        &larr; {setlist.title}
+      </Link>
+      <h1 className="text-2xl font-bold mb-6">Edit: {setlist.title}</h1>
+
+      {showShareControls && (
+        <SetlistShareControls
+          setlistId={setlist.id}
+          isPublic={setlist.public ?? false}
+          shareToken={setlist.shareToken}
+          shareSlug={setlist.shareSlug}
+          publicUrl={publicUrl}
+        />
+      )}
 
       <SetlistEditor
         availableSongs={songsWithLangs}

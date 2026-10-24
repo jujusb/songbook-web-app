@@ -1,11 +1,7 @@
-import { notFound, redirect } from "next/navigation";
+import { notFound } from "next/navigation";
 import Link from "next/link";
-import { cookies } from "next/headers";
-import { getSetlist, listSongs, getSong, getSongTranslation, getSongTranslations, getSongTitle, getLanguagesConfig, shouldShowSongInLanguage, getShareBaseUrl } from "@/lib/content";
-import { getLocale } from "@/lib/i18n/server";
-import { getSession, getCurrentUser, canEdit, canAdmin, canViewSetlist, canCreateSetlist, canManageSetlistShares } from "@/lib/auth";
-import { SetlistEditor } from "@/components/SetlistEditor";
-import { SetlistShareControls } from "@/components/SetlistShareControls";
+import { getSetlist, getSong, getSongTranslation, getSongTranslations, getSongTitle } from "@/lib/content";
+import { getSession, getCurrentUser, canEdit, canAdmin, canViewSetlist, canCreateSetlist } from "@/lib/auth";
 import { SetlistReadOnlyView } from "@/components/SetlistReadOnlyView";
 import { SetlistPdfButton } from "@/components/SetlistPdfButton";
 import { DeleteButton } from "@/components/DeleteButton";
@@ -36,18 +32,13 @@ export default async function SetlistPage({
   const showEditActions = canEdit(role);
   const showDeleteActions = canAdmin(role);
   const canCreate = canCreateSetlist(role);
-  const canManageShares = canManageSetlistShares(role);
   const isOwner = setlist.ownerId === userId;
   const isSubscriber = userId ? (setlist.subscribers ?? []).includes(userId) : false;
-  const showShareControls = showEditActions || (canManageShares && isOwner);
   const showVoiceShares = showEditActions || (canCreate && isOwner);
   // Show editor for admins/reviewers
   const showEditor = showEditActions;
-
-  // Redirect owner to edit page (unless accessing via share token)
-  if (isOwner && !shareParam) {
-    redirect(`/setlists/${setlistId}/edit`);
-  }
+  // Owners (and editors) get an Edit button; references are read-only for subscribers
+  const canEditSetlist = !setlist.sharedFrom && (showEditActions || (canCreate && isOwner));
 
   if (!canViewSetlist(setlist, shareParam, showEditor, isSubscriber)) {
     notFound();
@@ -62,10 +53,6 @@ export default async function SetlistPage({
   const presentHref = `/setlists/${setlistId}/present${
     shareParam ? `?share=${shareParam}` : ""
   }`;
-
-  const langConfig = await getLanguagesConfig();
-  const selectedLang = getLocale(await cookies(), langConfig.default);
-  const publicUrl = await getShareBaseUrl();
 
   type UserPreferences = {
   showChords: boolean;
@@ -92,15 +79,6 @@ export default async function SetlistPage({
     setlistLyricsView: 'all',
     setlistTranspose: {},
   };
-
-  // Load available songs for editor
-  const songs = await listSongs();
-  const songsWithLangs = await Promise.all(
-    songs.map(async (s) => {
-      const translations = await getSongTranslations(s.id);
-      return { id: s.id, title: s.title, key: s.key, translations };
-    })
-  );
 
   // Resolve song titles for display + load song bodies for lyrics view
   const songDetails = await Promise.all(
@@ -136,17 +114,9 @@ export default async function SetlistPage({
     }
   }
 
-  const visibleSongDetails = songDetails.filter((song) => {
-    if (!shouldShowSongInLanguage(song.translations, selectedLang, langConfig.default)) {
-      return false;
-    }
-    // Filter by published status for non-admin users
-    if (!showEditor && !song.published) {
-      return false;
-    }
-    return true;
-  });
-  const displayCount = showEditor ? sourceSetlist.songs.length : visibleSongDetails.length;
+  // Non-editors only see published songs
+  const visibleSongDetails = songDetails.filter((song) => showEditor || song.published);
+  const displayCount = visibleSongDetails.length;
 
   return (
     <div className="max-w-full mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -185,7 +155,7 @@ export default async function SetlistPage({
               shareToken={setlist.shareToken}
             />
           )}
-          {isOwner && (
+          {canEditSetlist && (
             <Link
               href={`/setlists/${setlistId}/edit`}
               className="text-sm px-3 py-1.5 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors"
@@ -204,40 +174,16 @@ export default async function SetlistPage({
         </div>
       </div>
 
-      {showShareControls && (
-        <SetlistShareControls
-          setlistId={setlist.id}
-          isPublic={setlist.public ?? false}
-          shareToken={setlist.shareToken}
-          shareSlug={setlist.shareSlug}
-          publicUrl={publicUrl}
-        />
-      )}
-
-      {showEditor ? (
-        <SetlistEditor
-          availableSongs={songsWithLangs}
-          initialSetlist={{
-            id: setlist.id,
-            title: setlist.title,
-            description: setlist.description || "",
-            date: setlist.date || "",
-            songs: setlist.songs,
-          }}
-          isNew={false}
-        />
-      ) : (
-        <SetlistReadOnlyView
-          songs={songDetails}
-          userPreferences={userPrefs}
-          songBodies={songBodies}
-          isReference={isReference}
-          sourceSetlistId={sourceSetlistId}
-          preferredVoice={currentUser?.voice}
-          voiceShares={voiceShares}
-          canGenerate={showVoiceShares}
-        />
-      )}
+      <SetlistReadOnlyView
+        songs={songDetails}
+        userPreferences={userPrefs}
+        songBodies={songBodies}
+        isReference={isReference}
+        sourceSetlistId={sourceSetlistId}
+        preferredVoice={currentUser?.voice}
+        voiceShares={voiceShares}
+        canGenerate={showVoiceShares}
+      />
     </div>
   );
 }
