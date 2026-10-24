@@ -22,9 +22,7 @@ The editor has three fields and a song picker:
 Add *Amazing Grace* and choose **Spanish** for it, so the setlist demonstrates a mixed-language
 service. Reorder songs by dragging them. When you are happy, click **Save**.
 
-You land on `/setlists/<setlist-id>`, which is the read/edit view. Because you are an editor you
-get the **SetlistEditor**; someone with the `setlist_creator` role gets the same editor for their
-own setlists; everyone else gets a read-only view.
+You land on `/setlists/<setlist-id>`. Because you are an editor (admin/reviewer) you get the **SetlistEditor** inline; someone with the `setlist_creator` role gets redirected to `/setlists/<setlist-id>/edit` for a dedicated editor page; everyone else gets a read-only view on the main page.
 
 ## 2. Present it
 

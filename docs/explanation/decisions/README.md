@@ -36,6 +36,10 @@ Each record has:
 | [0015](./0015-tests-arrive-late.md) | Tests arrive late, and only cover what they cover | Accepted; the early decisions are unpinned | 2026-10-09 |
 | [0016](./0016-revisions-live-outside-the-library.md) | Revisions live outside the library, in their own tree | Accepted | 2026-10-21 |
 | [0017](./0017-old-revisions-are-collected.md) | Old revisions are collected automatically | Accepted | 2026-10-21 |
+| [0018](./0018-setlist-owner-redirects-to-edit.md) | Setlist owner redirects to edit page | Accepted | 2026-10-24 |
+| [0019](./0019-setlist-references-and-subscribers.md) | Setlist references and subscribers | Accepted | 2026-10-24 |
+| [0020](./0020-setlist-lyrics-view-and-preferences.md) | Setlist lyrics view and user preferences | Accepted | 2026-10-24 |
+| [0021](./0021-setlist-song-limit-and-voice-playlists.md) | Setlist song limit and language-dependent voice playlists | Accepted | 2026-10-24 |
 
 ## The decisions that were reversed or never landed
 

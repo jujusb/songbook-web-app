@@ -44,8 +44,8 @@ export default async function SetlistPage({
   // Show editor for admins/reviewers
   const showEditor = showEditActions;
 
-  // Redirect owner to edit page
-  if (isOwner && !showEditActions) {
+  // Redirect owner to edit page (unless accessing via share token)
+  if (isOwner && !shareParam) {
     redirect(`/setlists/${setlistId}/edit`);
   }
 
