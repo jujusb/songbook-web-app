@@ -90,6 +90,7 @@ describe('content/index.ts', () => {
         translator: 'Juan',
         status: 'final',
         published: true,
+        chordsPublished: false,
       }, '{title: Cántico Nuevo}\n\n{verse: 1}\nNuevo cántico cantaré');
       
       const { meta, body } = await getSongTranslation()('test-song', 'es');
@@ -101,11 +102,11 @@ describe('content/index.ts', () => {
 
     it('creates revision snapshot before overwrite', async () => {
       await saveSongTranslation()('test-song', 'en', {
-        language: 'en', status: 'draft', published: false
+        language: 'en', status: 'draft', published: false, chordsPublished: false
       }, '{title: Original}\nVerse 1');
       
       await saveSongTranslation()('test-song', 'en', {
-        language: 'en', status: 'final', published: true
+        language: 'en', status: 'final', published: true, chordsPublished: false
       }, '{title: Updated}\nVerse 1\nVerse 2');
       
       const { listRevisions } = await import('@/lib/content/revisions');
@@ -121,11 +122,11 @@ describe('content/index.ts', () => {
       await createSong()('draft-song', 'Draft Song', 'en');
       
       await saveSongTranslation()('published-song', 'en', {
-        language: 'en', status: 'final', published: true
+        language: 'en', status: 'final', published: true, chordsPublished: false
       }, '{title: Published}\nContent');
       
       await saveSongTranslation()('draft-song', 'en', {
-        language: 'en', status: 'draft', published: false
+        language: 'en', status: 'draft', published: false, chordsPublished: false
       }, '{title: Draft}\nContent');
     });
 
@@ -146,7 +147,7 @@ describe('content/index.ts', () => {
 
     it('includes translation info', async () => {
       await saveSongTranslation()('published-song', 'es', {
-        language: 'es', status: 'final', published: true
+        language: 'es', status: 'final', published: true, chordsPublished: false
       }, '{title: Publicado}\nContenido');
       
       const songs = await listSongs()({ role: 'admin' });
@@ -242,11 +243,11 @@ describe('content/index.ts', () => {
 
     it('gets song translations', async () => {
       await saveSongTranslation()('trans-song', 'es', {
-        language: 'es', status: 'draft', published: false
+        language: 'es', status: 'draft', published: false, chordsPublished: false
       }, '{title: Español}\nContenido');
       
       await saveSongTranslation()('trans-song', 'fr', {
-        language: 'fr', status: 'draft', published: false
+        language: 'fr', status: 'draft', published: false, chordsPublished: false
       }, '{title: Français}\nContenu');
       
       const translations = await getSongTranslations()('trans-song');
@@ -272,7 +273,7 @@ describe('content/index.ts', () => {
 
     it('deletes translation but keeps at least one', async () => {
       await saveSongTranslation()('trans-song', 'es', {
-        language: 'es', status: 'draft', published: false
+        language: 'es', status: 'draft', published: false, chordsPublished: false
       }, '{title: Español}\nContenido');
       
       const remaining = await deleteSongTranslation()('trans-song', 'es');

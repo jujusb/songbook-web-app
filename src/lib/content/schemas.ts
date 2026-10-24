@@ -129,6 +129,8 @@ export const SongTranslationFrontmatterSchema = z.object({
   status: z.enum(['draft', 'review', 'final']).default('draft'),
   published: z.boolean().default(false),
   publishedRevision: z.string().optional(), // timestamp of the published revision
+  chordsPublished: z.boolean().default(false), // whether chords are published (separate from lyrics)
+  chordsPublishedRevision: z.string().optional(), // timestamp when chords were published
   lastModified: z.string().optional(),
   modifiedBy: z.string().optional(),
 });

@@ -39,9 +39,9 @@ export async function POST(
     const { meta: currentMeta } = await getSongTranslation(id, lang);
     const matter = await import("gray-matter");
     const parsed = matter.default(revisionContent);
-    const parsedData = parsed.data as { language?: string; status?: 'draft' | 'review' | 'final'; published?: boolean; title?: string; translator?: string | null; lastModified?: string; modifiedBy?: string };
+    const parsedData = parsed.data as { language?: string; status?: 'draft' | 'review' | 'final'; published?: boolean; chordsPublished?: boolean; title?: string; translator?: string | null; lastModified?: string; modifiedBy?: string };
     const frontmatter = parsedData.language 
-      ? { language: parsedData.language, status: parsedData.status || 'draft', published: parsedData.published || false, title: parsedData.title, translator: parsedData.translator, lastModified: parsedData.lastModified, modifiedBy: parsedData.modifiedBy }
+      ? { language: parsedData.language, status: parsedData.status || 'draft', published: parsedData.published || false, chordsPublished: parsedData.chordsPublished || false, title: parsedData.title, translator: parsedData.translator, lastModified: parsedData.lastModified, modifiedBy: parsedData.modifiedBy }
       : currentMeta;
     const body = parsed.content.trim();
 

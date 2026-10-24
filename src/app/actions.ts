@@ -154,6 +154,34 @@ export async function toggleSongPublishedAction(songId: string, lang: string) {
   }
 }
 
+export async function toggleSongChordsPublishedAction(songId: string, lang: string) {
+  assertWritable();
+  const session = await getSession();
+  const user = await getCurrentUser();
+  if (!canEdit(session?.role ?? null) && !canEditSong(user, songId, lang)) {
+    return { ok: false as const, error: 'Unauthorized' };
+  }
+  try {
+    const { meta: frontmatter, body } = await getSongTranslation(songId, lang);
+    frontmatter.chordsPublished = !frontmatter.chordsPublished;
+    if (frontmatter.chordsPublished) {
+      frontmatter.chordsPublishedRevision = new Date().toISOString();
+    } else {
+      frontmatter.chordsPublishedRevision = undefined;
+    }
+    frontmatter.lastModified = new Date().toISOString();
+    frontmatter.modifiedBy = user?.username || session?.userId || 'unknown';
+    await saveSongTranslation(songId, lang, frontmatter, body);
+    revalidatePath(`/songs/${songId}`);
+    revalidatePath(`/edit/${songId}/${lang}`);
+    revalidatePath("/songs");
+    revalidatePath("/browse");
+    return { ok: true as const, chordsPublished: frontmatter.chordsPublished };
+  } catch (err) {
+    return { ok: false as const, error: err instanceof Error ? err.message : 'FAILED' };
+  }
+}
+
 export async function revertSongToRevisionAction(songId: string, lang: string, timestamp: string) {
   assertWritable();
   const session = await getSession();
@@ -178,9 +206,9 @@ export async function revertSongToRevisionAction(songId: string, lang: string, t
     const { meta: currentMeta } = await getSongTranslation(songId, lang);
     const matter = await import("gray-matter");
     const parsed = matter.default(revisionContent);
-    const parsedData = parsed.data as { language?: string; status?: 'draft' | 'review' | 'final'; published?: boolean; title?: string; translator?: string | null; lastModified?: string; modifiedBy?: string };
+    const parsedData = parsed.data as { language?: string; status?: 'draft' | 'review' | 'final'; published?: boolean; chordsPublished?: boolean; title?: string; translator?: string | null; lastModified?: string; modifiedBy?: string };
     const frontmatter = parsedData.language 
-      ? { language: parsedData.language, status: parsedData.status || 'draft', published: parsedData.published || false, title: parsedData.title, translator: parsedData.translator, lastModified: parsedData.lastModified, modifiedBy: parsedData.modifiedBy }
+      ? { language: parsedData.language, status: parsedData.status || 'draft', published: parsedData.published || false, chordsPublished: parsedData.chordsPublished || false, title: parsedData.title, translator: parsedData.translator, lastModified: parsedData.lastModified, modifiedBy: parsedData.modifiedBy }
       : currentMeta;
     const body = parsed.content.trim();
 
@@ -225,9 +253,9 @@ export async function publishRevisionAction(songId: string, lang: string, timest
     const { meta: currentMeta } = await getSongTranslation(songId, lang);
     const matter = await import("gray-matter");
     const parsed = matter.default(revisionContent);
-    const parsedData = parsed.data as { language?: string; status?: 'draft' | 'review' | 'final'; published?: boolean; title?: string; translator?: string | null; lastModified?: string; modifiedBy?: string };
+    const parsedData = parsed.data as { language?: string; status?: 'draft' | 'review' | 'final'; published?: boolean; chordsPublished?: boolean; title?: string; translator?: string | null; lastModified?: string; modifiedBy?: string };
     const frontmatter = parsedData.language 
-      ? { language: parsedData.language, status: parsedData.status || 'draft', published: parsedData.published || false, title: parsedData.title, translator: parsedData.translator, lastModified: parsedData.lastModified, modifiedBy: parsedData.modifiedBy }
+      ? { language: parsedData.language, status: parsedData.status || 'draft', published: parsedData.published || false, chordsPublished: parsedData.chordsPublished || false, title: parsedData.title, translator: parsedData.translator, lastModified: parsedData.lastModified, modifiedBy: parsedData.modifiedBy }
       : currentMeta;
     const body = parsed.content.trim();
 

@@ -44,6 +44,7 @@ export default async function EditPage({
   const languages = Array.from(new Set([...allLanguages, ...translations]));
 
   const localizedTitle = await getSongTitle(songId, lang);
+  const chordsPublished = translation.meta.chordsPublished;
 
   return (
     <EditPageClient
@@ -59,6 +60,7 @@ export default async function EditPage({
       title={localizedTitle}
       status={translation.meta.status}
       published={translation.meta.published}
+      chordsPublished={chordsPublished}
       keySignature={meta.key}
       initialShowReferences={showRefs === '1'}
     />

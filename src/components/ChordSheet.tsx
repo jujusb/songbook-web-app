@@ -535,7 +535,7 @@ export function ChordSheet({
             )}
             <select
               value={localNotation}
-              onChange={(e) => setLocalNotation(e.target.value as any)}
+              onChange={(e) => setLocalNotation(e.target.value as "letters" | "solfege" | "roman" | "nashville")}
               className="px-2 py-1.5 border border-neutral-300 dark:border-neutral-700 rounded-md text-xs bg-transparent"
               title={t('profile.notation')}
             >

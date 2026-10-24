@@ -56,7 +56,7 @@ export async function POST(request: Request) {
       await saveSongTranslation(
         id,
         language,
-        { language, translator: null, status: "draft", published: false },
+        { language, translator: null, status: "draft", published: false, chordsPublished: false },
         chordpro.trim(),
         targetAlbum
       );

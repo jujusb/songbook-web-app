@@ -134,6 +134,8 @@ ChordSheetJS; the frontmatter is parsed with `gray-matter`.
 | `status` | `draft` \| `review` \| `final` | `draft` | human label |
 | `published` | boolean | `false` | visibility gate |
 | `publishedRevision` | string | — | timestamp of the published revision |
+| `chordsPublished` | boolean | `false` | whether chords are visible to public users |
+| `chordsPublishedRevision` | string | — | timestamp when chords were published |
 | `lastModified` | string | — | set on every save |
 | `modifiedBy` | string | — | optional |
 
@@ -142,6 +144,35 @@ does not copy lyrics or section structure from another language.
 
 If the frontmatter is absent, `saveSongAction` preserves the existing file's frontmatter and only
 rewrites the body.
+
+### Chords publishing (separate from lyrics)
+
+A translation can be published for lyrics (`published: true`) while keeping chords private.
+This is useful for workflows where lyrics are reviewed first, and chords are published later
+(e.g. after a music team has finalized the arrangement).
+
+| Field | Type | Default | Notes |
+| --- | --- | --- | --- |
+| `published` | boolean | `false` | lyrics visible to public |
+| `chordsPublished` | boolean | `false` | chords visible to public (requires `published: true`) |
+| `publishedRevision` | string | — | timestamp of the published lyrics revision |
+| `chordsPublishedRevision` | string | — | timestamp when chords were published |
+
+**Visibility rules:**
+
+| User role | `published=false` | `published=true, chordsPublished=false` | `published=true, chordsPublished=true` |
+| --- | --- | --- | --- |
+| public / setlist_creator | 404 | lyrics only | full (lyrics + chords) |
+| reviewer / admin | full | full | full |
+
+Editors (`reviewer`, `admin`) always see the full ChordPro source regardless of these flags.
+The public song page (`/songs/[songId]`) and the presentation view (`/present/[songId]`) respect
+these flags. The edit page (`/edit/[songId]/[lang]`) shows a **Chords Published** toggle next to
+the **Published** toggle.
+
+The API endpoint `POST /api/songs/[id]/publish-chords?lang=<lang>` (and `DELETE` to unpublish)
+toggles the `chordsPublished` flag. The server action `toggleSongChordsPublishedAction` does the
+same from the edit UI.
 
 ## `setlists/<setlist-id>.yaml` (`SetlistSchema`)
 

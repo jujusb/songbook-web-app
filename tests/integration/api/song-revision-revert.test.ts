@@ -41,7 +41,7 @@ describe('API /api/songs/[id]/revisions/[timestamp]/revert', () => {
     await saveSongTranslation(
       'rev-song',
       'en',
-      { language: 'en', title: 'Second Title', translator: null, modifiedBy: 'admin', status: 'draft', published: false },
+      { language: 'en', title: 'Second Title', translator: null, modifiedBy: 'admin', status: 'draft', published: false, chordsPublished: false },
       '{title: Original}\nVerse 1\nVerse 2'
     );
     const revisions = await listRevisions('rev-song', 'en');

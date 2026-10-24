@@ -19,13 +19,13 @@ describe('content/index.ts — drafts in read-only mode', () => {
     await content.saveSongTranslation(
       'test-song',
       'en',
-      { language: 'en', status: 'final', published: true },
+      { language: 'en', status: 'final', published: true, chordsPublished: false },
       '{title: Test}\nEnglish'
     );
     await content.saveSongTranslation(
       'test-song',
       'es',
-      { language: 'es', status: 'draft', published: false },
+      { language: 'es', status: 'draft', published: false, chordsPublished: false },
       '{title: Prueba}\nEspanol'
     );
   });

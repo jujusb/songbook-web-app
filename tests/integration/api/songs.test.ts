@@ -78,11 +78,11 @@ describe('API /api/songs', () => {
       await createSong('draft-song', 'Draft Song', 'en');
       
       await saveSongTranslation('published-song', 'en', {
-        language: 'en', status: 'final', published: true
+        language: 'en', status: 'final', published: true, chordsPublished: false
       }, '{title: Published}\nContent');
       
       await saveSongTranslation('draft-song', 'en', {
-        language: 'en', status: 'draft', published: false
+        language: 'en', status: 'draft', published: false, chordsPublished: false
       }, '{title: Draft}\nContent');
       
       mockAuth(undefined); // No session = public
@@ -100,11 +100,11 @@ describe('API /api/songs', () => {
       await createSong('published-song', 'Published Song', 'en');
 
       await saveSongTranslation('published-song', 'en', {
-        language: 'en', status: 'final', published: true
+        language: 'en', status: 'final', published: true, chordsPublished: false
       }, '{title: Published}\nContent');
 
       await saveSongTranslation('published-song', 'es', {
-        language: 'es', status: 'draft', published: false
+        language: 'es', status: 'draft', published: false, chordsPublished: false
       }, '{title: Borrador}\nContenido');
 
       mockAuth(undefined); // No session = public

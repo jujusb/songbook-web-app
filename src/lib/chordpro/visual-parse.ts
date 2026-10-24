@@ -90,6 +90,19 @@ export function linesToChordPro(lines: ParsedLine[]): string {
 }
 
 /**
+ * Strip chords from a ChordPro source, returning only lyrics and directives.
+ * This is used for "lyrics-only" published state where chords are not yet public.
+ */
+export function stripChords(source: string): string {
+  const lines = parseChordProSource(source);
+  const stripped = lines.map((line) => {
+    if (line.type === "directive") return line.raw;
+    return line.lyrics;
+  });
+  return stripped.join("\n");
+}
+
+/**
  * Whether a parsed line counts as a song content line. Directives and
  * whitespace-only lines are not content; lyric lines and chord-only lines are.
  * This matches the content-line indexing used by ChordSheet (parseSectionMap),

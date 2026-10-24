@@ -4,7 +4,7 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useTranslation } from '@/lib/i18n';
-import { setSongTitleAction, setSongKeyAction, addSongTranslationAction, removeSongTranslationAction, toggleSongPublishedAction } from '@/app/actions';
+import { setSongTitleAction, setSongKeyAction, addSongTranslationAction, removeSongTranslationAction, toggleSongPublishedAction, toggleSongChordsPublishedAction } from '@/app/actions';
 import { EditorView } from '@/components/EditorView';
 import { ReferenceEditor } from '@/components/ReferenceEditor';
 import { MusicLinksEditor } from '@/components/MusicLinksEditor';
@@ -35,6 +35,7 @@ export function EditPageClient({
   title,
   status,
   published,
+  chordsPublished,
   keySignature,
   initialShowReferences = false,
 }: {
@@ -51,6 +52,7 @@ export function EditPageClient({
   status: string;
   keySignature: string | undefined;
   published?: boolean;
+  chordsPublished?: boolean;
   initialShowReferences?: boolean;
 }) {
   const { t } = useTranslation();
@@ -69,6 +71,8 @@ export function EditPageClient({
   const [translationLangs, setTranslationLangs] = useState<string[]>(translations);
   const [isPublished, setIsPublished] = useState(published ?? false);
   const [savingPublished, setSavingPublished] = useState(false);
+  const [isChordsPublished, setIsChordsPublished] = useState(chordsPublished ?? false);
+  const [savingChordsPublished, setSavingChordsPublished] = useState(false);
 
   const [prevTranslations, setPrevTranslations] = useState(translations);
   if (translations !== prevTranslations) {
@@ -171,6 +175,22 @@ export function EditPageClient({
     }
   };
 
+  const handleToggleChordsPublished = async () => {
+    setSavingChordsPublished(true);
+    try {
+      const res = await toggleSongChordsPublishedAction(songId, lang);
+      if (res.ok) {
+        setIsChordsPublished(res.chordsPublished);
+      } else {
+        console.error('Failed to toggle chords published:', res.error);
+      }
+    } catch (err) {
+      console.error('Chords published toggle failed:', err);
+    } finally {
+      setSavingChordsPublished(false);
+    }
+  };
+
   const availableToAdd = languages.filter((l) => !translationLangs.includes(l));
 
 return (
@@ -266,6 +286,19 @@ return (
                 } hover:opacity-90 disabled:opacity-50`}
               >
                 {savingPublished ? t('common.saving') : isPublished ? t('song.published') : t('song.unpublished')}
+              </button>
+            )}
+            {isChordsPublished !== undefined && (
+              <button
+                onClick={handleToggleChordsPublished}
+                disabled={savingChordsPublished}
+                className={`text-xs px-3 py-1.5 rounded-md transition-colors ${
+                  isChordsPublished
+                    ? 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200 border-blue-300 dark:border-blue-700'
+                    : 'bg-neutral-100 text-neutral-700 dark:bg-neutral-800 dark:text-neutral-300 border-neutral-300 dark:border-neutral-700'
+                } hover:opacity-90 disabled:opacity-50`}
+              >
+                {savingChordsPublished ? t('common.saving') : isChordsPublished ? 'Chords Published' : 'Chords Unpublished'}
               </button>
             )}
             <button

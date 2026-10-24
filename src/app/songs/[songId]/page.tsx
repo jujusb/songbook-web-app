@@ -11,6 +11,7 @@ import {
   getSiteConfig,
   getLanguagesConfig,
   listAlbums,
+  getSongBody,
 } from "@/lib/content";
 import { getLocale } from "@/lib/i18n/server";
 import { getSession, getCurrentUser, canEdit, canAdmin } from "@/lib/auth";
@@ -102,10 +103,13 @@ export default async function SongPage({
         : translations[0];
 
   // Check if translation is published for non-admin users
-  const { meta: translationMeta, body, capo, key: bodyKey } = await getSongTranslation(songId, lang);
+  const { meta: translationMeta, capo, key: bodyKey } = await getSongTranslation(songId, lang);
   if (!isAdmin && !translationMeta.published) {
     notFound();
   }
+  // Get body with chords stripped if not published for this user's role
+  const userRole = session?.role ?? 'public';
+  const body = await getSongBody(songId, lang, userRole);
   const localizedTitle = await getSongTitle(songId, lang);
   const albums = await getAlbumsForSong(songId);
   const artist = await getArtistForSong(songId);
@@ -383,7 +387,7 @@ export default async function SongPage({
               lang={lang}
               showChords={currentUser?.showChords !== false}
               showRepeats={currentUser?.showRepeats !== false}
-              chordNotation={(currentUser?.chordNotation as any) || "letters"}
+              chordNotation={(currentUser?.chordNotation as "letters" | "solfege" | "roman" | "nashville") || "letters"}
             />
 
             {/* References - collapsible on mobile, sidebar on desktop */}

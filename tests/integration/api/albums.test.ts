@@ -75,7 +75,7 @@ describe('API /api/albums', () => {
       await saveSongTranslation(
         'pub-song',
         'en',
-        { language: 'en', status: 'final', published: true },
+        { language: 'en', status: 'final', published: true, chordsPublished: false },
         '{title: Published}',
         'published-album'
       );
@@ -87,7 +87,7 @@ describe('API /api/albums', () => {
       await saveSongTranslation(
         'draft-song',
         'en',
-        { language: 'en', status: 'draft', published: false },
+        { language: 'en', status: 'draft', published: false, chordsPublished: false },
         '{title: Draft}',
         'draft-album'
       );

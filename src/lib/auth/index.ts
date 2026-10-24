@@ -107,7 +107,7 @@ export async function findOrCreateOidcUser(
     role,
     authProvider: 'oidc',
     oidcSub: sub,
-    displayName: claims.name || (claims as any).given_name || username,
+    displayName: claims.name || (claims as Record<string, unknown>).given_name as string || username,
     email: claims.email,
     created: new Date().toISOString(),
     showChords: true,

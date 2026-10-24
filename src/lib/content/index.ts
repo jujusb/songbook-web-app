@@ -345,6 +345,35 @@ export async function getSongTranslation(
 }
 
 /**
+ * Get the song body for display, stripping chords if not published for the given role.
+ * @param id - Song ID
+ * @param lang - Language code
+ * @param role - User role ('public', 'reviewer', 'admin', 'setlist_creator')
+ * @returns The song body (with or without chords)
+ */
+export async function getSongBody(
+  id: string,
+  lang: string,
+  role: 'public' | 'reviewer' | 'admin' | 'setlist_creator' = 'public'
+): Promise<string> {
+  const { meta, body } = await getSongTranslation(id, lang);
+  
+  // Admins and reviewers always see full content with chords
+  if (role === 'admin' || role === 'reviewer') {
+    return body;
+  }
+  
+  // For public and setlist_creator, check if chords are published
+  if (meta.chordsPublished) {
+    return body;
+  }
+  
+  // Strip chords for lyrics-only view
+  const { stripChords } = await import('@/lib/chordpro');
+  return stripChords(body);
+}
+
+/**
  * Whether the translation of a song is published.
  *
  * A translation is published when its frontmatter says so. A file that
@@ -442,6 +471,7 @@ export async function addSongTranslation(
     translator: null,
     status: 'draft',
     published: false,
+    chordsPublished: false,
   };
   const body = `{title: ${title}}\n`;
   await saveSongTranslation(id, lang, frontmatter, body, albumId);
@@ -512,6 +542,7 @@ export async function createSong(
     translator: null,
     status: 'draft',
     published: false,
+    chordsPublished: false,
   };
   // Callers that already have the ChordPro (e.g. document importers) pass it in
   // so the placeholder body never has to be written and snapshotted as a revision.

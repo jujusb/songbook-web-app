@@ -1,5 +1,6 @@
 import ChordSheetJS from 'chordsheetjs';
 import { renderVisualChordSheet } from './visual-render';
+import { stripChords } from './visual-parse';
 import { getReferenceText, getHighlight } from '@/lib/content/references';
 
 /**
@@ -42,6 +43,11 @@ export function getKey(source: string): string | null {
   const song = parseChordPro(source);
   return song.key ?? null;
 }
+
+/**
+ * Strip chords from a ChordPro source, returning only lyrics and directives.
+ */
+export { stripChords };
 
 /**
  * Render references as HTML for print view.

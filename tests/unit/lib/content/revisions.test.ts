@@ -37,11 +37,11 @@ describe('content/revisions.ts', () => {
     it('saves snapshots outside the library, in content/revisions/<song-id>/<lang>', async () => {
       await writeTranslation();
 
-      await content.saveSongTranslation(
+await content.saveSongTranslation(
         'test-song',
         'en',
-        { language: 'en', status: 'draft', published: false },
-        '{title: Test}\nVerse 1\nVerse 2'
+        { language: 'en', status: 'draft', published: false, chordsPublished: false },
+        '{title: Test}\nVerse 3'
       );
 
       const files = await readdir(revisionDir());
@@ -59,7 +59,7 @@ describe('content/revisions.ts', () => {
       await content.saveSongTranslation(
         'test-song',
         'en',
-        { language: 'en', status: 'draft', published: false },
+        { language: 'en', status: 'draft', published: false, chordsPublished: false },
         '{title: Test}\nVerse 2'
       );
 
@@ -74,7 +74,7 @@ describe('content/revisions.ts', () => {
       await content.saveSongTranslation(
         'test-song',
         'en',
-        { language: 'en', status: 'draft', published: false },
+        { language: 'en', status: 'draft', published: false, chordsPublished: false },
         '{title: Test}\nVerse 2'
       );
 
@@ -106,13 +106,13 @@ describe('content/revisions.ts', () => {
       await content.saveSongTranslation(
         'test-song',
         'en',
-        { language: 'en', status: 'draft', published: false },
+        { language: 'en', status: 'draft', published: false, chordsPublished: false },
         '{title: Test}\nVerse 2'
       );
       await content.saveSongTranslation(
         'test-song',
         'en',
-        { language: 'en', status: 'draft', published: false },
+        { language: 'en', status: 'draft', published: false, chordsPublished: false },
         '{title: Test}\nVerse 3'
       );
 
@@ -151,7 +151,7 @@ describe('content/revisions.ts', () => {
       await content.saveSongTranslation(
         'test-song',
         'en',
-        { language: 'en', status: 'draft', published: false },
+        { language: 'en', status: 'draft', published: false, chordsPublished: false },
         '{title: Test}\nVerse 2'
       );
 
@@ -197,7 +197,7 @@ describe('content/revisions.ts', () => {
       await content.saveSongTranslation(
         'test-song',
         'en',
-        { language: 'en', status: 'draft', published: false },
+        { language: 'en', status: 'draft', published: false, chordsPublished: false },
         '{title: Test}\nVerse 2'
       );
 
@@ -304,13 +304,13 @@ describe('content/revisions.ts', () => {
       await content.saveSongTranslation(
         'test-song',
         'en',
-        { language: 'en', status: 'draft', published: false },
+        { language: 'en', status: 'draft', published: false, chordsPublished: false },
         '{title: Test}\nVerse 2'
       );
       await content.saveSongTranslation(
         'test-song',
         'en',
-        { language: 'en', status: 'draft', published: false },
+        { language: 'en', status: 'draft', published: false, chordsPublished: false },
         '{title: Test}\nVerse 3'
       );
 
