@@ -5,7 +5,6 @@ import { getSetlist, listSongs, getSong, getSongTranslation, getSongTranslations
 import { getLocale } from "@/lib/i18n/server";
 import { getSession, getCurrentUser, canEdit, canAdmin, canViewSetlist, canCreateSetlist, canManageSetlistShares } from "@/lib/auth";
 import { SetlistEditor } from "@/components/SetlistEditor";
-import { SetlistVoicePlaylists } from "@/components/SetlistVoicePlaylists";
 import { SetlistShareControls } from "@/components/SetlistShareControls";
 import { SetlistReadOnlyView } from "@/components/SetlistReadOnlyView";
 import { SetlistPdfButton } from "@/components/SetlistPdfButton";
@@ -197,13 +196,6 @@ export default async function SetlistPage({
         />
       )}
 
-      <SetlistVoicePlaylists
-        setlistId={setlist.id}
-        shares={voiceShares}
-        canGenerate={showVoiceShares}
-        preferredVoice={currentUser?.voice}
-      />
-
       {showEditor ? (
         <SetlistEditor
           availableSongs={songsWithLangs}
@@ -225,6 +217,9 @@ export default async function SetlistPage({
           songBodies={songBodies}
           isReference={isReference}
           sourceSetlistId={sourceSetlistId}
+          preferredVoice={currentUser?.voice}
+          voiceShares={voiceShares}
+          canGenerate={showVoiceShares}
         />
       )}
     </div>

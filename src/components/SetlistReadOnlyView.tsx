@@ -1,9 +1,11 @@
 "use client";
 
-import React, { useState, useCallback } from "react";
+import React, { useState, useCallback, useEffect } from "react";
 import Link from "next/link";
 import { shouldShowSongInLanguage } from "@/lib/content/client";
 import { languageLabelFor } from "@/lib/i18n/labels";
+import { SongVoiceSelector } from "@/components/SongVoiceSelector";
+import { SetlistVoicePlaylists } from "@/components/SetlistVoicePlaylists";
 import { transpose, renderVisualChordSheet } from "@/lib/chordpro";
 import {
   updateSetlistLyricsViewAction,
@@ -11,6 +13,7 @@ import {
   updateSetlistTransposeAction,
 } from "@/app/actions";
 import { useTranslation } from "@/lib/i18n";
+import type { VoiceSection, VoiceGroup } from "@/lib/navidrome/voices";
 
 export interface SetlistReadOnlySong {
   songId: string;
@@ -39,6 +42,9 @@ interface SetlistReadOnlyViewProps {
   songBodies: Record<string, string>;
   isReference: boolean;
   sourceSetlistId: string;
+  preferredVoice?: VoiceSection;
+  voiceShares: { section: VoiceSection; tracks: { title: string; streamUrl: string; coverArtUrl?: string }[]; count: number; embeddable: boolean; url: string }[];
+  canGenerate: boolean;
 }
 
 const CHORD_NOTATION_OPTIONS = [
@@ -59,7 +65,7 @@ function ChevronDownIcon({ className = "w-4 h-4" }: { className?: string }) {
 function ChevronUpIcon({ className = "w-4 h-4" }: { className?: string }) {
   return (
     <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" />
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7-7" />
     </svg>
   );
 }
@@ -105,6 +111,9 @@ export function SetlistReadOnlyView({
   songBodies,
   isReference,
   sourceSetlistId,
+  preferredVoice,
+  voiceShares,
+  canGenerate,
 }: SetlistReadOnlyViewProps) {
   const { t } = useTranslation();
 
@@ -125,6 +134,100 @@ export function SetlistReadOnlyView({
     inlineChords: userPreferences.inlineChords,
   });
   const [showGlobalOptions, setShowGlobalOptions] = useState(false);
+
+  // Voice-related state
+  const [activeSection, setActiveSection] = useState<VoiceSection>('tenor');
+  const [voiceData, setVoiceData] = useState<Map<string, VoiceGroup[]>>(new Map());
+  const [voiceLoading, setVoiceLoading] = useState(true);
+  const [voiceInitialized, setVoiceInitialized] = useState(false);
+
+  // Batch fetch voice data for all visible songs
+  useEffect(() => {
+    let cancelled = false;
+
+    const fetchVoiceData = async () => {
+      if (visible.length === 0) {
+        setVoiceLoading(false);
+        setVoiceInitialized(true);
+        return;
+      }
+
+      try {
+        const res = await fetch('/api/voices/batch', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            items: visible.map((s) => ({ id: s.songId, lang: s.lang })),
+          }),
+        });
+        const json = await res.json();
+
+        if (cancelled) return;
+
+        if (json.ok && json.data?.results) {
+          const map = new Map<string, VoiceGroup[]>();
+          for (const { songId, groups } of json.data.results) {
+            map.set(songId, groups ?? []);
+          }
+          setVoiceData(map);
+        }
+      } catch {
+        // Ignore errors, voice data is optional
+      } finally {
+        if (!cancelled) {
+          setVoiceLoading(false);
+          setVoiceInitialized(true);
+        }
+      }
+    };
+
+    fetchVoiceData();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [visible, selectedLang, defaultLang]);
+
+  // Initialize activeSection from preferredVoice or first available
+  useEffect(() => {
+    if (voiceInitialized && !voiceLoading) {
+      let initialized = false;
+
+      // Try preferred voice first
+      if (preferredVoice) {
+        for (const groups of voiceData.values()) {
+          const hasContent = groups.some((group) =>
+            group.sections.some((s) => s.section === preferredVoice && s.parts.length > 0)
+          );
+          if (hasContent) {
+            setActiveSection(preferredVoice);
+            initialized = true;
+            break;
+          }
+        }
+      }
+
+      // Fall back to first available section across all songs
+      if (!initialized) {
+        for (const groups of voiceData.values()) {
+          for (const group of groups) {
+            const section = group.sections.find((s) => s.parts.length > 0);
+            if (section) {
+              setActiveSection(section.section);
+              initialized = true;
+              break;
+            }
+          }
+          if (initialized) break;
+        }
+      }
+
+      // If still no content, default to tenor
+      if (!initialized) {
+        setActiveSection('tenor');
+      }
+    }
+  }, [voiceInitialized, voiceLoading, voiceData, preferredVoice]);
 
   const handleToggleAll = useCallback(async () => {
     const nextMode = displayMode === "all" ? "list" : "all";
@@ -272,6 +375,24 @@ export function SetlistReadOnlyView({
                 className={`visual-chord-sheet ${!globalOptions.showChords ? "hide-chords" : ""}`}
                 dangerouslySetInnerHTML={{ __html: renderLyrics(song.songId) || "" }}
               />
+              {/* Per-song voice selector */}
+              {voiceInitialized && (
+                <SongVoiceSelector
+                  songId={song.songId}
+                  lang={song.lang}
+                  groups={voiceData.get(song.songId) ?? []}
+                  activeSection={activeSection}
+                  onSectionChange={setActiveSection}
+                  compact
+                />
+              )}
+              {voiceLoading && (
+                <div className="text-center py-3">
+                  <span className="text-xs text-neutral-400 animate-pulse">
+                    {t('voice.loading')}
+                  </span>
+                </div>
+              )}
             </div>
           </div>
         ) : null}
@@ -281,6 +402,15 @@ export function SetlistReadOnlyView({
 
   return (
     <>
+      {/* Top-level voice playlists (controlled by activeSection) */}
+      <SetlistVoicePlaylists
+        setlistId={sourceSetlistId}
+        shares={voiceShares}
+        canGenerate={canGenerate}
+        activeSection={activeSection}
+        onSectionChange={setActiveSection}
+      />
+
       <div className="border border-neutral-200 dark:border-neutral-800 rounded-lg overflow-hidden">
         {/* Header Toolbar */}
         <div className="px-4 py-2 bg-neutral-50 dark:bg-neutral-900 border-b border-neutral-200 dark:border-neutral-800">

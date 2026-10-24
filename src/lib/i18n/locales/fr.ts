@@ -333,6 +333,9 @@ const fr: Translations = {
       alto: 'Alto',
       soprano: 'Soprano',
     },
+    voices: 'Voix',
+    noRecordings: 'Aucun enregistrement trouvé pour cette voix',
+    loading: 'Chargement des voix...',
   },
   editor: {
     visual: 'Visuel',

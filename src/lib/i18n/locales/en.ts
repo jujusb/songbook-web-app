@@ -331,6 +331,9 @@ const en = {
       alto: 'Alto',
       soprano: 'Soprano',
     },
+    voices: 'Voices',
+    noRecordings: 'No recordings found for this voice',
+    loading: 'Loading voices...',
   },
   editor: {
     visual: 'Visual',

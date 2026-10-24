@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { listSetlists, getSetlist, saveSetlist, deleteSetlist } from "@/lib/content";
 import { getSession, canEdit, canAdmin, canCreateSetlist } from "@/lib/auth";
 import { isReadOnlyFor } from "@/lib/readonly";
+import { generateSetlistVoiceShares } from "@/lib/navidrome/setlist-shares";
 import type { Setlist } from "@/lib/content/schemas";
 
 export async function GET() {
@@ -19,6 +20,32 @@ export async function GET() {
 
 function readonlyResponse(operation: string) {
   return NextResponse.json({ error: `Read-only mode: ${operation} disabled` }, { status: 403 });
+}
+
+/** Compare two song arrays by songId only (order-insensitive) */
+function songsChanged(oldSongs: { songId: string; lang: string }[] | undefined, newSongs: { songId: string; lang: string }[] | undefined): boolean {
+  const oldIds = (oldSongs ?? []).map((s) => s.songId).sort().join(',');
+  const newIds = (newSongs ?? []).map((s) => s.songId).sort().join(',');
+  return oldIds !== newIds;
+}
+
+/** Regenerate voice shares if songs array changed and shares exist */
+async function maybeRegenerateVoiceShares(
+  setlistId: string,
+  role: 'public' | 'reviewer' | 'admin' | 'setlist_creator' | null,
+  existingShares: { section: string }[] | undefined,
+  oldSongs: { songId: string; lang: string }[] | undefined,
+  newSongs: { songId: string; lang: string }[] | undefined
+): Promise<void> {
+  if (!existingShares || existingShares.length === 0) return;
+  if (!songsChanged(oldSongs, newSongs)) return;
+  const voiceRole = role ?? 'public';
+  try {
+    await generateSetlistVoiceShares({ id: setlistId, songs: newSongs ?? [], voiceShares: existingShares } as Setlist, { role: voiceRole });
+    // Note: generateSetlistVoiceShares already saves the setlist with new shares
+  } catch {
+    // Best effort - voice shares are optional
+  }
 }
 
 export async function POST(request: Request) {
@@ -44,7 +71,7 @@ export async function POST(request: Request) {
       description: data.description || undefined,
       date: data.date || undefined,
       songs: data.songs || [],
-      voiceShares: data.voiceShares || [],
+      voiceShares: [],
       public: false,
       ownerId: session?.userId,
       created: new Date().toISOString(),
@@ -90,13 +117,17 @@ export async function PUT(request: Request) {
       return NextResponse.json({ error: "Forbidden: not the owner" }, { status: 403 });
     }
 
+    const newSongs = data.songs || [];
+    const oldSongs = existing?.songs;
+    const existingShares = existing?.voiceShares;
+
     const setlist: Setlist = {
       id: data.id,
       title: data.title,
       description: data.description || undefined,
       date: data.date || undefined,
-      songs: data.songs || [],
-      voiceShares: existing?.voiceShares ?? [],
+      songs: newSongs,
+      voiceShares: existingShares ?? [],
       public: existing?.public ?? false,
       shareToken: existing?.shareToken,
       shareSlug: existing?.shareSlug,
@@ -106,7 +137,14 @@ export async function PUT(request: Request) {
     };
 
     await saveSetlist(setlist);
-    return NextResponse.json(setlist);
+
+    // Auto-regenerate voice shares if songs changed
+    const voiceRole = (role === 'admin' || role === 'reviewer' || role === 'setlist_creator' || role === 'public') ? role : 'public';
+    await maybeRegenerateVoiceShares(data.id, voiceRole, existingShares, oldSongs, newSongs);
+
+    // Re-fetch to get updated voiceShares
+    const updated = await getSetlist(data.id);
+    return NextResponse.json(updated);
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : "Failed to update setlist";
     return NextResponse.json({ error: message }, { status: 500 });

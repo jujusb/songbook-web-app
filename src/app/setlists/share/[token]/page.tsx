@@ -15,7 +15,6 @@ import { getLocale } from "@/lib/i18n/server";
 import { getSession, getCurrentUser } from "@/lib/auth";
 import { getSetlistVoiceShares } from "@/lib/navidrome/setlist-shares";
 import { SetlistReadOnlyView } from "@/components/SetlistReadOnlyView";
-import { SetlistVoicePlaylists } from "@/components/SetlistVoicePlaylists";
 import { SetlistPdfButton } from "@/components/SetlistPdfButton";
 import { saveSharedSetlistAction } from "@/app/actions";
 
@@ -173,13 +172,6 @@ export default async function SetlistSharePage({
         </div>
       </div>
 
-      <SetlistVoicePlaylists
-        setlistId={setlist.id}
-        shares={voiceShares}
-        canGenerate={false}
-        preferredVoice={currentUser?.voice}
-      />
-
       <SetlistReadOnlyView
         songs={songDetails}
         selectedLang={selectedLang}
@@ -188,6 +180,9 @@ export default async function SetlistSharePage({
         songBodies={songBodies}
         isReference={isReference}
         sourceSetlistId={sourceSetlistId}
+        preferredVoice={currentUser?.voice}
+        voiceShares={voiceShares}
+        canGenerate={false}
       />
     </div>
   );

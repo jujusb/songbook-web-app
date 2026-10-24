@@ -5,33 +5,80 @@ import { useRouter } from 'next/navigation';
 import { useTranslation } from '@/lib/i18n';
 import { generateSetlistVoiceSharesAction } from '@/app/actions';
 import type { VoiceShareWithTracks } from '@/app/actions';
-import type { VoiceSection } from '@/lib/navidrome/voices';
+import type { VoiceGender, VoiceSection } from '@/lib/navidrome/voices';
+
+const SECTION_GENDER: Record<VoiceSection, VoiceGender> = {
+  tenor: 'Boy',
+  bass: 'Boy',
+  alto: 'Girl',
+  soprano: 'Girl',
+};
+
+const GENDER_SECTIONS: Record<VoiceGender, VoiceSection[]> = {
+  Boy: ['tenor', 'bass'],
+  Girl: ['alto', 'soprano'],
+};
 
 export const SECTION_ORDER: VoiceSection[] = ['tenor', 'bass', 'alto', 'soprano'];
 
 /**
  * Per-voice shared playlists for a setlist, one Navidrome share per section
- * containing that voice's recordings for every song in the list. Renders a
- * flat list of all four sections (tenor, bass, alto, soprano) with an iframe
- * for sections that have a share, and a muted label for sections without.
- * When no shares exist yet, editors see a button to generate them.
+ * containing that voice's recordings for every song in the list. Mirrors the
+ * song-page voices UI (boys / girls tabs): sections render the shared
+ * playlist in an iframe when the share page allows embedding, otherwise an
+ * "Open playlist" link plus the section's stream players. When no shares
+ * exist yet, editors see a button to generate them.
+ *
+ * Can be used in controlled mode (activeSection + onSectionChange provided)
+ * or uncontrolled mode (internal state).
  */
 export function SetlistVoicePlaylists({
   setlistId,
   shares,
   canGenerate,
-  preferredVoice,
+  activeSection: controlledActiveSection,
+  onSectionChange,
 }: {
   setlistId: string;
   shares: VoiceShareWithTracks[];
   canGenerate: boolean;
-  preferredVoice?: VoiceSection;
+  activeSection?: VoiceSection;
+  onSectionChange?: (section: VoiceSection) => void;
 }) {
   const { t } = useTranslation();
+  const genderLabel = (gender: VoiceGender) =>
+    gender === 'Boy' ? t('voice.boys') : t('voice.girls');
+  const sectionLabel = (section: VoiceSection) => t(`voice.sections.${section}`);
   const router = useRouter();
   const [generating, setGenerating] = useState(false);
   const [done, setDone] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const available = shares.filter((share) => share.tracks.length > 0);
+  const isControlled = controlledActiveSection !== undefined && onSectionChange !== undefined;
+
+  // Internal state for uncontrolled mode
+  const getInitialShare = () => available[0];
+  const [activeGender, setActiveGender] = useState<VoiceGender>(() => {
+    if (isControlled) return 'Boy';
+    const initial = getInitialShare();
+    return initial ? SECTION_GENDER[initial.section] : 'Boy';
+  });
+  const [activeSection, setActiveSection] = useState<VoiceSection>(() => {
+    if (isControlled) return 'tenor';
+    const initial = getInitialShare();
+    return initial ? initial.section : 'tenor';
+  });
+
+  const currentActiveSection = isControlled ? controlledActiveSection : activeSection;
+  const currentActiveGender = SECTION_GENDER[currentActiveSection];
+
+  const activeShare =
+    available.find((share) => share.section === currentActiveSection) ??
+    available.find((share) => SECTION_GENDER[share.section] === currentActiveGender) ??
+    available[0];
+
+  const visible = available.length > 0;
 
   const handleGenerate = async () => {
     setGenerating(true);
@@ -51,7 +98,26 @@ export function SetlistVoicePlaylists({
     }
   };
 
-  if (shares.length === 0) {
+  const handleGenderChange = (gender: VoiceGender) => {
+    if (isControlled) {
+      const first = available.find((share) => SECTION_GENDER[share.section] === gender);
+      if (first) onSectionChange!(first.section);
+    } else {
+      setActiveGender(gender);
+      const first = available.find((share) => SECTION_GENDER[share.section] === gender);
+      if (first) setActiveSection(first.section);
+    }
+  };
+
+  const handleSectionChange = (section: VoiceSection) => {
+    if (isControlled) {
+      onSectionChange!(section);
+    } else {
+      setActiveSection(section);
+    }
+  };
+
+  if (!visible) {
     if (!canGenerate) return null;
     return (
       <div className="mb-6 rounded-md border border-neutral-200 dark:border-neutral-800 p-4">
@@ -80,42 +146,113 @@ export function SetlistVoicePlaylists({
     );
   }
 
-  const sectionLabel = (section: VoiceSection) => t(`voice.sections.${section}`);
+  const sectionGroups: VoiceSection[] = GENDER_SECTIONS[currentActiveGender].filter(
+    (section) => available.some((share) => share.section === section),
+  );
+  const tabClass = (active: boolean) =>
+    `px-2 py-0.5 rounded text-xs font-semibold uppercase tracking-wide transition-colors ${
+      active
+        ? 'bg-neutral-800 text-white dark:bg-neutral-200 dark:text-black'
+        : 'text-neutral-500 hover:bg-neutral-100 dark:hover:bg-neutral-800 dark:text-neutral-400'
+    }`;
 
   return (
     <div className="mb-6 rounded-md border border-neutral-200 dark:border-neutral-800 p-3">
-      <span className="block text-xs font-medium uppercase tracking-wide text-neutral-500 mb-3">
-        {t('setlist.voicePlaylists')}
-      </span>
-      <div className="space-y-4">
-        {SECTION_ORDER.map((section) => {
-          const share = shares.find((s) => s.section === section);
-          const isPreferred = section === preferredVoice;
-          if (share) {
-            return (
-              <div key={section} className="space-y-1">
-                <span className={`block text-xs font-medium ${isPreferred ? 'text-blue-600 dark:text-blue-400' : 'text-neutral-500'}`}>
-                  {sectionLabel(section)} — {share.count} track{share.count !== 1 ? 's' : ''}
-                  {isPreferred && <span className="ml-1 text-xs text-blue-500 dark:text-blue-300">★</span>}
-                </span>
-                <iframe
-                  src={share.url}
-                  title={sectionLabel(section)}
-                  className="w-full h-[50vh] min-h-[300px] rounded-md border border-neutral-200 dark:border-neutral-800 bg-white"
-                />
-              </div>
-            );
-          }
+      <div className="flex flex-wrap items-center gap-1">
+        <span className="mr-1 text-xs font-medium uppercase tracking-wide text-neutral-500">
+          {t('setlist.voicePlaylists')}
+        </span>
+        {(['Boy', 'Girl'] as VoiceGender[]).map((gender) => {
+          const hasSections = available.some(
+            (share) => SECTION_GENDER[share.section] === gender,
+          );
+          if (!hasSections) return null;
           return (
-            <div key={section} className="space-y-1">
-              <span className={`block text-xs ${isPreferred ? 'text-blue-400 dark:text-blue-300' : 'text-neutral-400'}`}>
-                {sectionLabel(section)} — no recordings
-                {isPreferred && <span className="ml-1">★</span>}
-              </span>
-            </div>
+            <button
+              key={gender}
+              type="button"
+              onClick={() => handleGenderChange(gender)}
+              className={tabClass(gender === currentActiveGender)}
+            >
+              {genderLabel(gender)}
+            </button>
           );
         })}
+        {sectionGroups.length > 1 && (
+          <span className="mx-1 text-neutral-300 dark:text-neutral-700">|</span>
+        )}
+        {sectionGroups.map((section) => (
+          <button
+            key={section}
+            type="button"
+            onClick={() => handleSectionChange(section)}
+            className={tabClass(section === activeShare?.section)}
+          >
+            {sectionLabel(section)}
+          </button>
+        ))}
       </div>
+
+      {activeShare ? (
+        <div className="mt-3">
+          <div className="flex flex-wrap items-center gap-3">
+            <a
+              href={activeShare.url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-xs text-blue-600 dark:text-blue-400 hover:underline"
+            >
+              {t('setlist.openPlaylist')}
+            </a>
+            <span className="text-xs text-neutral-500">
+              {t('setlist.tracks', { n: activeShare.count })}
+            </span>
+          </div>
+
+          {activeShare.embeddable ? (
+            <iframe
+              src={activeShare.url}
+              title={sectionLabel(activeShare.section)}
+              className="mt-3 h-[80vh] w-full rounded-md border border-neutral-200 dark:border-neutral-800 bg-white"
+            />
+          ) : (
+            <div className="mt-3 flex flex-wrap gap-3">
+              {activeShare.tracks.map((part) => (
+                <div
+                  key={part.streamUrl}
+                  className="flex flex-col gap-1 min-w-0 flex-1 basis-44"
+                >
+                  <div className="flex items-start gap-2">
+                    {part.coverArtUrl && (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img
+                        src={part.coverArtUrl}
+                        alt={part.title}
+                        className="h-10 w-10 shrink-0 rounded object-cover"
+                      />
+                    )}
+                    <span className="text-xs font-medium text-neutral-700 dark:text-neutral-300 truncate">
+                      {part.title}
+                    </span>
+                  </div>
+                  <audio
+                    controls
+                    src={part.streamUrl}
+                    className="h-8 w-full max-w-full"
+                  />
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      ) : (
+        <div className="mt-3 text-center">
+          <span className="text-xs text-neutral-400">
+            {t('voice.noRecordings')}
+          </span>
+        </div>
+      )}
+
       {canGenerate && !generating && !done && (
         <button
           onClick={handleGenerate}

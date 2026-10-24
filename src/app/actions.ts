@@ -1145,6 +1145,19 @@ export async function saveSharedSetlistAction(shareToken: string) {
     };
     await saveSetlist(reference);
 
+    // Auto-regenerate voice shares for the original if it has shares and songs changed
+    if (original.voiceShares && original.voiceShares.length > 0) {
+      try {
+        const { generateSetlistVoiceShares } = await import(
+          "@/lib/navidrome/setlist-shares"
+        );
+        const voiceRole = (session?.role === 'admin' || session?.role === 'reviewer' || session?.role === 'setlist_creator' || session?.role === 'public') ? session?.role : 'public';
+        await generateSetlistVoiceShares(original, { role: voiceRole ?? 'public' });
+      } catch {
+        // Best effort
+      }
+    }
+
     revalidatePath("/setlists");
     return { ok: true as const, setlistId: referenceId };
   } catch (err) {
