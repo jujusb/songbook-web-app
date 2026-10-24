@@ -192,6 +192,27 @@ describe('API /api/setlists', () => {
       await createSong('song2', 'Song 2', 'en', 'test-album');
     });
 
+    it.each(['Share', 'share', 'New', ' share '])('rejects title "%s" that slugs to a reserved id', async (title) => {
+      mockAuth(creatorToken);
+      const response = await setlistsPOST(createMockRequest('POST', { title, songs: [] }));
+      const data = await response.json();
+
+      expect(response.status).toBe(400);
+      expect(data.error).toMatch(/reserved/);
+    });
+
+    it('rejects a title with no letters or digits', async () => {
+      mockAuth(creatorToken);
+      const response = await setlistsPOST(createMockRequest('POST', { title: '!!!', songs: [] }));
+      expect(response.status).toBe(400);
+    });
+
+    it('still allows ids that merely contain a reserved word', async () => {
+      mockAuth(creatorToken);
+      const response = await setlistsPOST(createMockRequest('POST', { title: 'Share Night', songs: [] }));
+      expect(response.status).toBe(201);
+    });
+
     it('creates setlist for setlist_creator', async () => {
       mockAuth(creatorToken);
       const req = createMockRequest('POST', {

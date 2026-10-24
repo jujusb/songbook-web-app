@@ -72,6 +72,11 @@ Routes redirect to `/songs` when `enableArtistPages` is false.
 | `/setlists/share/[token]` | — | **token share page**: read-only view, voice playlists, PDF | Public, no login; 404 if unknown |
 | `/setlists/share/[token]/present` | `?display` | projection via share token | Public; 404 if unknown/empty |
 
+Setlist ids `share` and `new` are reserved: they collide with `/setlists/share/[token]` and
+`/setlists/new`, so such a setlist could never be opened. `POST /api/setlists` returns 400 for a
+title that slugs to one of them, and `saveSetlist` refuses them (`RESERVED_SETLIST_IDS` in
+`src/lib/content/schemas.ts`).
+
 ## Auth and admin
 
 | Route | Renders | Access |

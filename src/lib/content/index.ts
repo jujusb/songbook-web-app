@@ -18,6 +18,7 @@ import {
   AlbumSchema,
   ArtistSchema,
   SetlistSchema,
+  isReservedSetlistId,
   type SongMeta,
   type SongTranslationFrontmatter,
   type LanguagesConfig,
@@ -345,6 +346,9 @@ export async function findSetlistByShareToken(token: string): Promise<Setlist | 
 
 export async function saveSetlist(setlist: SetlistInput): Promise<void> {
   const validated = SetlistSchema.parse(setlist);
+  if (isReservedSetlistId(validated.id)) {
+    throw new Error(`"${validated.id}" is a reserved setlist id`);
+  }
   const dir = getSetlistsDir();
   await mkdir(dir, { recursive: true });
   const filePath = path.join(dir, `${validated.id}.yaml`);

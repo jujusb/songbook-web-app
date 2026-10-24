@@ -4,7 +4,7 @@ import { getSession, canEdit, canAdmin, canCreateSetlist } from "@/lib/auth";
 import { isReadOnlyFor } from "@/lib/readonly";
 import { generateSetlistVoiceShares } from "@/lib/navidrome/setlist-shares";
 import { getSetlistMaxSongs } from "@/lib/config";
-import type { Setlist } from "@/lib/content/schemas";
+import { isReservedSetlistId, type Setlist } from "@/lib/content/schemas";
 
 export async function GET() {
   const all = await listSetlists();
@@ -71,6 +71,16 @@ export async function POST(request: Request) {
       .toLowerCase()
       .replace(/[^a-z0-9]+/g, "-")
       .replace(/^-|-$/g, "");
+
+    if (!id) {
+      return NextResponse.json({ error: "title must contain letters or digits" }, { status: 400 });
+    }
+    if (isReservedSetlistId(id)) {
+      return NextResponse.json(
+        { error: `"${id}" is reserved and cannot be used as a setlist id; choose another title` },
+        { status: 400 },
+      );
+    }
 
     const setlist: Setlist = {
       id,

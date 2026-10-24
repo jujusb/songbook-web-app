@@ -5,7 +5,8 @@ import Link from "next/link";
 import { languageLabelFor } from "@/lib/i18n/labels";
 import { SongVoiceSelector } from "@/components/SongVoiceSelector";
 import { SetlistVoicePlaylists } from "@/components/SetlistVoicePlaylists";
-import { transpose, renderVisualChordSheet } from "@/lib/chordpro";
+import { transpose, renderVisualChordSheet, getKey } from "@/lib/chordpro";
+import { convertChord } from "@/lib/chordpro/notation";
 import {
   updateSetlistLyricsViewAction,
   updateSetlistGlobalOptionsAction,
@@ -279,13 +280,24 @@ export function SetlistReadOnlyView({
     if (!body) return null;
     const semitones = transposeMap.get(songId) ?? 0;
     const transposed = semitones !== 0 ? transpose(body, semitones) : body;
-    return renderVisualChordSheet(transposed, {
+    let rendered = renderVisualChordSheet(transposed, {
       showChords: globalOptions.showChords,
       repeatChorus: globalOptions.showRepeats,
       inlineChords: globalOptions.inlineChords,
       hideInstrumentals: false,
     });
-  }, [combinedBodyMap, transposeMap, globalOptions]);
+    if (globalOptions.chordNotation !== "letters" && globalOptions.showChords) {
+      // Roman/Nashville are relative to the key, so use the transposed key
+      const song = songs.find((s) => s.songId === songId);
+      const keyRoot = getKey(transposed) ?? song?.key ?? null;
+      const notation = globalOptions.chordNotation;
+      rendered = rendered.replace(
+        /class="(vce-chord|vce-inline-chord)"([^>]*)>([^<]+)<\/span>/g,
+        (_m, cls, attrs, chord) => `class="${cls}"${attrs}>${convertChord(chord, notation, keyRoot)}</span>`,
+      );
+    }
+    return rendered;
+  }, [combinedBodyMap, transposeMap, globalOptions, songs]);
 
   const isSongExpanded = (songId: string) => {
     if (displayMode === "all") return true;

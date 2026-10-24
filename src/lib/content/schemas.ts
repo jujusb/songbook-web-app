@@ -201,6 +201,17 @@ export const VoiceShareSchema = z.object({
 
 export type VoiceShare = z.infer<typeof VoiceShareSchema>;
 
+/**
+ * Setlist ids that would collide with static routes under `/setlists/`
+ * (`/setlists/share/[token]`, `/setlists/new`): a setlist with one of these ids
+ * could never be opened, because the static segment wins over `[setlistId]`.
+ */
+export const RESERVED_SETLIST_IDS = ["share", "new"] as const;
+
+export function isReservedSetlistId(id: string): boolean {
+  return (RESERVED_SETLIST_IDS as readonly string[]).includes(id.trim().toLowerCase());
+}
+
 export const SetlistSchema = z.object({
   id: z.string(),
   title: z.string(),
