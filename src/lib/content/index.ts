@@ -167,6 +167,18 @@ export async function listSongs(options: ListSongsOptions = {}): Promise<SongLis
 }
 
 /**
+ * Get all song IDs that have a translation in the given language,
+ * sorted alphabetically by ID. Used for next/previous navigation.
+ */
+export async function getSongIdsByLanguage(lang: string): Promise<string[]> {
+  const songs = await listSongs({ onlyPublished: false, role: 'admin' });
+  return songs
+    .filter((s) => s.translations.includes(lang))
+    .map((s) => s.id)
+    .sort();
+}
+
+/**
  * Resolve the localized title for a song meta in a given language.
  * Falls back to the song's default title when no language-specific title exists.
  */
@@ -256,7 +268,13 @@ function getSetlistsDir(): string {
   return path.join(getContentDir(), 'setlists');
 }
 
-export async function listSetlists(): Promise<Setlist[]> {
+export interface ListSetlistsOptions {
+  /** If provided, include reference setlists owned by this user (saved shared setlists). */
+  userId?: string;
+}
+
+export async function listSetlists(options: ListSetlistsOptions = {}): Promise<Setlist[]> {
+  const { userId } = options;
   const dir = getSetlistsDir();
   try {
     const entries = await readdir(dir);
@@ -266,7 +284,12 @@ export async function listSetlists(): Promise<Setlist[]> {
       try {
         const raw = await readFile(path.join(dir, entry), 'utf-8');
         const parsed = yaml.load(raw);
-        setlists.push(SetlistSchema.parse(parsed));
+        const setlist = SetlistSchema.parse(parsed);
+        // Skip reference setlists unless userId matches owner
+        if (setlist.sharedFrom && setlist.ownerId !== userId) {
+          continue;
+        }
+        setlists.push(setlist);
       } catch {}
     }
     // Sort by date descending (newest first), then by title
@@ -286,7 +309,27 @@ export async function getSetlist(id: string): Promise<Setlist> {
   const filePath = path.join(getSetlistsDir(), `${id}.yaml`);
   const raw = await readFile(filePath, 'utf-8');
   const parsed = yaml.load(raw);
-  return SetlistSchema.parse(parsed);
+  const setlist = SetlistSchema.parse(parsed);
+
+  // If this is a reference setlist, merge with original
+  if (setlist.sharedFrom) {
+    try {
+      const original = await getSetlist(setlist.sharedFrom.setlistId);
+      return {
+        ...setlist,
+        // Override with original's mutable content
+        title: original.title,
+        description: original.description,
+        date: original.date,
+        songs: original.songs,
+        voiceShares: original.voiceShares,
+      };
+    } catch {
+      // If original not found, return reference as-is
+      return setlist;
+    }
+  }
+  return setlist;
 }
 
 /**

@@ -214,6 +214,14 @@ export const SetlistSchema = z.object({
   ownerId: z.string().optional(),            // user who created the setlist
   created: z.union([z.string(), z.date()]).optional(),
   modified: z.union([z.string(), z.date()]).optional(),
+  /** For setlists saved from shared setlists - reference to original. */
+  sharedFrom: z.object({
+    setlistId: z.string(),
+    shareToken: z.string(),
+    savedAt: z.string(),
+  }).optional(),
+  /** Users who saved this shared setlist (readers). */
+  subscribers: z.array(z.string()).default([]),
 });
 
 export type Setlist = z.infer<typeof SetlistSchema>;

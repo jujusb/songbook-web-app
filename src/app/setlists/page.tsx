@@ -2,15 +2,17 @@ import Link from "next/link";
 import { cookies } from "next/headers";
 import { listSetlists, listSongs, getLanguagesConfig, resolveSongListTitle } from "@/lib/content";
 import { getLocale } from "@/lib/i18n/server";
-import { getSession, canEdit, canCreateSetlist } from "@/lib/auth";
+import { getSession, canEdit, canCreateSetlist, getCurrentUser } from "@/lib/auth";
 import { T } from "@/components/Translate";
 
 export default async function SetlistsPage() {
   const session = await getSession();
+  const currentUser = await getCurrentUser();
   const showEditActions = canEdit(session?.role ?? null);
+  const userId = currentUser?.id;
 
   const [setlists, songs, langConfig] = await Promise.all([
-    listSetlists(),
+    listSetlists({ userId }),
     listSongs({ onlyPublished: true, role: session?.role ?? 'public' }),
     getLanguagesConfig(),
   ]);
@@ -41,6 +43,7 @@ export default async function SetlistsPage() {
       ) : (
         <div className="space-y-3">
           {visibleSetlists.map((setlist) => {
+            const isReference = !!setlist.sharedFrom;
             const visibleSongs = setlist.songs.filter((s) => {
               if (selectedLang === langConfig.default) return true;
               const song = songMap.get(s.songId);
@@ -60,7 +63,14 @@ export default async function SetlistsPage() {
               >
                 <div className="flex items-center justify-between">
                   <div>
-                    <h2 className="font-semibold">{setlist.title}</h2>
+                    <div className="flex items-center gap-2">
+                      <h2 className="font-semibold">{setlist.title}</h2>
+                      {isReference && (
+                        <span className="text-xs px-1.5 py-0.5 bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300 rounded">
+                          <T k="setlist.savedFromShared" />
+                        </span>
+                      )}
+                    </div>
                     {setlist.description && (
                       <p className="text-sm text-neutral-500 mt-0.5">
                         {setlist.description}

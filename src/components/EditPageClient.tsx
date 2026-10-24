@@ -38,6 +38,8 @@ export function EditPageClient({
   chordsPublished,
   keySignature,
   initialShowReferences = false,
+  prevSongId,
+  nextSongId,
 }: {
   songId: string;
   lang: string;
@@ -54,6 +56,8 @@ export function EditPageClient({
   published?: boolean;
   chordsPublished?: boolean;
   initialShowReferences?: boolean;
+  prevSongId?: string;
+  nextSongId?: string;
 }) {
   const { t } = useTranslation();
   const router = useRouter();
@@ -212,6 +216,31 @@ return (
             >
               &larr; {t('song.view')}
             </Link>
+            {/* Navigation: Previous/Next song in current language */}
+            {prevSongId && nextSongId && (
+              <>
+                <Link
+                  href={`/edit/${prevSongId}/${lang}`}
+                  className="p-2 border border-neutral-300 dark:border-neutral-700 rounded-md hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors shrink-0"
+                  aria-label={t('song.previousSong')}
+                  title={t('song.previousSong')}
+                >
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                  </svg>
+                </Link>
+                <Link
+                  href={`/edit/${nextSongId}/${lang}`}
+                  className="p-2 border border-neutral-300 dark:border-neutral-700 rounded-md hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors shrink-0"
+                  aria-label={t('song.nextSong')}
+                  title={t('song.nextSong')}
+                >
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                  </svg>
+                </Link>
+              </>
+            )}
             <div className="w-px h-5 bg-neutral-200 dark:bg-neutral-800 shrink-0" />
             <input
               type="text"

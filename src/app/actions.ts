@@ -1,7 +1,7 @@
 "use server";
 
 import { saveSongTranslation, saveSongMeta, createSong, getSong, getSongTranslation, getSiteConfig, extractBodyTitle, addSongTranslation, deleteSongTranslation, renameSong, renameAlbum, changeSongAlbum, getSetlist, saveSetlist, listSongs, getAlbum, saveAlbum, createAlbum, getLanguagesConfig, NO_ALBUM_ID, getAlbumsForSong, findSongPath, getRevision, saveRevision as saveRevisionLib, timestampToRevisionFile } from "@/lib/content";
-import { SongTranslationFrontmatterSchema, type Reference, type Partition, type Album } from "@/lib/content/schemas";
+import { SongTranslationFrontmatterSchema, type Reference, type Partition, type Album, type SetlistInput } from "@/lib/content/schemas";
 import { revalidatePath } from "next/cache";
 import matter from "gray-matter";
 import path from "path";
@@ -1065,6 +1065,230 @@ export async function updateMyPdfLayoutAction(opts: {
         pdfOrientation: opts.orientation ?? undefined,
         pdfColumns: opts.columns ?? undefined,
         pdfTocColumns: opts.tocColumns ?? undefined,
+      },
+      { allowReadOnly: true }
+    );
+    return { ok: true as const };
+  } catch (err) {
+    return {
+      ok: false as const,
+      error: err instanceof Error ? err.message : "FAILED",
+    };
+  }
+}
+
+/* ------------------------------------------------------------------ */
+/*  Setlist: Shared setlist references & lyrics view preferences       */
+/* ------------------------------------------------------------------ */
+
+import { listSetlists, findSetlistByShareToken } from "@/lib/content";
+
+/**
+ * Save a shared setlist to the current user's library as a reference.
+ * The new setlist points to the original via `sharedFrom`; changes to the
+ * original (songs, order, title) automatically reflect.
+ */
+export async function saveSharedSetlistAction(shareToken: string) {
+  assertSetlistWrite();
+  const session = await getSession();
+  const user = await getCurrentUser();
+  if (!session || !user) {
+    return { ok: false as const, error: "Unauthorized" };
+  }
+
+  try {
+    const original = await findSetlistByShareToken(shareToken);
+    if (!original) {
+      return { ok: false as const, error: "Setlist not found" };
+    }
+
+    // Check if already subscribed
+    if (original.subscribers?.includes(user.id)) {
+      // Find the reference setlist in user's library
+      const allSetlists = await listSetlists({ userId: user.id });
+      const existing = allSetlists.find(
+        (s) => s.sharedFrom?.setlistId === original.id && s.ownerId === user.id
+      );
+      if (existing) {
+        return { ok: true as const, setlistId: existing.id, alreadySaved: true };
+      }
+    }
+
+    // Add user to original's subscribers
+    const updatedOriginal = {
+      ...original,
+      subscribers: [...(original.subscribers ?? []), user.id],
+    };
+    await saveSetlist(updatedOriginal);
+
+    // Create reference setlist in user's library
+    const referenceId = `saved-${original.id}-${user.id}`;
+    const reference: SetlistInput = {
+      id: referenceId,
+      title: original.title,
+      description: original.description,
+      date: original.date,
+      songs: [], // Empty - we load from original via sharedFrom
+      voiceShares: [],
+      public: false,
+      shareToken: undefined,
+      shareSlug: undefined,
+      ownerId: user.id,
+      created: new Date().toISOString(),
+      modified: new Date().toISOString(),
+      sharedFrom: {
+        setlistId: original.id,
+        shareToken: original.shareToken ?? '',
+        savedAt: new Date().toISOString(),
+      },
+      subscribers: [],
+    };
+    await saveSetlist(reference);
+
+    revalidatePath("/setlists");
+    return { ok: true as const, setlistId: referenceId };
+  } catch (err) {
+    return {
+      ok: false as const,
+      error: err instanceof Error ? err.message : "FAILED",
+    };
+  }
+}
+
+/**
+ * Remove a saved shared setlist reference from user's library.
+ * Removes user from original's subscribers and deletes the reference setlist.
+ */
+export async function removeSavedSetlistAction(setlistId: string) {
+  assertSetlistWrite();
+  const session = await getSession();
+  const user = await getCurrentUser();
+  if (!session || !user) {
+    return { ok: false as const, error: "Unauthorized" };
+  }
+
+  try {
+    const reference = await getSetlist(setlistId);
+    if (!reference || !reference.sharedFrom) {
+      return { ok: false as const, error: "Not a saved shared setlist" };
+    }
+    if (reference.ownerId !== user.id) {
+      return { ok: false as const, error: "Forbidden" };
+    }
+
+    // Remove user from original's subscribers
+    const original = await getSetlist(reference.sharedFrom.setlistId);
+    if (original) {
+      await saveSetlist({
+        ...original,
+        subscribers: (original.subscribers ?? []).filter((id) => id !== user.id),
+      });
+    }
+
+    // Delete reference setlist
+    const { deleteSetlist } = await import("@/lib/content");
+    await deleteSetlist(setlistId);
+
+    revalidatePath("/setlists");
+    return { ok: true as const };
+  } catch (err) {
+    return {
+      ok: false as const,
+      error: err instanceof Error ? err.message : "FAILED",
+    };
+  }
+}
+
+/**
+ * Update the current user's default setlist lyrics view mode.
+ */
+export async function updateSetlistLyricsViewAction(mode: 'all' | 'list') {
+  const session = await getSession();
+  if (!session) {
+    return { ok: false as const, error: "Unauthorized" };
+  }
+  const user = await getCurrentUser();
+  if (!user) {
+    return { ok: false as const, error: "Unauthorized" };
+  }
+  try {
+    await saveUser({ ...user, setlistLyricsView: mode }, { allowReadOnly: true });
+    return { ok: true as const };
+  } catch (err) {
+    return {
+      ok: false as const,
+      error: err instanceof Error ? err.message : "FAILED",
+    };
+  }
+}
+
+/**
+ * Update the current user's global setlist lyrics display options.
+ */
+export async function updateSetlistGlobalOptionsAction(opts: {
+  showChords?: boolean;
+  showRepeats?: boolean;
+  chordNotation?: 'letters' | 'solfege' | 'roman' | 'nashville';
+  inlineChords?: boolean;
+}) {
+  const session = await getSession();
+  if (!session) {
+    return { ok: false as const, error: "Unauthorized" };
+  }
+  const user = await getCurrentUser();
+  if (!user) {
+    return { ok: false as const, error: "Unauthorized" };
+  }
+  try {
+    await saveUser(
+      {
+        ...user,
+        showChords: opts.showChords ?? user.showChords,
+        showRepeats: opts.showRepeats ?? user.showRepeats,
+        chordNotation: opts.chordNotation ?? user.chordNotation,
+        inlineChords: opts.inlineChords ?? user.inlineChords,
+      },
+      { allowReadOnly: true }
+    );
+    return { ok: true as const };
+  } catch (err) {
+    return {
+      ok: false as const,
+      error: err instanceof Error ? err.message : "FAILED",
+    };
+  }
+}
+
+/**
+ * Update the current user's per-song transpose for a specific setlist.
+ * Stores transpose per setlist (source setlist ID) and song.
+ */
+export async function updateSetlistTransposeAction(
+  setlistId: string,
+  songId: string,
+  semitones: number
+) {
+  const session = await getSession();
+  if (!session) {
+    return { ok: false as const, error: "Unauthorized" };
+  }
+  const user = await getCurrentUser();
+  if (!user) {
+    return { ok: false as const, error: "Unauthorized" };
+  }
+  try {
+    const current = user.setlistTranspose?.[setlistId] ?? {};
+    const updated = { ...current, [songId]: semitones };
+    if (semitones === 0) {
+      delete updated[songId];
+    }
+    await saveUser(
+      {
+        ...user,
+        setlistTranspose: {
+          ...user.setlistTranspose,
+          [setlistId]: updated,
+        },
       },
       { allowReadOnly: true }
     );

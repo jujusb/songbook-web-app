@@ -33,21 +33,28 @@ export default async function SetlistPage({
   const session = await getSession();
   const userId = session?.userId;
   const role = session?.role ?? null;
-  const currentVoice = (await getCurrentUser())?.voice;
+  const currentUser = await getCurrentUser();
+  const currentVoice = currentUser?.voice;
   const showEditActions = canEdit(role);
   const showDeleteActions = canAdmin(role);
   const canCreate = canCreateSetlist(role);
   const canManageShares = canManageSetlistShares(role);
   const isOwner = setlist.ownerId === userId;
+  const isSubscriber = userId ? (setlist.subscribers ?? []).includes(userId) : false;
   const showEditor = showEditActions || (canCreate && isOwner);
   const showShareControls = showEditActions || (canManageShares && isOwner);
   const showVoiceShares = showEditActions || (canCreate && isOwner);
 
-  if (!canViewSetlist(setlist, shareParam, showEditor)) {
+  if (!canViewSetlist(setlist, shareParam, showEditor, isSubscriber)) {
     notFound();
   }
 
-  const voiceShares = await getSetlistVoiceShares(setlist, session?.role ?? 'public');
+  // Determine source setlist (original for references)
+  const isReference = !!setlist.sharedFrom;
+  const sourceSetlistId = isReference ? setlist.sharedFrom!.setlistId : setlistId;
+  const sourceSetlist = isReference ? await getSetlist(sourceSetlistId) : setlist;
+
+  const voiceShares = await getSetlistVoiceShares(sourceSetlist, session?.role ?? 'public');
   const presentHref = `/setlists/${setlistId}/present${
     shareParam ? `?share=${shareParam}` : ""
   }`;
@@ -55,6 +62,32 @@ export default async function SetlistPage({
   const langConfig = await getLanguagesConfig();
   const selectedLang = getLocale(await cookies(), langConfig.default);
   const publicUrl = await getShareBaseUrl();
+
+  type UserPreferences = {
+  showChords: boolean;
+  showRepeats: boolean;
+  chordNotation: "letters" | "solfege" | "roman" | "nashville";
+  inlineChords: boolean;
+  setlistLyricsView: "all" | "list";
+  setlistTranspose: Record<string, number>;
+};
+
+// User preferences for lyrics view
+  const userPrefs: UserPreferences = currentUser ? {
+    showChords: currentUser.showChords ?? true,
+    showRepeats: currentUser.showRepeats ?? true,
+    chordNotation: (currentUser.chordNotation as "letters" | "solfege" | "roman" | "nashville") ?? 'letters',
+    inlineChords: currentUser.inlineChords ?? false,
+    setlistLyricsView: currentUser.setlistLyricsView ?? 'all',
+    setlistTranspose: currentUser.setlistTranspose?.[sourceSetlistId] ?? {},
+  } : {
+    showChords: true,
+    showRepeats: true,
+    chordNotation: 'letters',
+    inlineChords: false,
+    setlistLyricsView: 'all',
+    setlistTranspose: {},
+  };
 
   // Load available songs for editor
   const songs = await listSongs();
@@ -65,26 +98,36 @@ export default async function SetlistPage({
     })
   );
 
-  // Resolve song titles for display
+  // Resolve song titles for display + load song bodies for lyrics view
   const songDetails = await Promise.all(
-    setlist.songs.map(async (item) => {
+    sourceSetlist.songs.map(async (item) => {
       try {
         const meta = await getSong(item.songId);
         const translations = await getSongTranslations(item.songId);
         // Check published status for the selected language
-        const { meta: translationMeta } = await getSongTranslation(item.songId, item.lang);
+        const { meta: translationMeta, body } = await getSongTranslation(item.songId, item.lang);
         return { 
           ...item, 
           title: await getSongTitle(item.songId, item.lang), 
           key: meta.key, 
           translations,
-          published: translationMeta.published
+          published: translationMeta.published,
+          body,
+          audioFiles: meta.audioFiles ?? [],
         };
       } catch {
-        return { ...item, title: item.songId, key: undefined, translations: [] as string[], published: false };
+        return { ...item, title: item.songId, key: undefined, translations: [] as string[], published: false, body: '', audioFiles: [] };
       }
     })
   );
+
+  // Build songBodies map for lyrics view
+  const songBodies: Record<string, string> = {};
+  for (const song of songDetails) {
+    if (song.body) {
+      songBodies[song.songId] = song.body;
+    }
+  }
 
   const visibleSongDetails = songDetails.filter((song) => {
     if (!shouldShowSongInLanguage(song.translations, selectedLang, langConfig.default)) {
@@ -96,7 +139,7 @@ export default async function SetlistPage({
     }
     return true;
   });
-  const displayCount = showEditor ? setlist.songs.length : visibleSongDetails.length;
+  const displayCount = showEditor ? sourceSetlist.songs.length : visibleSongDetails.length;
 
   return (
     <div className="max-w-full mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -180,6 +223,10 @@ export default async function SetlistPage({
           songs={songDetails}
           selectedLang={selectedLang}
           defaultLang={langConfig.default}
+          userPreferences={userPrefs}
+          songBodies={songBodies}
+          isReference={isReference}
+          sourceSetlistId={sourceSetlistId}
         />
       )}
     </div>

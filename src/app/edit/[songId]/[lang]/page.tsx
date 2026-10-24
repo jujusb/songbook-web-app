@@ -1,5 +1,5 @@
 import { notFound, redirect } from "next/navigation";
-import { getSong, getSongTitle, getSongTranslation, getSongTranslations, getLanguagesConfig } from "@/lib/content";
+import { getSong, getSongTitle, getSongTranslation, getSongTranslations, getLanguagesConfig, getSongIdsByLanguage } from "@/lib/content";
 import { getSession, canEdit, canEditSong, getCurrentUser } from "@/lib/auth";
 import { isReadOnly } from "@/lib/readonly";
 import { EditPageClient } from "@/components/EditPageClient";
@@ -46,6 +46,17 @@ export default async function EditPage({
   const localizedTitle = await getSongTitle(songId, lang);
   const chordsPublished = translation.meta.chordsPublished;
 
+  // Get song IDs for current language (for next/previous navigation)
+  const songIdsInLang = await getSongIdsByLanguage(lang);
+  const currentIndex = songIdsInLang.indexOf(songId);
+  const hasNavigation = songIdsInLang.length > 1;
+  const prevSongId = hasNavigation
+    ? songIdsInLang[(currentIndex - 1 + songIdsInLang.length) % songIdsInLang.length]
+    : undefined;
+  const nextSongId = hasNavigation
+    ? songIdsInLang[(currentIndex + 1) % songIdsInLang.length]
+    : undefined;
+
   return (
     <EditPageClient
       songId={songId}
@@ -63,6 +74,8 @@ export default async function EditPage({
       chordsPublished={chordsPublished}
       keySignature={meta.key}
       initialShowReferences={showRefs === '1'}
+      prevSongId={prevSongId}
+      nextSongId={nextSongId}
     />
   );
 }

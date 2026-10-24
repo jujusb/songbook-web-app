@@ -12,6 +12,7 @@ import {
   getLanguagesConfig,
   listAlbums,
   getSongBody,
+  getSongIdsByLanguage,
 } from "@/lib/content";
 import { getLocale } from "@/lib/i18n/server";
 import { getSession, getCurrentUser, canEdit, canAdmin } from "@/lib/auth";
@@ -102,6 +103,17 @@ export default async function SongPage({
         ? selectedLang
         : translations[0];
 
+  // Get song IDs for current language (for next/previous navigation)
+  const songIdsInLang = await getSongIdsByLanguage(lang);
+  const currentIndex = songIdsInLang.indexOf(songId);
+  const hasNavigation = songIdsInLang.length > 1;
+  const prevSongId = hasNavigation
+    ? songIdsInLang[(currentIndex - 1 + songIdsInLang.length) % songIdsInLang.length]
+    : undefined;
+  const nextSongId = hasNavigation
+    ? songIdsInLang[(currentIndex + 1) % songIdsInLang.length]
+    : undefined;
+
   // Check if translation is published for non-admin users
   const { meta: translationMeta, capo, key: bodyKey } = await getSongTranslation(songId, lang);
   if (!isAdmin && !translationMeta.published) {
@@ -134,6 +146,16 @@ export default async function SongPage({
 
   // Build action menu items - only for simple navigation actions
   const primaryActions = [
+    ...(hasNavigation ? [
+      {
+        label: "Previous",
+        href: `/songs/${prevSongId}?lang=${lang}`,
+      },
+      {
+        label: "Next",
+        href: `/songs/${nextSongId}?lang=${lang}`,
+      },
+    ] : []),
     ...(showEditActions ? [
       {
         label: "Edit",
@@ -194,6 +216,31 @@ export default async function SongPage({
                     className="text-sm px-3 py-1.5 border border-neutral-300 dark:border-neutral-700 rounded-md hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors hidden sm:inline-flex"
                   >
                     Edit References
+                  </Link>
+                </>
+              )}
+              {/* Navigation: Previous/Next song in current language */}
+              {hasNavigation && (
+                <>
+                  <Link
+                    href={`/songs/${prevSongId}?lang=${lang}`}
+                    className="p-2 border border-neutral-300 dark:border-neutral-700 rounded-md hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors hidden sm:inline-flex"
+                    aria-label="Previous song"
+                    title="Previous song"
+                  >
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                    </svg>
+                  </Link>
+                  <Link
+                    href={`/songs/${nextSongId}?lang=${lang}`}
+                    className="p-2 border border-neutral-300 dark:border-neutral-700 rounded-md hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors hidden sm:inline-flex"
+                    aria-label="Next song"
+                    title="Next song"
+                  >
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                    </svg>
                   </Link>
                 </>
               )}

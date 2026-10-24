@@ -48,6 +48,7 @@ export async function POST(request: Request) {
       public: false,
       ownerId: session?.userId,
       created: new Date().toISOString(),
+      subscribers: [],
     };
 
     await saveSetlist(setlist);
@@ -101,6 +102,7 @@ export async function PUT(request: Request) {
       shareSlug: existing?.shareSlug,
       ownerId: existing.ownerId,
       created: existing?.created || new Date().toISOString(),
+      subscribers: existing?.subscribers ?? [],
     };
 
     await saveSetlist(setlist);

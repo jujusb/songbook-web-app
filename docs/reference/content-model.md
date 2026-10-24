@@ -189,6 +189,11 @@ same from the edit UI.
 | `shareSlug` | string | — | optional custom slug |
 | `ownerId` | string | — | the user who created it |
 | `created`, `modified` | string \| date | — | optional |
+| `sharedFrom` | object | — | optional; if present, this setlist is a reference to another setlist |
+| `sharedFrom.setlistId` | string | — | the original setlist's id |
+| `sharedFrom.shareToken` | string | — | the original setlist's share token |
+| `sharedFrom.savedAt` | string | — | ISO timestamp when the reference was created |
+| `subscribers` | string[] | `[]` | user ids who have saved this shared setlist to their library |
 
 ## `users/<user-id>.yaml` (`UserSchema`)
 
@@ -205,7 +210,10 @@ same from the edit UI.
 | `created` | string \| date | — | optional |
 | `permissions` | `Permissions` | — | optional; narrows a reviewer |
 | `voice` | `tenor` \| `bass` \| `alto` \| `soprano` | — | optional; the user's singer voice, selected by default on song/setlist pages |
-
+| `setlistLyricsView` | `all` \| `list` | `all` | default view mode for setlist lyrics: `all` (expanded) or `list` (collapsed) |
+| `inlineChords` | boolean | `false` | show chords inline with lyrics in setlist lyrics view |
+| `setlistTranspose` | object | `{}` | per-setlist transpose overrides: `setlistId` → `{ songId → semitones }` |
+ 
 `Permissions` is `{ editSong: {songId, lang}[], editAlbum: {albumId, lang}[], editLanguage: string[] }`.
 
 ## Revisions

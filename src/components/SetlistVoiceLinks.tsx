@@ -1,4 +1,3 @@
-import { getSong } from "@/lib/content";
 import Link from "next/link";
 
 const VOICE_LABELS: Record<string, string> = {
@@ -17,26 +16,30 @@ const VOICE_COLORS: Record<string, string> = {
   "full": "bg-neutral-100 dark:bg-neutral-800 text-neutral-500 dark:text-neutral-400",
 };
 
-export async function SetlistVoiceLinks({
-  songId,
-  lang,
-}: {
+interface AudioFile {
+  voice: string;
+  path: string;
+  lang: string;
+}
+
+interface SetlistVoiceLinksProps {
   songId: string;
   lang: string;
-}) {
-  let audioFiles: { voice: string; path: string }[] = [];
-  try {
-    const meta = await getSong(songId);
-    audioFiles = (meta.audioFiles ?? []).filter((af) => af.lang === lang);
-  } catch {
-    // song or audio files not found
-  }
+  audioFiles: AudioFile[];
+}
 
-  if (audioFiles.length === 0) return null;
+export function SetlistVoiceLinks({
+  songId,
+  lang,
+  audioFiles,
+}: SetlistVoiceLinksProps) {
+  const filteredAudioFiles = audioFiles.filter((af) => af.lang === lang);
+
+  if (filteredAudioFiles.length === 0) return null;
 
   // Deduplicate voices
   const seen = new Set<string>();
-  const voices = audioFiles.filter((af) => {
+  const voices = filteredAudioFiles.filter((af) => {
     const key = af.voice;
     if (seen.has(key)) return false;
     seen.add(key);

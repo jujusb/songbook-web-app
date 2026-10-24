@@ -111,6 +111,9 @@ export async function findOrCreateOidcUser(
     email: claims.email,
     created: new Date().toISOString(),
     showChords: true,
+    setlistLyricsView: 'all',
+    inlineChords: false,
+    setlistTranspose: {},
   };
   await saveUser(user);
   return user;
@@ -143,6 +146,9 @@ export async function createUser(
     authProvider: 'local',
     displayName,
     created: new Date().toISOString(),
+    setlistLyricsView: 'all',
+    inlineChords: false,
+    setlistTranspose: {},
   };
   await saveUser(user, opts);
   return user;
@@ -208,16 +214,18 @@ export function canManageSetlistShares(role: Role | null): boolean {
 }
 
 /**
- * Whether a visitor may view a setlist: editors always can; otherwise the
- * setlist must be public or the visitor must present the matching share token
- * (`?share=<token>` in the URL).
+ * Whether a visitor may view a setlist: editors always can; subscribers can;
+ * otherwise the setlist must be public or the visitor must present the matching
+ * share token (`?share=<token>` in the URL).
  */
 export function canViewSetlist(
-  setlist: { public?: boolean; shareToken?: string },
+  setlist: { public?: boolean; shareToken?: string; subscribers?: string[] },
   shareParam: string | undefined,
   isEditor: boolean,
+  isSubscriber: boolean = false,
 ): boolean {
   if (isEditor) return true;
+  if (isSubscriber) return true;
   if (setlist.public) return true;
   return !!setlist.shareToken && shareParam === setlist.shareToken;
 }

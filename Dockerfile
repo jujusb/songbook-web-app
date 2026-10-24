@@ -1,13 +1,11 @@
-FROM node:20-slim AS base
+FROM node:26-alpine AS base
 
 # Install dependencies for Puppeteer
-RUN apt-get update && apt-get install -y \
+RUN apk add --no-cache \
     chromium \
-    fonts-noto \
-    fonts-noto-cjk \
-    fonts-noto-color-emoji \
-    --no-install-recommends \
-    && rm -rf /var/lib/apt/lists/*
+    font-noto \
+    font-noto-cjk \
+    font-noto-emoji
 
 ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true
 ENV PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium

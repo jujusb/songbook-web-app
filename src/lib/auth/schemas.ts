@@ -44,6 +44,12 @@ export type VoiceSection = z.infer<typeof VoiceSectionSchema>;
     pdfColumns: z.enum(['1', '2']).optional(),
     /** Default number of columns for the titles summary (TOC): 1, 2, or 3. */
     pdfTocColumns: z.enum(['1', '2', '3']).optional(),
+    /** Default setlist lyrics view mode: 'all' (expanded) or 'list' (collapsed). */
+    setlistLyricsView: z.enum(['all', 'list']).optional().default('all'),
+    /** Default inline chords preference for setlist lyrics view. */
+    inlineChords: z.boolean().optional().default(false),
+    /** Per-setlist transpose overrides: setlistId -> { songId -> semitones }. */
+    setlistTranspose: z.record(z.string(), z.record(z.string(), z.number())).optional().default({}),
   });
 
 export type User = z.infer<typeof UserSchema>;
