@@ -1,8 +1,7 @@
 "use client";
 
-import React, { useState, useCallback, useEffect } from "react";
+import React, { useState, useCallback, useEffect, useMemo } from "react";
 import Link from "next/link";
-import { shouldShowSongInLanguage } from "@/lib/content/client";
 import { languageLabelFor } from "@/lib/i18n/labels";
 import { SongVoiceSelector } from "@/components/SongVoiceSelector";
 import { SetlistVoicePlaylists } from "@/components/SetlistVoicePlaylists";
@@ -39,8 +38,6 @@ interface UserPreferences {
 
 interface SetlistReadOnlyViewProps {
   songs: SetlistReadOnlySong[];
-  selectedLang: string;
-  defaultLang: string;
   userPreferences: UserPreferences;
   songBodies: Record<string, string>;
   isReference: boolean;
@@ -108,8 +105,6 @@ function ExternalLinkIcon({ className = "w-4 h-4" }: { className?: string }) {
 
 export function SetlistReadOnlyView({
   songs,
-  selectedLang,
-  defaultLang,
   userPreferences,
   songBodies,
   isReference,
@@ -120,10 +115,7 @@ export function SetlistReadOnlyView({
 }: SetlistReadOnlyViewProps) {
   const { t } = useTranslation();
 
-  const visible = songs.filter((song) =>
-    shouldShowSongInLanguage(song.translations, selectedLang, defaultLang) &&
-    song.published !== false
-  );
+  const visible = useMemo(() => songs.filter((song) => song.published !== false), [songs]);
 
   const [displayMode, setDisplayMode] = useState<"all" | "list">(userPreferences.setlistLyricsView);
   const [expandedSongIds, setExpandedSongIds] = useState<Set<string>>(new Set());
@@ -189,7 +181,7 @@ export function SetlistReadOnlyView({
     return () => {
       cancelled = true;
     };
-  }, [visible, selectedLang, defaultLang]);
+  }, [visible]);
 
   // Initialize activeSection from preferredVoice or first available
   useEffect(() => {

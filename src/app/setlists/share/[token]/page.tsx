@@ -181,8 +181,6 @@ export default async function SetlistSharePage({
 
       <SetlistReadOnlyView
         songs={songDetails}
-        selectedLang={selectedLang}
-        defaultLang={langConfig.default}
         userPreferences={userPrefs}
         songBodies={songBodies}
         isReference={isReference}

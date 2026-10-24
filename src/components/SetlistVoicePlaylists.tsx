@@ -264,9 +264,9 @@ export function SetlistVoicePlaylists({
                   title={song.title}
                   spotify={song.spotify}
                   youtube={song.youtube}
-                  isOriginalLang={true}
+                  isOriginalLang={isOriginalLang}
                   lazyLoad={!allTabLoaded}
-                  navidromeShareUrl={undefined}
+                  navidromeShareUrl={isOriginalLang ? undefined : navidromeShareBySection.get(song.preferredVoice ?? preferredVoice ?? 'tenor')}
                 />
               </div>
             );

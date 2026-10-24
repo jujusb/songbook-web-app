@@ -215,8 +215,6 @@ export default async function SetlistPage({
       ) : (
         <SetlistReadOnlyView
           songs={songDetails}
-          selectedLang={selectedLang}
-          defaultLang={langConfig.default}
           userPreferences={userPrefs}
           songBodies={songBodies}
           isReference={isReference}
