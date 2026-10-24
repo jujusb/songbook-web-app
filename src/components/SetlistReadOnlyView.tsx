@@ -275,8 +275,15 @@ export function SetlistReadOnlyView({
     }
   }, [globalOptions]);
 
+  // Build combined body map from songBodies and song.body
+  const combinedBodyMap = new Map<string, string>();
+  for (const song of visible) {
+    const body = songBodies[song.songId] || song.body || '';
+    if (body.trim()) combinedBodyMap.set(song.songId, body);
+  }
+
   const renderLyrics = useCallback((songId: string) => {
-    const body = songBodies[songId];
+    const body = combinedBodyMap.get(songId) || '';
     if (!body) return null;
     const semitones = transposeMap.get(songId) ?? 0;
     const transposed = semitones !== 0 ? transpose(body, semitones) : body;
@@ -286,7 +293,7 @@ export function SetlistReadOnlyView({
       inlineChords: globalOptions.inlineChords,
       hideInstrumentals: false,
     });
-  }, [songBodies, transposeMap, globalOptions]);
+  }, [combinedBodyMap, transposeMap, globalOptions]);
 
   const isSongExpanded = (songId: string) => {
     if (displayMode === "all") return true;
@@ -297,7 +304,8 @@ export function SetlistReadOnlyView({
   const songListItems = visible.map((song, index) => {
     const expanded = isSongExpanded(song.songId);
     const semitones = transposeMap.get(song.songId) ?? 0;
-    const hasBody = songBodies[song.songId]?.trim();
+    const body = combinedBodyMap.get(song.songId) || '';
+    const hasBody = body.trim() !== '';
 
     return (
       <li key={`${song.songId}-${index}`}>
@@ -394,8 +402,7 @@ export function SetlistReadOnlyView({
             songId={song.songId}
             lang={song.lang}
             groups={voiceData.get(song.songId) ?? []}
-            activeSection={activeSection}
-            onSectionChange={setActiveSection}
+            preferredVoice={preferredVoice}
             compact
           />
         )}

@@ -341,6 +341,7 @@ const fr: Translations = {
     voices: 'Voix',
     noRecordings: 'Aucun enregistrement trouvé pour cette voix',
     loading: 'Chargement des voix...',
+    translatedLanguage: 'Langue traduite - les enregistrements vocaux ne sont pas affichés ici',
   },
   editor: {
     visual: 'Visuel',

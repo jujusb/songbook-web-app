@@ -339,6 +339,7 @@ const en = {
     voices: 'Voices',
     noRecordings: 'No recordings found for this voice',
     loading: 'Loading voices...',
+    translatedLanguage: 'Translated language - voice recordings not shown here',
   },
   editor: {
     visual: 'Visual',

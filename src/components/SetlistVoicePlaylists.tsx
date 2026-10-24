@@ -237,9 +237,21 @@ export function SetlistVoicePlaylists({
         <div className="space-y-3">
           {songs.map((song) => {
             const isOriginalLang = song.originalLang === song.lang;
-            const navidromeShareUrl = isOriginalLang 
-              ? undefined 
-              : navidromeShareBySection.get(song.preferredVoice ?? preferredVoice ?? 'tenor');
+            
+            // For ALL tab: only show audio for original language (Spotify/YouTube)
+            // For translated languages, don't show Navidrome here
+            if (!isOriginalLang) {
+              return (
+                <div key={song.songId} className="flex items-center gap-3 p-2 rounded-md border border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-900">
+                  <span className="text-xs font-medium text-neutral-700 dark:text-neutral-300 w-40 truncate">
+                    {song.title}
+                  </span>
+                  <span className="text-xs text-neutral-400">
+                    {t('voice.translatedLanguage')}
+                  </span>
+                </div>
+              );
+            }
             
             return (
               <div key={song.songId} className="flex items-center gap-3 p-2 rounded-md border border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-900">
@@ -252,9 +264,9 @@ export function SetlistVoicePlaylists({
                   title={song.title}
                   spotify={song.spotify}
                   youtube={song.youtube}
-                  isOriginalLang={isOriginalLang}
+                  isOriginalLang={true}
                   lazyLoad={!allTabLoaded}
-                  navidromeShareUrl={navidromeShareUrl}
+                  navidromeShareUrl={undefined}
                 />
               </div>
             );
@@ -266,32 +278,16 @@ export function SetlistVoicePlaylists({
       {currentActiveTab !== 'ALL' && (
         <div className="mt-3">
           {activeShare ? (
-            <>
-              <div className="flex flex-wrap items-center gap-3 mb-2">
-                <a
-                  href={activeShare.url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-xs text-blue-600 dark:text-blue-400 hover:underline"
-                >
-                  {t('setlist.openPlaylist')}
-                </a>
-                <span className="text-xs text-neutral-500">
-                  {t('setlist.tracks', { n: activeShare.count })}
-                </span>
-              </div>
-              {activeShare.embeddable ? (
-                <iframe
-                  src={activeShare.url}
-                  title={sectionLabel(activeShare.section)}
-                  className="w-full h-[80vh] rounded-md border border-neutral-200 dark:border-neutral-800 bg-white"
-                />
-              ) : (
-                <div className="text-center py-4 text-xs text-neutral-400">
-                  {t('voice.noRecordings')}
-                </div>
-              )}
-            </>
+            <div>
+              <span className="text-xs text-neutral-500">
+                {t('setlist.tracks', { n: activeShare.count })}
+              </span>
+              <iframe
+                src={activeShare.url}
+                title={sectionLabel(activeShare.section)}
+                className="w-full h-[80vh] mt-2 rounded-md border border-neutral-200 dark:border-neutral-800 bg-white"
+              />
+            </div>
           ) : (
             <div className="text-center py-4 text-xs text-neutral-400">
               {t('voice.noRecordings')}

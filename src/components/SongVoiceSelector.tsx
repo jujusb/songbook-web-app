@@ -1,5 +1,6 @@
 'use client';
 
+import { useState, useEffect } from 'react';
 import { useTranslation } from '@/lib/i18n';
 import type {
   VoiceGender,
@@ -26,8 +27,7 @@ interface SongVoiceSelectorProps {
   songId: string;
   lang: string;
   groups: VoiceGroup[];
-  activeSection: VoiceSection;
-  onSectionChange: (section: VoiceSection) => void;
+  preferredVoice?: VoiceSection;
   compact?: boolean;
 }
 
@@ -35,8 +35,7 @@ export function SongVoiceSelector({
   songId,
   lang,
   groups,
-  activeSection,
-  onSectionChange,
+  preferredVoice,
   compact = false,
 }: SongVoiceSelectorProps) {
   const { t } = useTranslation();
@@ -50,8 +49,27 @@ export function SongVoiceSelector({
     group.sections.some(({ parts }) => parts.length > 0),
   );
 
+  // Internal state - always uncontrolled, use preferredVoice only for initial selection
+  const [activeGender, setActiveGender] = useState<VoiceGender>(() => {
+    if (preferredVoice) {
+      const prefGroup = available.find(g => 
+        g.sections.some(s => s.section === preferredVoice && s.parts.length > 0)
+      );
+      if (prefGroup) return prefGroup.gender;
+    }
+    return available[0]?.gender ?? 'Boy';
+  });
+  const [activeSection, setActiveSection] = useState<VoiceSection>(() => {
+    if (preferredVoice) {
+      const hasContent = available.some(g => 
+        g.sections.some(s => s.section === preferredVoice && s.parts.length > 0)
+      );
+      if (hasContent) return preferredVoice;
+    }
+    return available[0]?.sections.find(s => s.parts.length > 0)?.section ?? 'tenor';
+  });
+
   // Determine current group based on activeSection
-  const activeGender = SECTION_GENDER[activeSection];
   const currentGroup =
     available.find((group) => group.gender === activeGender) ??
     available[0];
@@ -62,6 +80,20 @@ export function SongVoiceSelector({
     sectionGroups.find(({ section }) => section === activeSection) ?? sectionGroups[0];
 
   const parts = currentSection?.parts ?? [];
+
+  const handleGenderChange = (gender: VoiceGender) => {
+    setActiveGender(gender);
+    const first = available.find((group) => group.gender === gender);
+    if (first) {
+      const firstSection = first.sections.find(({ parts }) => parts.length > 0);
+      if (firstSection) setActiveSection(firstSection.section);
+    }
+  };
+
+  const handleSectionChange = (section: VoiceSection) => {
+    setActiveSection(section);
+    setActiveGender(SECTION_GENDER[section]);
+  };
 
   const tabClass = (active: boolean) =>
     `px-2 py-1 rounded text-xs font-semibold uppercase tracking-wide transition-colors min-h-[40px] touch-manipulation ${
@@ -82,10 +114,7 @@ export function SongVoiceSelector({
           <button
             key={group.gender}
             type="button"
-            onClick={() => {
-              const first = group.sections.find(({ parts }) => parts.length > 0);
-              if (first) onSectionChange(first.section);
-            }}
+            onClick={() => handleGenderChange(group.gender)}
             className={tabClass(group.gender === currentGroup?.gender)}
             aria-pressed={group.gender === currentGroup?.gender}
           >
@@ -99,7 +128,7 @@ export function SongVoiceSelector({
           <button
             key={section}
             type="button"
-            onClick={() => onSectionChange(section)}
+            onClick={() => handleSectionChange(section)}
             className={tabClass(section === currentSection?.section)}
             aria-pressed={section === currentSection?.section}
           >
