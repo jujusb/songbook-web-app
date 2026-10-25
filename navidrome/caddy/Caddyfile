@@ -1,0 +1,23 @@
+:80 {
+	# 1. Strip the blocking header sent by Navidrome
+    header -X-Frame-Options
+    # 2. Add your own CSP to allow your website to embed it
+    # Replace 'https://your-website.com' with the domain doing the embedding
+	header Content-Security-Policy "frame-ancestors 'self' {$EMBEDDED_SERVER_ADDRESS}"
+
+	handle /* {
+        reverse_proxy navidrome-international:4533
+    }
+}
+
+:81 {
+	# 1. Strip the blocking header sent by Navidrome
+    header -X-Frame-Options
+    # 2. Add your own CSP to allow your website to embed it
+    # Replace 'https://your-website.com' with the domain doing the embedding
+	header Content-Security-Policy "frame-ancestors 'self' {$EMBEDDED_SERVER_ADDRESS}"
+
+	handle /* {
+        reverse_proxy navidrome-voices:4533
+    }
+}

@@ -1,3 +1,7 @@
+networks:
+  songbook_net:
+    driver: bridge
+
 services:
   songbook:
     build: .
@@ -63,6 +67,8 @@ services:
       # - OIDC_AUTO_REDIRECT=false
       # - OIDC_LOGOUT_URL=https://auth.example.com/realms/main/protocol/openid-connect/logout
     restart: unless-stopped
+    networks:
+      - songbook_net
 
   # Read-only public instance (no login, no admin, no writes).
   # Serves the same content/music, mounted read-only, with SONGBOOK_READONLY=1.
@@ -112,3 +118,5 @@ services:
       - SONGBOOK_APP_NAME=${SONGBOOK_APP_NAME:-Songbook}
       - SONGBOOK_CONTACT_EMAIL=${SONGBOOK_CONTACT_EMAIL:-}
     restart: unless-stopped
+    networks:
+      - songbook_net

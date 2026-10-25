@@ -1,0 +1,60 @@
+networks:
+  songbook_net:
+    external: true
+  navidrome_internal_net:
+    driver: bridge
+
+services:
+  navidrome_international:
+    image: deluan/navidrome:latest
+    restart: unless-stopped
+    environment:
+      ND_SCANSCHEDULE: ${ND_SCANSCHEDULE:-1h}
+      ND_LOGLEVEL: ${ND_LOGLEVEL:-info}
+      ND_ENABLEEXTERNALSERVICES: ${ND_ENABLEEXTERNALSERVICES:-"false"}
+      ND_ENABLEDOWNLOADS: ${ND_INTERNATIONAL_ENABLEDOWNLOADS:-true}
+      ND_ENABLESHARING: true
+      ND_MUSICFOLDER: /music
+      ND_DATAFOLDER: /data
+    volumes:
+      - "${BASE_DATA_PATH:-./data}/navidrome-international:/data"
+      - "${MUSIC_INTERNATIONAL_PATH:-./international}:/music:ro"
+    networks:
+      - navidrome_internal_net
+
+  navidrome-voices:
+    image: deluan/navidrome:latest
+    restart: unless-stopped
+    environment:
+      ND_SCANSCHEDULE: ${ND_SCANSCHEDULE:-1h}
+      ND_LOGLEVEL: ${ND_LOGLEVEL:-info}
+      ND_ENABLEEXTERNALSERVICES: ${ND_ENABLEEXTERNALSERVICES:-"false"}
+      ND_ENABLEDOWNLOADS: ${ND_VOICES_ENABLEDOWNLOADS:-true}
+      ND_ENABLESHARING: true
+      ND_MUSICFOLDER: /music
+      ND_DATAFOLDER: /data
+    volumes:
+      - "${BASE_DATA_PATH:-./data}/navidrome-voices:/data"
+      - "${MUSIC_VOICES_PATH:-./voices}:/music:ro"
+    networks:
+      - navidrome_internal_net
+        
+  caddy-navidrome:
+    image: caddy:2
+    restart: unless-stopped
+    environment:
+      - EMBEDDED_SERVER_ADDRESS=${EMBEDDED_SERVER_ADDRESS:-}
+    ports:
+      - "${MUSIC_VOICE_PORT:-80}:80"
+      - "${MUSIC_INTERNATIONAL_PORT:-81}:81"
+    volumes:
+      - ./caddy/Caddyfile:/etc/caddy/Caddyfile
+      - caddy_data:/data
+      - caddy_config:/config
+    networks:
+      - navidrome_internal_net
+      - songbook_net
+  
+volumes:
+  caddy_data:
+  caddy_config:
