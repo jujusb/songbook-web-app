@@ -1,4 +1,4 @@
-import type { Setlist, VoiceShare, VoiceShareSection } from '@/lib/content/schemas';
+import { isSongItem, type Setlist, type VoiceShare, type VoiceShareSection } from '@/lib/content/schemas';
 import { getVoicesConfig, type NavidromeConfig } from './config';
 import { SubsonicClient, type SubsonicShare } from './subsonic';
 import {
@@ -171,7 +171,7 @@ export async function generateSetlistVoiceShares(
   if (!config) return { shares: [], enriched: [] };
   
   // Filter songs by published status for non-admin users
-  const filteredSongs = setlist.songs.filter((item) => {
+  const filteredSongs = setlist.songs.filter(isSongItem).filter((item) => {
     if (role === 'admin') return true;
     // For non-admin, we need to check if the song has a published translation
     // This will be handled in the track lookup by checking each song's published status
@@ -246,7 +246,7 @@ export async function getSetlistVoiceShares(
   if (stored.length === 0) return [];
   return memoized(memoKey(setlist.id, stored), async () => {
     const partsBySection = await getVoiceTrackIdsForSetlist(
-      setlist.songs.map((item) => ({ songId: item.songId, lang: item.lang })),
+      setlist.songs.filter(isSongItem).map((item) => ({ songId: item.songId, lang: item.lang })),
     );
     const out: VoiceShareWithTracks[] = [];
     for (const share of stored) {

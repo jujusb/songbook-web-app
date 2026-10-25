@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { useTranslation } from '@/lib/i18n';
+import { EmbedFrame } from '@/components/OpenInNewTabButton';
 
 interface SongAudioEmbedProps {
   songId: string;
@@ -68,6 +69,7 @@ export function SongAudioEmbed({
     if (spotifyEmbedUrl) {
       return (
         <div ref={iframeRef} className="rounded-md border border-neutral-200 dark:border-neutral-700 overflow-hidden">
+          <EmbedFrame variant="icon" href={spotify!}>
           <iframe
             src={spotifyEmbedUrl}
             title={title}
@@ -76,12 +78,14 @@ export function SongAudioEmbed({
             allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"
             loading="lazy"
           />
+          </EmbedFrame>
         </div>
       );
     }
     if (youtubeEmbedUrl) {
       return (
         <div ref={iframeRef} className="rounded-md border border-neutral-200 dark:border-neutral-700 overflow-hidden">
+          <EmbedFrame variant="icon" href={youtube!}>
           <iframe
             src={youtubeEmbedUrl}
             title={title}
@@ -90,12 +94,14 @@ export function SongAudioEmbed({
             allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
             loading="lazy"
           />
+          </EmbedFrame>
         </div>
       );
     }
     if (navidromeShareUrl) {
       return (
         <div ref={iframeRef} className="rounded-md border border-neutral-200 dark:border-neutral-700 overflow-hidden">
+          <EmbedFrame variant="icon" href={navidromeShareUrl}>
           <iframe
             src={navidromeShareUrl}
             title={title}
@@ -103,6 +109,7 @@ export function SongAudioEmbed({
             frameBorder="0"
             loading="lazy"
           />
+          </EmbedFrame>
         </div>
       );
     }
@@ -117,6 +124,7 @@ export function SongAudioEmbed({
   if (navidromeShareUrl) {
     return (
       <div ref={iframeRef} className="rounded-md border border-neutral-200 dark:border-neutral-700 overflow-hidden">
+        <EmbedFrame variant="icon" href={navidromeShareUrl}>
         <iframe
           src={navidromeShareUrl}
           title={title}
@@ -124,6 +132,7 @@ export function SongAudioEmbed({
           frameBorder="0"
           loading="lazy"
         />
+        </EmbedFrame>
       </div>
     );
   }

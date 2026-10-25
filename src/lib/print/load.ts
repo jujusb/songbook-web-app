@@ -266,6 +266,7 @@ export async function planSongbookChapters(
 ): Promise<ChapterPlan[]> {
   const plan: ChapterPlan[] = [];
   for (const resolved of songs) {
+    if (resolved.item) continue;
     const songId = resolved.songId;
     if (resolved.lang != null) {
       const title = await getSongTitle(songId, resolved.lang).catch(
@@ -318,6 +319,18 @@ export async function loadPrintSongs(
   const printSongs: PrintSong[] = [];
 
   for (const resolved of songs) {
+    if (resolved.item) {
+      const it = resolved.item;
+      printSongs.push({
+        id: resolved.songId,
+        title: it.kind === 'link' ? (it.title || it.url) : '',
+        lang: '',
+        html: '',
+        refsHtml: '',
+        ...(it.kind === 'note' ? { note: it.text } : { link: { url: it.url, title: it.title } }),
+      });
+      continue;
+    }
     const songId = resolved.songId;
     const langs =
       resolved.lang != null

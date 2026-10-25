@@ -1,3 +1,4 @@
+import { isSongItem } from "@/lib/content/schemas";
 import { notFound } from "next/navigation";
 import { getSetlist, getSong, getSongTranslation } from "@/lib/content";
 import { getSession, canEdit, canViewSetlist } from "@/lib/auth";
@@ -32,7 +33,7 @@ export default async function SetlistPresentPage({
 
   // Load all songs for the setlist
   const setlistSongs = await Promise.all(
-    setlist.songs.map(async (item) => {
+    setlist.songs.filter(isSongItem).map(async (item) => {
       try {
         const meta = await getSong(item.songId);
         const { body } = await getSongTranslation(item.songId, item.lang);

@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useTranslation } from '@/lib/i18n';
 import { spotifySearchUrl } from '@/lib/spotify';
+import { EmbedFrame } from '@/components/OpenInNewTabButton';
 
 function spotifyIdFromUrl(url: string, type: 'track' | 'album'): string | null {
   const pattern = type === 'track' ? /\/track\/([A-Za-z0-9]+)/ : /\/album\/([A-Za-z0-9]+)/;
@@ -74,6 +75,11 @@ export function SpotifyPlayer({
 
   if (playerId) {
     return (
+      <EmbedFrame
+        href={`https://open.spotify.com/${itemType}/${playerId}`}
+        variant={variant === "compact" ? "icon" : "label"}
+        className={variant === "compact" ? "w-64 max-w-full" : "max-w-full"}
+      >
       <iframe
         src={`https://open.spotify.com/embed/${itemType}/${playerId}`}
         width="100%"
@@ -82,8 +88,9 @@ export function SpotifyPlayer({
         allow="encrypted-media"
         loading="lazy"
         title={title}
-        className={variant === "compact" ? "w-64 max-w-full" : "max-w-full"}
+        className="max-w-full"
       />
+      </EmbedFrame>
     );
   }
 

@@ -335,7 +335,7 @@ describe('content/index.ts', () => {
       // Check setlist was updated
       const { getSetlist } = await import('@/lib/content');
       const setlist = await getSetlist('setlist-1');
-      expect(setlist.songs[0].songId).toBe('new-id');
+      expect(setlist.songs[0]).toMatchObject({ type: 'song', songId: 'new-id' });
     });
   });
 

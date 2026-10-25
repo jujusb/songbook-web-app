@@ -1,3 +1,4 @@
+import { isSongItem } from "@/lib/content/schemas";
 import Link from "next/link";
 import { cookies } from "next/headers";
 import { listSetlists, listSongs, getLanguagesConfig, resolveSongListTitle } from "@/lib/content";
@@ -44,7 +45,7 @@ export default async function SetlistsPage() {
         <div className="space-y-3">
           {visibleSetlists.map((setlist) => {
             const isReference = !!setlist.sharedFrom;
-            const visibleSongs = setlist.songs.filter((s) => {
+            const visibleSongs = setlist.songs.filter(isSongItem).filter((s) => {
               if (selectedLang === langConfig.default) return true;
               const song = songMap.get(s.songId);
               if (!song) return false;

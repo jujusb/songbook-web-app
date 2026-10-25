@@ -4,6 +4,7 @@ import { useState, useCallback, useEffect, useRef } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useTranslation } from "@/lib/i18n";
 import type { ChordNotation, Orientation } from "@/lib/chordpro/notation";
+import { EmbedFrame } from '@/components/OpenInNewTabButton';
 
 export interface ScopeOption {
   id: string;
@@ -721,12 +722,14 @@ export function PdfExportView({
         </label>
         <div className={`relative ${previewUrl ? "" : "min-h-[40vh]"}`}>
           {previewUrl && (
-            <iframe
-              key={previewUrl}
-              src={previewUrl}
-              title={t("pdf.previewTitle")}
-              className="h-[75vh] w-full rounded-md border border-neutral-200 dark:border-neutral-800 bg-white"
-            />
+            <EmbedFrame href={previewUrl}>
+              <iframe
+                key={previewUrl}
+                src={previewUrl}
+                title={t("pdf.previewTitle")}
+                className="h-[75vh] w-full rounded-md border border-neutral-200 dark:border-neutral-800 bg-white"
+              />
+            </EmbedFrame>
           )}
           {previewLoading ? (
             <div className="absolute inset-0 flex items-center justify-center rounded-md border border-neutral-200 dark:border-neutral-800 bg-neutral-50/90 dark:bg-neutral-900/90 text-sm text-neutral-400">

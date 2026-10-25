@@ -930,8 +930,10 @@ export async function renameSong(oldId: string, newId: string): Promise<string |
   try {
     const setlists = await listSetlists();
     for (const setlist of setlists) {
-      if (!setlist.songs.some((s) => s.songId === oldId)) continue;
-      setlist.songs = setlist.songs.map((s) => (s.songId === oldId ? { ...s, songId: newId } : s));
+      if (!setlist.songs.some((s) => s.type === 'song' && s.songId === oldId)) continue;
+      setlist.songs = setlist.songs.map((s) =>
+        s.type === 'song' && s.songId === oldId ? { ...s, songId: newId } : s,
+      );
       await saveSetlist(setlist);
     }
   } catch (err) {

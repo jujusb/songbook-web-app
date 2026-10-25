@@ -3,10 +3,16 @@ import { PrintButton } from "@/components/PrintButton";
 import { printStyles } from "@/lib/print/styles";
 import { languageLabelFor } from "@/lib/i18n/labels";
 import type { PrintSong } from "@/lib/print/types";
+import { MarkdownView } from "@/components/MarkdownView";
 import type { Orientation } from "@/lib/chordpro/notation";
 
 function isAlbumHeader(song: PrintSong): boolean {
   return song.id.startsWith("__album_");
+}
+
+/** Setlist notes/links are printed in place but never listed in the TOC. */
+function isExtra(song: PrintSong): boolean {
+  return song.note !== undefined || song.link !== undefined;
 }
 
 /**
@@ -88,7 +94,7 @@ export function PrintSongbook({
             </h2>
             <ol className="list-decimal pl-6 space-y-1 toc-columns">
               {printSongs
-                .filter((song) => !isAlbumHeader(song))
+                .filter((song) => !isAlbumHeader(song) && !isExtra(song))
                 .sort((a, b) => a.title.localeCompare(b.title))
                 .map((song, i) => (
                   <li key={`toc-alpha-${song.id}-${song.lang}`}>
@@ -128,7 +134,7 @@ export function PrintSongbook({
                   if (!albumGroups.has(currentAlbumTitle)) {
                     albumGroups.set(currentAlbumTitle, { title: currentAlbumTitle, songs: [] });
                   }
-                } else if (currentAlbumTitle) {
+                } else if (currentAlbumTitle && !isExtra(song)) {
                   const group = albumGroups.get(currentAlbumTitle);
                   if (group) group.songs.push(song);
                 }
@@ -178,6 +184,20 @@ export function PrintSongbook({
                   <h2 className="text-3xl font-bold border-b-2 border-neutral-800 dark:border-neutral-200 pb-2 mb-4">
                     {song.title}
                   </h2>
+                </div>
+              );
+            }
+            if (isExtra(song)) {
+              return (
+                <div key={`extra-${song.id}-${i}`} className="mb-8 break-inside-avoid">
+                  {song.note !== undefined ? (
+                    <MarkdownView text={song.note} />
+                  ) : song.link ? (
+                    <p>
+                      {song.link.title && <strong>{song.link.title}: </strong>}
+                      <a href={song.link.url} className="break-all">{song.link.url}</a>
+                    </p>
+                  ) : null}
                 </div>
               );
             }

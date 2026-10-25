@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { useTranslation } from '@/lib/i18n';
 import type { Partition } from '@/lib/content/schemas';
 import { partitionInstrumentOf } from '@/lib/partition-utils';
+import { OpenInNewTabButton } from '@/components/OpenInNewTabButton';
 
 function pdfUrl(file: string): string {
   return `/api/partitions/${file.split('/').map(encodeURIComponent).join('/')}`;
@@ -161,6 +162,11 @@ export function PartitionViewer({ partitions }: { partitions: Partition[] }) {
               className="absolute inset-0 w-full h-full border-0"
               loading="lazy"
             />
+          </div>
+        )}
+        {preview && (
+          <div className="flex justify-end">
+            <OpenInNewTabButton href={pdfUrl(preview.file)} />
           </div>
         )}
       </div>

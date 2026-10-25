@@ -46,6 +46,7 @@ const es: Translations = {
     },
   },
   common: {
+    openInNewTab: 'Abrir en una pestaña nueva',
     save: 'Guardar',
     saving: 'Guardando...',
     saved: 'Guardado',
@@ -190,6 +191,14 @@ const es: Translations = {
     editTitle: 'Editar artista',
   },
   setlist: {
+    addNote: 'Añadir nota',
+    addLink: 'Añadir enlace',
+    noteLabel: 'Nota (Markdown)',
+    linkUrl: 'URL (https://…)',
+    linkTitle: 'Título (opcional)',
+    itemLink: 'Enlace',
+    itemNote: 'Nota',
+    invalidUrl: 'URL no válida: solo se permiten enlaces http(s)',
     title: 'Listas',
     newSetlist: '+ Nueva Lista',
     editSetlist: 'Editar Lista',

@@ -61,7 +61,7 @@ All four take `?lang=` (default `en`). All are gated by `isReadOnlyFor('song_wri
 | Method + path | Body / query | Response | Access |
 | --- | --- | --- | --- |
 | `GET /api/setlists` | — | editors see all; others see public or own | public (filtered) |
-| `POST /api/setlists` | `{title, description?, date?, songs?, voiceShares?}` | new `Setlist` 201; `ownerId` = caller | RO guard inert; `canCreateSetlist` |
+| `POST /api/setlists` | `{title, description?, date?, songs?, voiceShares?}`; `songs` may mix song, note and link items (400 if invalid; the max-songs limit counts songs only, total items are capped at twice that) | new `Setlist` 201; `ownerId` = caller | RO guard inert; `canCreateSetlist` |
 | `PUT /api/setlists` | `{id, title, description?, date, songs}`; preserves shares/owner | updated `Setlist` | RO guard inert; `canCreateSetlist`; owner or `canEdit` |
 | `DELETE /api/setlists` | `?id=` | `{success}` | RO guard inert; `canCreateSetlist`; owner or Admin |
 

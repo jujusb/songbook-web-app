@@ -1,3 +1,4 @@
+import { isSongItem } from "@/lib/content/schemas";
 import { notFound } from "next/navigation";
 import { findSetlistByShareToken, getSong, getSongTranslation } from "@/lib/content";
 import { PresentationView } from "@/components/PresentationView";
@@ -20,7 +21,7 @@ export default async function SetlistSharePresentPage({
   if (!setlist || setlist.songs.length === 0) notFound();
 
   const setlistSongs = await Promise.all(
-    setlist.songs.map(async (item) => {
+    setlist.songs.filter(isSongItem).map(async (item) => {
       try {
         const meta = await getSong(item.songId);
         const { body } = await getSongTranslation(item.songId, item.lang);

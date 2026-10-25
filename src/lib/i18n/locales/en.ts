@@ -44,6 +44,7 @@ const en = {
     },
   },
   common: {
+    openInNewTab: 'Open in new tab',
     save: 'Save',
     saving: 'Saving...',
     saved: 'Saved',
@@ -188,6 +189,14 @@ const en = {
     editTitle: 'Edit artist',
   },
   setlist: {
+    addNote: 'Add note',
+    addLink: 'Add link',
+    noteLabel: 'Note (Markdown)',
+    linkUrl: 'URL (https://…)',
+    linkTitle: 'Title (optional)',
+    itemLink: 'Link',
+    itemNote: 'Note',
+    invalidUrl: 'Invalid URL: only http(s) links are allowed',
     title: 'Setlists',
     newSetlist: '+ New Setlist',
     editSetlist: 'Edit Setlist',

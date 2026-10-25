@@ -182,7 +182,7 @@ same from the edit UI.
 | `title` | string | — | required |
 | `description` | string | — | optional |
 | `date` | string | — | optional, e.g. `2025-07-13` |
-| `songs` | `{ songId, lang }[]` | `[]` | ordered; language pinned per item |
+| `songs` | `SetlistItem[]` | `[]` | ordered items. `{type: song, songId, lang}` (legacy items without `type` are songs), `{type: note, id, text}` (Markdown, max 5000 chars) or `{type: link, id, url, title?}` (http/https only, shown in an iframe) |
 | `voiceShares` | `VoiceShare[]` | `[]` | generated Navidrome shares |
 | `public` | boolean | `false` | visible to logged-in users |
 | `shareToken` | string | — | random token for anonymous sharing |

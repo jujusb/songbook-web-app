@@ -180,12 +180,68 @@ export type SiteConfig = z.infer<typeof SiteConfigSchema>;
 
 // --- Setlists ---
 
-export const SetlistItemSchema = z.object({
+export const SETLIST_NOTE_MAX_LENGTH = 5000;
+export const SETLIST_LINK_MAX_LENGTH = 2000;
+export const SETLIST_LINK_TITLE_MAX_LENGTH = 200;
+
+/** Only http(s) URLs may be stored/embedded (blocks javascript:, data:, etc.). */
+export function isHttpUrl(value: string): boolean {
+  try {
+    const u = new URL(value);
+    return u.protocol === 'http:' || u.protocol === 'https:';
+  } catch {
+    return false;
+  }
+}
+
+export const SetlistSongItemSchema = z.object({
+  type: z.literal('song'),
   songId: z.string(),
   lang: z.string(),                // language to present
 });
 
-export type SetlistItem = z.infer<typeof SetlistItemSchema>;
+/** Free-form Markdown text placed between songs. */
+export const SetlistNoteItemSchema = z.object({
+  type: z.literal('note'),
+  id: z.string().min(1),
+  text: z.string().max(SETLIST_NOTE_MAX_LENGTH),
+});
+
+/** External page shown in an iframe (with an open-in-new-tab fallback). */
+export const SetlistLinkItemSchema = z.object({
+  type: z.literal('link'),
+  id: z.string().min(1),
+  url: z.string().max(SETLIST_LINK_MAX_LENGTH).refine(isHttpUrl, 'URL must be http(s)'),
+  title: z.string().max(SETLIST_LINK_TITLE_MAX_LENGTH).optional(),
+});
+
+/** Legacy items (no `type`) are songs. */
+export const SetlistItemSchema = z.preprocess(
+  (v) =>
+    v && typeof v === 'object' && !Array.isArray(v) && !('type' in v)
+      ? { ...(v as Record<string, unknown>), type: 'song' }
+      : v,
+  z.discriminatedUnion('type', [
+    SetlistSongItemSchema,
+    SetlistNoteItemSchema,
+    SetlistLinkItemSchema,
+  ]),
+);
+
+export type SetlistSongItem = z.infer<typeof SetlistSongItemSchema>;
+export type SetlistNoteItem = z.infer<typeof SetlistNoteItemSchema>;
+export type SetlistLinkItem = z.infer<typeof SetlistLinkItemSchema>;
+export type SetlistItem = SetlistSongItem | SetlistNoteItem | SetlistLinkItem;
+
+export function isSongItem(item: { type?: string }): item is SetlistSongItem {
+  return item.type === 'song' || item.type === undefined;
+}
+export function isNoteItem(item: { type?: string }): item is SetlistNoteItem {
+  return item.type === 'note';
+}
+export function isLinkItem(item: { type?: string }): item is SetlistLinkItem {
+  return item.type === 'link';
+}
 
 export const VoiceShareSectionSchema = z.enum(['tenor', 'bass', 'alto', 'soprano']);
 export type VoiceShareSection = z.infer<typeof VoiceShareSectionSchema>;

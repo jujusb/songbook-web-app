@@ -102,7 +102,7 @@ describe('content/index.ts — Setlist references & canViewSetlist', () => {
       expect(merged.title).toBe('Original Title');
       expect(merged.description).toBe('Original Description');
       expect(merged.date).toBe('2024-01-15');
-      expect(merged.songs).toEqual([{ songId: 'song1', lang: 'en' }]);
+      expect(merged.songs).toEqual([{ type: 'song', songId: 'song1', lang: 'en' }]);
 
       // Should keep reference metadata
       expect(merged.id).toBe('saved-original-creator');

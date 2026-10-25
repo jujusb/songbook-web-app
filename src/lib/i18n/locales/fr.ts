@@ -46,6 +46,7 @@ const fr: Translations = {
     },
   },
   common: {
+    openInNewTab: 'Ouvrir dans un nouvel onglet',
     save: 'Enregistrer',
     saving: 'Enregistrement...',
     saved: 'Enregistré',
@@ -190,6 +191,14 @@ const fr: Translations = {
     editTitle: "Modifier l'artiste",
   },
   setlist: {
+    addNote: 'Ajouter une note',
+    addLink: 'Ajouter un lien',
+    noteLabel: 'Note (Markdown)',
+    linkUrl: 'URL (https://…)',
+    linkTitle: 'Titre (facultatif)',
+    itemLink: 'Lien',
+    itemNote: 'Note',
+    invalidUrl: 'URL invalide : seuls les liens http(s) sont autorisés',
     title: 'Listes',
     newSetlist: '+ Nouvelle Liste',
     editSetlist: 'Modifier la Liste',

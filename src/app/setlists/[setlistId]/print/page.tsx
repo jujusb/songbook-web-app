@@ -43,6 +43,8 @@ export default async function SetlistPrintPage({
 
   const printSongs = await loadPrintSongs(songs, [selectedLang], false);
 
+  const songCount = printSongs.filter((s) => s.note === undefined && !s.link).length;
+
   const backHref = `/setlists/${setlist.id}${
     shareParam ? `?share=${shareParam}` : ""
   }`;
@@ -67,7 +69,7 @@ export default async function SetlistPrintPage({
       backLabel="Back to Setlist"
       toolbarChildren={
         <span className="text-sm text-neutral-500">
-          {printSongs.length} song{printSongs.length !== 1 ? "s" : ""}
+          {songCount} song{songCount !== 1 ? "s" : ""}
         </span>
       }
       emptyText="No songs to print."

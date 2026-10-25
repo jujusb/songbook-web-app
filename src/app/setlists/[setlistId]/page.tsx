@@ -2,7 +2,8 @@ import { notFound } from "next/navigation";
 import Link from "next/link";
 import { getSetlist, getSong, getSongTranslation, getSongTranslations, getSongTitle } from "@/lib/content";
 import { getSession, getCurrentUser, canEdit, canAdmin, canViewSetlist, canCreateSetlist } from "@/lib/auth";
-import { SetlistReadOnlyView } from "@/components/SetlistReadOnlyView";
+import { isSongItem, isNoteItem, isLinkItem } from "@/lib/content/schemas";
+import { SetlistReadOnlyView, type SetlistReadOnlyEntry } from "@/components/SetlistReadOnlyView";
 import { SetlistPdfButton } from "@/components/SetlistPdfButton";
 import { DeleteButton } from "@/components/DeleteButton";
 import { getSetlistVoiceShares } from "@/lib/navidrome/setlist-shares";
@@ -82,7 +83,7 @@ export default async function SetlistPage({
 
   // Resolve song titles for display + load song bodies for lyrics view
   const songDetails = await Promise.all(
-    sourceSetlist.songs.map(async (item) => {
+    sourceSetlist.songs.filter(isSongItem).map(async (item) => {
       try {
         const meta = await getSong(item.songId);
         const translations = await getSongTranslations(item.songId);
@@ -113,6 +114,14 @@ export default async function SetlistPage({
       songBodies[song.songId] = song.body;
     }
   }
+
+  // Ordered entries: songs reference songDetails by position, notes/links pass through
+  let songCursor = 0;
+  const entries: SetlistReadOnlyEntry[] = sourceSetlist.songs.map((item) => {
+    if (isNoteItem(item)) return { type: "note", id: item.id, text: item.text };
+    if (isLinkItem(item)) return { type: "link", id: item.id, url: item.url, title: item.title };
+    return { type: "song", index: songCursor++ };
+  });
 
   // Non-editors only see published songs
   const visibleSongDetails = songDetails.filter((song) => showEditor || song.published);
@@ -176,6 +185,7 @@ export default async function SetlistPage({
 
       <SetlistReadOnlyView
         songs={songDetails}
+        entries={entries}
         userPreferences={userPrefs}
         songBodies={songBodies}
         isReference={isReference}

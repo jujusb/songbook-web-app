@@ -20,6 +20,8 @@ export interface ResolvedScopeSong {
   meta?: SongListItem | SongMeta | null;
   /** Setlist items carry an explicit language; other scopes use a `null` lang. */
   lang?: string | null;
+  /** Non-song setlist entry (note / link); `songId` is then a synthetic `__note_*` / `__link_*` id. */
+  item?: { kind: 'note'; text: string } | { kind: 'link'; url: string; title?: string };
 }
 
 /** Check if a song meta (SongListItem or SongMeta) has any published translation. */
@@ -136,15 +138,22 @@ export async function resolveScopeSongs(
       if (!id) return toResolved(scope, id, 'Setlist', []);
       const setlist = await getSetlist(id).catch(() => null);
       if (!setlist) return toResolved(scope, id, id, []);
-      const songs: ResolvedScopeSong[] = setlist.songs
-        .map((item) => ({
-          songId: item.songId,
-          meta: allById.get(item.songId) ?? null,
-          lang: item.lang,
-        }))
-        .filter((s) => s.meta);
-      // For setlists, filter by published status of the specific language
-      return toResolved(scope, id, setlist.title, songs.filter((s) => role === 'admin' || isLanguagePublished(s.meta, s.lang ?? '')));
+      // Keep the setlist order; notes and links pass through unfiltered, songs
+      // are filtered by the published status of their specific language.
+      const entries: ResolvedScopeSong[] = [];
+      for (const item of setlist.songs) {
+        if (item.type === 'note') {
+          entries.push({ songId: `__note_${item.id}`, meta: null, lang: null, item: { kind: 'note', text: item.text } });
+        } else if (item.type === 'link') {
+          entries.push({ songId: `__link_${item.id}`, meta: null, lang: null, item: { kind: 'link', url: item.url, title: item.title } });
+        } else {
+          const meta = allById.get(item.songId) ?? null;
+          if (!meta) continue;
+          if (role !== 'admin' && !isLanguagePublished(meta, item.lang ?? '')) continue;
+          entries.push({ songId: item.songId, meta, lang: item.lang });
+        }
+      }
+      return toResolved(scope, id, setlist.title, entries);
     }
     case 'book': {
       // Book mode: all songs grouped by album, ordered by album ID,

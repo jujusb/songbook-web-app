@@ -14,7 +14,8 @@ import {
 import { getLocale } from "@/lib/i18n/server";
 import { getSession, getCurrentUser } from "@/lib/auth";
 import { getSetlistVoiceShares } from "@/lib/navidrome/setlist-shares";
-import { SetlistReadOnlyView } from "@/components/SetlistReadOnlyView";
+import { isSongItem, isNoteItem, isLinkItem } from "@/lib/content/schemas";
+import { SetlistReadOnlyView, type SetlistReadOnlyEntry } from "@/components/SetlistReadOnlyView";
 import { SetlistPdfButton } from "@/components/SetlistPdfButton";
 import { saveSharedSetlistAction } from "@/app/actions";
 
@@ -49,7 +50,7 @@ export default async function SetlistSharePage({
   const sourceSetlist = isReference ? await getSetlist(sourceSetlistId) : setlist;
 
   const songDetails = await Promise.all(
-    sourceSetlist.songs.map(async (item: { songId: string; lang: string }) => {
+    sourceSetlist.songs.filter(isSongItem).map(async (item) => {
       try {
         const meta = await getSong(item.songId);
         const translations = await getSongTranslations(item.songId);
@@ -79,6 +80,14 @@ export default async function SetlistSharePage({
       }
     })
   );
+
+  // Ordered entries: songs reference songDetails by position, notes/links pass through
+  let songCursor = 0;
+  const entries: SetlistReadOnlyEntry[] = sourceSetlist.songs.map((item) => {
+    if (isNoteItem(item)) return { type: "note", id: item.id, text: item.text };
+    if (isLinkItem(item)) return { type: "link", id: item.id, url: item.url, title: item.title };
+    return { type: "song", index: songCursor++ };
+  });
 
   // Build songBodies map for lyrics view
   const songBodies: Record<string, string> = {};
@@ -181,6 +190,7 @@ export default async function SetlistSharePage({
 
       <SetlistReadOnlyView
         songs={songDetails}
+        entries={entries}
         userPreferences={userPrefs}
         songBodies={songBodies}
         isReference={isReference}

@@ -13,6 +13,8 @@ import {
   updateSetlistTransposeAction,
 } from "@/app/actions";
 import { useTranslation } from "@/lib/i18n";
+import { MarkdownView } from "@/components/MarkdownView";
+import { EmbedFrame } from "@/components/OpenInNewTabButton";
 import type { VoiceSection, VoiceGroup } from "@/lib/navidrome/voices";
 
 export interface SetlistReadOnlySong {
@@ -28,6 +30,15 @@ export interface SetlistReadOnlySong {
   originalLang?: string;
 }
 
+/**
+ * Ordered setlist entry. Songs reference `songs[index]`; notes and links carry
+ * their own content.
+ */
+export type SetlistReadOnlyEntry =
+  | { type: "song"; index: number }
+  | { type: "note"; id: string; text: string }
+  | { type: "link"; id: string; url: string; title?: string };
+
 interface UserPreferences {
   showChords: boolean;
   showRepeats: boolean;
@@ -39,6 +50,8 @@ interface UserPreferences {
 
 interface SetlistReadOnlyViewProps {
   songs: SetlistReadOnlySong[];
+  /** Full ordered entries (songs + notes + links). Defaults to the songs only. */
+  entries?: SetlistReadOnlyEntry[];
   userPreferences: UserPreferences;
   songBodies: Record<string, string>;
   isReference: boolean;
@@ -106,6 +119,7 @@ function ExternalLinkIcon({ className = "w-4 h-4" }: { className?: string }) {
 
 export function SetlistReadOnlyView({
   songs,
+  entries,
   userPreferences,
   songBodies,
   isReference,
@@ -471,6 +485,59 @@ export function SetlistReadOnlyView({
     );
   });
 
+  const liBySong = new Map<SetlistReadOnlySong, React.ReactNode>();
+  visible.forEach((song, i) => liBySong.set(song, songListItems[i]));
+
+  const orderedItems: React.ReactNode[] = (
+    entries ?? songs.map((_, index) => ({ type: "song" as const, index }))
+  ).map((entry, i) => {
+    if (entry.type === "song") {
+      const song = songs[entry.index];
+      return song ? liBySong.get(song) ?? null : null;
+    }
+    if (entry.type === "note") {
+      return (
+        <li key={`note-${entry.id}-${i}`} className="px-4 py-3" data-testid="setlist-note">
+          <MarkdownView text={entry.text} />
+        </li>
+      );
+    }
+    const linkKey = `link:${entry.id}`;
+    const linkOpen = displayMode === "all" || expandedSongIds.has(linkKey);
+    return (
+      <li key={`link-${entry.id}-${i}`} data-testid="setlist-link">
+        <div className="flex items-center gap-3 px-4 py-3">
+          <ExternalLinkIcon className="w-4 h-4 text-neutral-400" />
+          <span className="flex-1 font-medium break-all">{entry.title || entry.url}</span>
+          {displayMode === "list" && (
+            <button
+              onClick={() => handleToggleSong(linkKey)}
+              aria-expanded={linkOpen}
+              className="text-neutral-400"
+              aria-label={entry.title || entry.url}
+            >
+              {linkOpen ? <ChevronUpIcon /> : <ChevronDownIcon />}
+            </button>
+          )}
+        </div>
+        {linkOpen && (
+          <div className="px-4 pb-3">
+            <EmbedFrame href={entry.url}>
+              <iframe
+                src={entry.url}
+                title={entry.title || entry.url}
+                loading="lazy"
+                referrerPolicy="no-referrer"
+                sandbox="allow-scripts allow-same-origin allow-popups allow-forms"
+                className="w-full h-[70vh] rounded-md border border-neutral-200 dark:border-neutral-800 bg-white"
+              />
+            </EmbedFrame>
+          </div>
+        )}
+      </li>
+    );
+  });
+
   return (
     <>
       {/* Top-level voice playlists - use preferredVoice for initial selection only */}
@@ -589,7 +656,7 @@ export function SetlistReadOnlyView({
 
         {/* Song List */}
         <ol className="divide-y divide-neutral-200 dark:divide-neutral-800">
-          {songListItems}
+          {orderedItems}
         </ol>
       </div>
     </>

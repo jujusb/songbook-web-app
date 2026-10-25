@@ -58,7 +58,7 @@ content/                              the database, as files
     <song-id>/
       meta.yaml                       shared song metadata: titles, key, tags, references, partitions
       <lang>.cho                      one file per language; ChordPro body + YAML frontmatter
-  setlists/<setlist-id>.yaml          ordered songs, owner, share token/slug, voice shares
+  setlists/<setlist-id>.yaml          ordered items (songs, notes, links), owner, share token/slug, voice shares
   users/<user-id>.yaml                bcrypt hash, role, permissions, auth provider
 
 revisions/                            revision history, next to the content directory
@@ -84,7 +84,7 @@ Vocabulary you will meet everywhere:
 - **Revision** — a timestamped snapshot of one translation, written to the `revisions/` tree
   (next to `content/`) before an edit that comes through the editor or the revision API. Old
   snapshots are collected automatically.
-- **Setlist** — an ordered list of songs, each pinned to a language, with an owner. Shareable
+- **Setlist** — an ordered list of items — songs (each pinned to a language), Markdown notes and embedded links — with an owner. Shareable
   through a public flag, a random token, or a custom slug.
 - **Role** — one of `public`, `setlist_creator`, `reviewer`, `admin`. Auth is checked per route;
   there is no middleware guarding pages.

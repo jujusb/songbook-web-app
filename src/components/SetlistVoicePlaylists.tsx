@@ -7,6 +7,7 @@ import { generateSetlistVoiceSharesAction } from '@/app/actions';
 import type { VoiceShareWithTracks } from '@/app/actions';
 import type { VoiceGender, VoiceSection } from '@/lib/navidrome/voices';
 import { SongAudioEmbed } from '@/components/SongAudioEmbed';
+import { EmbedFrame } from '@/components/OpenInNewTabButton';
 
 const SECTION_GENDER: Record<VoiceSection, VoiceGender> = {
   tenor: 'Boy',
@@ -282,11 +283,13 @@ export function SetlistVoicePlaylists({
               <span className="text-xs text-neutral-500">
                 {t('setlist.tracks', { n: activeShare.count })}
               </span>
-              <iframe
-                src={activeShare.url}
-                title={sectionLabel(activeShare.section)}
-                className="w-full h-[80vh] mt-2 rounded-md border border-neutral-200 dark:border-neutral-800 bg-white"
-              />
+              <EmbedFrame href={activeShare.url}>
+                <iframe
+                  src={activeShare.url}
+                  title={sectionLabel(activeShare.section)}
+                  className="w-full h-[80vh] mt-2 rounded-md border border-neutral-200 dark:border-neutral-800 bg-white"
+                />
+              </EmbedFrame>
             </div>
           ) : (
             <div className="text-center py-4 text-xs text-neutral-400">

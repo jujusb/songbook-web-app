@@ -231,6 +231,39 @@ describe('API /api/setlists', () => {
       expect(data.id).toBe('my-setlist');
     });
 
+    it('stores notes and links alongside songs', async () => {
+      mockAuth(creatorToken);
+      const response = await setlistsPOST(createMockRequest('POST', {
+        title: 'Mixed Items',
+        songs: [
+          { songId: 'song1', lang: 'en' },
+          { type: 'note', id: 'n1', text: '**Welcome**' },
+          { type: 'link', id: 'l1', url: 'https://example.com/sheet', title: 'Sheet' },
+        ],
+      }));
+      expect(response.status).toBe(201);
+      const data = await response.json();
+      expect(data.songs.map((i: { type: string }) => i.type)).toEqual(['song', 'note', 'link']);
+    });
+
+    it('rejects non-http(s) link urls with 400', async () => {
+      mockAuth(creatorToken);
+      const response = await setlistsPOST(createMockRequest('POST', {
+        title: 'Bad Link',
+        songs: [{ type: 'link', id: 'l1', url: 'javascript:alert(1)' }],
+      }));
+      expect(response.status).toBe(400);
+    });
+
+    it('rejects unknown item types with 400', async () => {
+      mockAuth(creatorToken);
+      const response = await setlistsPOST(createMockRequest('POST', {
+        title: 'Bad Type',
+        songs: [{ type: 'script', id: 'x' }],
+      }));
+      expect(response.status).toBe(400);
+    });
+
     it('creates setlist for admin', async () => {
       mockAuth(adminToken);
       const req = createMockRequest('POST', {

@@ -4,7 +4,8 @@ import { getSession, canEdit, canAdmin, canCreateSetlist } from "@/lib/auth";
 import { isReadOnlyFor } from "@/lib/readonly";
 import { generateSetlistVoiceShares } from "@/lib/navidrome/setlist-shares";
 import { getSetlistMaxSongs } from "@/lib/config";
-import { isReservedSetlistId, type Setlist } from "@/lib/content/schemas";
+import { z } from "zod";
+import { isReservedSetlistId, isSongItem, SetlistItemSchema, type Setlist, type SetlistItem } from "@/lib/content/schemas";
 
 export async function GET() {
   const all = await listSetlists();
@@ -23,10 +24,37 @@ function readonlyResponse(operation: string) {
   return NextResponse.json({ error: `Read-only mode: ${operation} disabled` }, { status: 403 });
 }
 
-/** Compare two song arrays by songId only (order-insensitive) */
-function songsChanged(oldSongs: { songId: string; lang: string }[] | undefined, newSongs: { songId: string; lang: string }[] | undefined): boolean {
-  const oldIds = (oldSongs ?? []).map((s) => s.songId).sort().join(',');
-  const newIds = (newSongs ?? []).map((s) => s.songId).sort().join(',');
+/**
+ * Validate a raw `songs` payload (songs, notes and links) and enforce limits.
+ * Songs count against the max-songs setting; the total number of items is
+ * capped at twice that so notes/links can't be used to bloat a setlist.
+ */
+function parseItems(raw: unknown): { items: SetlistItem[] } | { error: string } {
+  if (raw === undefined || raw === null) return { items: [] };
+  if (!Array.isArray(raw)) return { error: "songs must be an array" };
+  const parsed = z.array(SetlistItemSchema).safeParse(raw);
+  if (!parsed.success) {
+    const issue = parsed.error.issues[0];
+    const where = issue?.path.length ? ` (${issue.path.join('.')})` : '';
+    return { error: `Invalid setlist item${where}: ${issue?.message ?? 'invalid'}` };
+  }
+  const items = parsed.data as SetlistItem[];
+  const maxSongs = getSetlistMaxSongs();
+  if (items.filter(isSongItem).length > maxSongs) {
+    return { error: `Maximum ${maxSongs} songs per setlist` };
+  }
+  if (items.length > maxSongs * 2) {
+    return { error: `Maximum ${maxSongs * 2} items per setlist` };
+  }
+  return { items };
+}
+
+/** Compare two item arrays by songId only (order-insensitive); notes/links are ignored */
+function songsChanged(oldSongs: SetlistItem[] | undefined, newSongs: SetlistItem[] | undefined): boolean {
+  const ids = (items: SetlistItem[] | undefined) =>
+    (items ?? []).filter(isSongItem).map((s) => s.songId).sort().join(',');
+  const oldIds = ids(oldSongs);
+  const newIds = ids(newSongs);
   return oldIds !== newIds;
 }
 
@@ -35,8 +63,8 @@ async function maybeRegenerateVoiceShares(
   setlistId: string,
   role: 'public' | 'reviewer' | 'admin' | 'setlist_creator' | null,
   existingShares: { section: string }[] | undefined,
-  oldSongs: { songId: string; lang: string }[] | undefined,
-  newSongs: { songId: string; lang: string }[] | undefined
+  oldSongs: SetlistItem[] | undefined,
+  newSongs: SetlistItem[] | undefined
 ): Promise<void> {
   if (!existingShares || existingShares.length === 0) return;
   if (!songsChanged(oldSongs, newSongs)) return;
@@ -62,9 +90,9 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "title is required" }, { status: 400 });
     }
     
-    const maxSongs = getSetlistMaxSongs();
-    if (data.songs && data.songs.length > maxSongs) {
-      return NextResponse.json({ error: `Maximum ${maxSongs} songs per setlist` }, { status: 400 });
+    const parsedItems = parseItems(data.songs);
+    if ('error' in parsedItems) {
+      return NextResponse.json({ error: parsedItems.error }, { status: 400 });
     }
 
     const id = data.title
@@ -87,7 +115,7 @@ export async function POST(request: Request) {
       title: data.title,
       description: data.description || undefined,
       date: data.date || undefined,
-      songs: data.songs || [],
+      songs: parsedItems.items,
       voiceShares: [],
       public: false,
       ownerId: session?.userId,
@@ -119,9 +147,9 @@ export async function PUT(request: Request) {
       return NextResponse.json({ error: "id is required" }, { status: 400 });
     }
 
-    const maxSongs = getSetlistMaxSongs();
-    if (data.songs && data.songs.length > maxSongs) {
-      return NextResponse.json({ error: `Maximum ${maxSongs} songs per setlist` }, { status: 400 });
+    const parsedItems = parseItems(data.songs);
+    if ('error' in parsedItems) {
+      return NextResponse.json({ error: parsedItems.error }, { status: 400 });
     }
 
     // Load existing to preserve created date and check ownership
@@ -139,7 +167,7 @@ export async function PUT(request: Request) {
       return NextResponse.json({ error: "Forbidden: not the owner" }, { status: 403 });
     }
 
-    const newSongs = data.songs || [];
+    const newSongs = parsedItems.items;
     const oldSongs = existing?.songs;
     const existingShares = existing?.voiceShares;
 

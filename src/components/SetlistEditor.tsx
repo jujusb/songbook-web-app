@@ -4,6 +4,16 @@ import { useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { useTranslation } from "@/lib/i18n";
 import { getSetlistMaxSongs } from "@/lib/config";
+import {
+  isHttpUrl,
+  isSongItem,
+  isNoteItem,
+  isLinkItem,
+  SETLIST_NOTE_MAX_LENGTH,
+  SETLIST_LINK_MAX_LENGTH,
+  SETLIST_LINK_TITLE_MAX_LENGTH,
+  type SetlistItem,
+} from "@/lib/content/schemas";
 
 const MAX_SONGS = getSetlistMaxSongs();
 
@@ -14,9 +24,10 @@ interface AvailableSong {
   translations: string[];
 }
 
-interface SetlistSongItem {
-  songId: string;
-  lang: string;
+function newItemId(): string {
+  return typeof crypto !== "undefined" && "randomUUID" in crypto
+    ? crypto.randomUUID()
+    : `${Date.now().toString(36)}${Math.random().toString(36).slice(2, 8)}`;
 }
 
 interface SetlistData {
@@ -24,7 +35,7 @@ interface SetlistData {
   title: string;
   description: string;
   date: string;
-  songs: SetlistSongItem[];
+  songs: SetlistItem[];
 }
 
 export function SetlistEditor({
@@ -41,28 +52,43 @@ export function SetlistEditor({
   const [title, setTitle] = useState(initialSetlist?.title || "");
   const [description, setDescription] = useState(initialSetlist?.description || "");
   const [date, setDate] = useState(initialSetlist?.date || "");
-  const [songs, setSongs] = useState<SetlistSongItem[]>(initialSetlist?.songs || []);
+  const [songs, setSongs] = useState<SetlistItem[]>(initialSetlist?.songs || []);
   const [search, setSearch] = useState("");
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [dragIndex, setDragIndex] = useState<number | null>(null);
 
+  const songCount = songs.filter(isSongItem).length;
   const songMap = new Map(availableSongs.map((s) => [s.id, s]));
 
   const addSong = useCallback(
     (songId: string) => {
-      if (songs.length >= MAX_SONGS) {
+      if (songCount >= MAX_SONGS) {
         setError(t('setlist.maxSongsReached', { count: MAX_SONGS }));
         return;
       }
       const song = songMap.get(songId);
       if (!song) return;
       const lang = song.translations[0] || "en";
-      setSongs((prev) => [...prev, { songId, lang }]);
+      setSongs((prev) => [...prev, { type: "song", songId, lang }]);
       setSearch("");
     },
-    [songMap, songs.length]
+    [songMap, songCount, t]
   );
+
+  const addNote = useCallback(() => {
+    setSongs((prev) => [...prev, { type: "note", id: newItemId(), text: "" }]);
+  }, []);
+
+  const addLink = useCallback(() => {
+    setSongs((prev) => [...prev, { type: "link", id: newItemId(), url: "", title: "" }]);
+  }, []);
+
+  const updateItem = useCallback((index: number, patch: Partial<SetlistItem>) => {
+    setSongs((prev) =>
+      prev.map((s, i) => (i === index ? ({ ...s, ...patch } as SetlistItem) : s))
+    );
+  }, []);
 
   const removeSong = useCallback((index: number) => {
     setSongs((prev) => prev.filter((_, i) => i !== index));
@@ -70,7 +96,7 @@ export function SetlistEditor({
 
   const changeLang = useCallback((index: number, lang: string) => {
     setSongs((prev) =>
-      prev.map((s, i) => (i === index ? { ...s, lang } : s))
+      prev.map((s, i) => (i === index && isSongItem(s) ? { ...s, lang } : s))
     );
   }, []);
 
@@ -121,16 +147,27 @@ export function SetlistEditor({
       setError("Title is required");
       return;
     }
+    const badLink = songs.find((s) => isLinkItem(s) && !isHttpUrl(s.url.trim()));
+    if (badLink) {
+      setError(t("setlist.invalidUrl"));
+      return;
+    }
     setSaving(true);
     setError(null);
 
     try {
+      // Drop empty notes; normalise link fields
+      const items = songs
+        .filter((s) => !(isNoteItem(s) && !s.text.trim()))
+        .map((s) =>
+          isLinkItem(s) ? { ...s, url: s.url.trim(), title: s.title?.trim() || undefined } : s
+        );
       const payload = {
         ...(initialSetlist?.id && { id: initialSetlist.id }),
         title: title.trim(),
         description: description.trim() || undefined,
         date: date.trim() || undefined,
-        songs,
+        songs: items,
       };
 
       const res = await fetch("/api/setlists", {
@@ -208,17 +245,17 @@ export function SetlistEditor({
       {/* Song list */}
       <div>
         <h2 className="font-semibold mb-3 flex items-center gap-2">
-          Songs ({songs.length} / {MAX_SONGS})
+          Songs ({songCount} / {MAX_SONGS})
         </h2>
 
         {songs.length > 0 && (
           <div className="border border-neutral-200 dark:border-neutral-800 rounded-lg overflow-hidden mb-4">
             {songs.map((item, index) => {
-              const meta = songMap.get(item.songId);
+              const meta = isSongItem(item) ? songMap.get(item.songId) : undefined;
               return (
                 <div
-                  key={`${item.songId}-${index}`}
-                  draggable
+                  key={isSongItem(item) ? `${item.songId}-${index}` : item.id}
+                  draggable={isSongItem(item)}
                   onDragStart={() => handleDragStart(index)}
                   onDragOver={(e) => handleDragOver(e, index)}
                   onDragEnd={handleDragEnd}
@@ -233,7 +270,41 @@ export function SetlistEditor({
                     {index + 1}
                   </span>
 
-                  {/* Song info */}
+                  {isNoteItem(item) ? (
+                    <div className="flex-1 min-w-0">
+                      <label className="text-xs text-neutral-400 block mb-1">
+                        {t("setlist.noteLabel")}
+                      </label>
+                      <textarea
+                        value={item.text}
+                        onChange={(e) => updateItem(index, { text: e.target.value })}
+                        maxLength={SETLIST_NOTE_MAX_LENGTH}
+                        rows={3}
+                        className="w-full px-2 py-1 border border-neutral-300 dark:border-neutral-700 rounded bg-white dark:bg-neutral-900 text-sm font-mono"
+                        data-testid="setlist-note-input"
+                      />
+                    </div>
+                  ) : isLinkItem(item) ? (
+                    <div className="flex-1 min-w-0 space-y-1">
+                      <input
+                        type="url"
+                        value={item.url}
+                        onChange={(e) => updateItem(index, { url: e.target.value })}
+                        maxLength={SETLIST_LINK_MAX_LENGTH}
+                        placeholder={t("setlist.linkUrl")}
+                        className="w-full px-2 py-1 border border-neutral-300 dark:border-neutral-700 rounded bg-white dark:bg-neutral-900 text-sm"
+                        data-testid="setlist-link-url"
+                      />
+                      <input
+                        type="text"
+                        value={item.title ?? ""}
+                        onChange={(e) => updateItem(index, { title: e.target.value })}
+                        maxLength={SETLIST_LINK_TITLE_MAX_LENGTH}
+                        placeholder={t("setlist.linkTitle")}
+                        className="w-full px-2 py-1 border border-neutral-300 dark:border-neutral-700 rounded bg-white dark:bg-neutral-900 text-sm"
+                      />
+                    </div>
+                  ) : (
                   <div className="flex-1 min-w-0">
                     <span className="text-sm font-medium truncate block">
                       {meta?.title || item.songId}
@@ -244,9 +315,14 @@ export function SetlistEditor({
                       </span>
                     )}
                   </div>
+                  )}
 
                   {/* Language picker */}
-                  {meta && meta.translations.length > 1 ? (
+                  {!isSongItem(item) ? (
+                    <span className="text-xs px-1.5 py-0.5 bg-neutral-100 dark:bg-neutral-800 rounded text-neutral-500">
+                      {isNoteItem(item) ? t("setlist.itemNote") : t("setlist.itemLink")}
+                    </span>
+                  ) : meta && meta.translations.length > 1 ? (
                     <select
                       value={item.lang}
                       onChange={(e) => changeLang(index, e.target.value)}
@@ -305,17 +381,35 @@ export function SetlistEditor({
           </div>
         )}
 
+        {/* Add note / link */}
+        <div className="flex gap-2 mb-3">
+          <button
+            type="button"
+            onClick={addNote}
+            className="px-3 py-1.5 border border-neutral-300 dark:border-neutral-700 rounded-md text-sm hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors"
+          >
+            + {t("setlist.addNote")}
+          </button>
+          <button
+            type="button"
+            onClick={addLink}
+            className="px-3 py-1.5 border border-neutral-300 dark:border-neutral-700 rounded-md text-sm hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors"
+          >
+            + {t("setlist.addLink")}
+          </button>
+        </div>
+
         {/* Add songs */}
         <div className="relative">
           <input
             type="text"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            placeholder={songs.length >= MAX_SONGS ? t('setlist.maxSongsReached', { count: MAX_SONGS }) : "Search songs to add..."}
-            disabled={songs.length >= MAX_SONGS}
+            placeholder={songCount >= MAX_SONGS ? t('setlist.maxSongsReached', { count: MAX_SONGS }) : "Search songs to add..."}
+            disabled={songCount >= MAX_SONGS}
             className="w-full px-3 py-2 border border-neutral-300 dark:border-neutral-700 rounded-md bg-white dark:bg-neutral-900 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
           />
-          {filteredSongs.length > 0 && songs.length < MAX_SONGS && (
+          {filteredSongs.length > 0 && songCount < MAX_SONGS && (
             <div className="absolute z-10 mt-1 w-full max-h-60 overflow-auto border border-neutral-200 dark:border-neutral-700 rounded-md bg-white dark:bg-neutral-900 shadow-lg">
               {filteredSongs.slice(0, 20).map((song) => (
                 <button
@@ -342,7 +436,7 @@ export function SetlistEditor({
               ))}
             </div>
           )}
-          {songs.length >= MAX_SONGS && (
+          {songCount >= MAX_SONGS && (
             <p className="mt-2 text-xs text-neutral-500 text-center">
               {t('setlist.maxSongsReached', { count: MAX_SONGS })}
             </p>
