@@ -35,6 +35,7 @@ describe('API /api/setlists', () => {
   });
   
   afterEach(async () => {
+    vi.unstubAllEnvs();
     await tempDir.cleanup();
     vi.clearAllMocks();
   });
@@ -232,6 +233,7 @@ describe('API /api/setlists', () => {
     });
 
     it('stores notes and links alongside songs', async () => {
+      vi.stubEnv('SETLIST_LINK_EMBED_HOSTS', 'example.com');
       mockAuth(creatorToken);
       const response = await setlistsPOST(createMockRequest('POST', {
         title: 'Mixed Items',
@@ -244,6 +246,22 @@ describe('API /api/setlists', () => {
       expect(response.status).toBe(201);
       const data = await response.json();
       expect(data.songs.map((i: { type: string }) => i.type)).toEqual(['song', 'note', 'link']);
+    });
+
+    it('rejects hosts not on the allowlist and allows notes without one', async () => {
+      mockAuth(creatorToken);
+      vi.stubEnv('SETLIST_LINK_EMBED_HOSTS', '');
+      let r = await setlistsPOST(createMockRequest('POST', { title: 'A1', songs: [{ type: 'link', id: 'l', url: 'https://example.com/x' }] }));
+      expect(r.status).toBe(400);
+      r = await setlistsPOST(createMockRequest('POST', { title: 'A2', songs: [{ type: 'note', id: 'n', text: 'hi' }] }));
+      expect(r.status).toBe(201);
+      vi.stubEnv('SETLIST_LINK_EMBED_HOSTS', '*.example.org');
+      r = await setlistsPOST(createMockRequest('POST', { title: 'A3', songs: [{ type: 'link', id: 'l', url: 'https://evil.com/x' }] }));
+      expect(r.status).toBe(400);
+      r = await setlistsPOST(createMockRequest('POST', { title: 'A4', songs: [{ type: 'link', id: 'l', url: 'http://docs.example.org/x' }] }));
+      expect(r.status).toBe(400);
+      r = await setlistsPOST(createMockRequest('POST', { title: 'A5', songs: [{ type: 'link', id: 'l', url: 'https://docs.example.org/x' }] }));
+      expect(r.status).toBe(201);
     });
 
     it('rejects non-http(s) link urls with 400', async () => {

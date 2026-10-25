@@ -3,6 +3,8 @@ import type { NextRequest } from 'next/server';
 import { SESSION_COOKIE_NAME, verifySessionToken } from '@/lib/auth/session';
 import { evaluateAccess } from '@/lib/auth/route-guard';
 
+import { getSetlistLinkAllowedHosts, getSetlistLinkAllowHttp, getNavidromeFrameOrigins } from '@/lib/config';
+
 const LOCALE_COOKIE = 'songbook-ui-locale';
 const LOCALE_PATTERN = /^[a-z]{2,3}(-[A-Z]{2})?$/;
 
@@ -43,6 +45,8 @@ export async function proxy(request: NextRequest) {
   }
 
   const response = NextResponse.next();
+  response.headers.set('Content-Security-Policy', buildCsp());
+  response.headers.set('X-Content-Type-Options', 'nosniff');
   if (shouldSetLocale && lang) {
     response.cookies.set(LOCALE_COOKIE, lang, {
       path: '/',
@@ -51,6 +55,27 @@ export async function proxy(request: NextRequest) {
     });
   }
   return response;
+}
+
+function buildCsp(): string {
+  const frameSrc = new Set<string>(["'self'", 'blob:', 'https://open.spotify.com', 'https://www.youtube.com', 'https://www.youtube-nocookie.com']);
+  for (const v of [process.env.SONGBOOK_NAVIDROME_SONGS_URL, process.env.SONGBOOK_VOICES_NAVIDROME_SONGS_URL]) {
+    if (!v) continue;
+    try { frameSrc.add(new URL(v).origin); } catch { /* ignore invalid */ }
+  }
+  // Public Navidrome share hosts often differ from the API URLs above.
+  for (const o of getNavidromeFrameOrigins()) frameSrc.add(o);
+  const allowHttp = getSetlistLinkAllowHttp();
+  for (const h of getSetlistLinkAllowedHosts()) {
+    frameSrc.add(`https://${h}`);
+    if (allowHttp) frameSrc.add(`http://${h}`);
+  }
+  return [
+    `frame-src ${[...frameSrc].join(' ')}`,
+    "frame-ancestors 'self'",
+    "object-src 'none'",
+    "base-uri 'self'",
+  ].join('; ');
 }
 
 export const config = {

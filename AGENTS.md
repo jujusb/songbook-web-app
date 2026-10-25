@@ -32,6 +32,9 @@ Production Dockerfile installs Chromium + Noto fonts for Puppeteer PDF generatio
 - `OIDC_CLIENT_SECRET` — OAuth2 client secret
 - `OIDC_LOGOUT_URL` — provider logout endpoint (optional)
 - `SONGBOOK_VOICES_MATCHING_FILE` — optional absolute path (in-container) to the JSON file overriding the per-language voice-matching vocabulary; defaults to `<cwd>/content/config/voices.json` (see `src/lib/navidrome/voices.ts`)
+- `SONGBOOK_NAVIDROME_FRAME_ORIGINS` — comma-separated extra origins (bare hosts = https) added to the CSP `frame-src` for Navidrome share embeds whose public host differs from the API URL
+- `SETLIST_LINK_EMBED_HOSTS` — comma-separated hosts (`*.` wildcards) allowed for setlist link embeds; empty (default) means links cannot be added
+- `SETLIST_LINK_ALLOW_HTTP` — `true` also allows `http:` setlist links (default: https only)
 - See `docker-compose.yml` for the full set of `OIDC_*` env vars; they override `site.yaml` values
 
 ## Architecture

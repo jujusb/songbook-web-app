@@ -4,6 +4,7 @@ import { useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { useTranslation } from "@/lib/i18n";
 import { getSetlistMaxSongs } from "@/lib/config";
+import { validateLinkUrl } from "@/lib/setlist-links";
 import {
   isHttpUrl,
   isSongItem,
@@ -42,7 +43,11 @@ export function SetlistEditor({
   availableSongs,
   initialSetlist,
   isNew,
+  allowedLinkHosts = [],
+  allowHttpLinks = false,
 }: {
+  allowedLinkHosts?: string[];
+  allowHttpLinks?: boolean;
   availableSongs: AvailableSong[];
   initialSetlist?: SetlistData;
   isNew: boolean;
@@ -147,10 +152,15 @@ export function SetlistEditor({
       setError("Title is required");
       return;
     }
-    const badLink = songs.find((s) => isLinkItem(s) && !isHttpUrl(s.url.trim()));
-    if (badLink) {
-      setError(t("setlist.invalidUrl"));
-      return;
+    for (const s of songs) {
+      if (!isLinkItem(s)) continue;
+      const check = isHttpUrl(s.url.trim())
+        ? validateLinkUrl(s.url.trim(), { allowedHosts: allowedLinkHosts, allowHttp: allowHttpLinks })
+        : { ok: false as const, reason: t("setlist.invalidUrl") };
+      if (!check.ok) {
+        setError(`${s.url}: ${check.reason}`);
+        return;
+      }
     }
     setSaving(true);
     setError(null);
@@ -390,13 +400,19 @@ export function SetlistEditor({
           >
             + {t("setlist.addNote")}
           </button>
-          <button
-            type="button"
-            onClick={addLink}
-            className="px-3 py-1.5 border border-neutral-300 dark:border-neutral-700 rounded-md text-sm hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors"
-          >
-            + {t("setlist.addLink")}
-          </button>
+          {allowedLinkHosts.length > 0 ? (
+            <button
+              type="button"
+              onClick={addLink}
+              className="px-3 py-1.5 border border-neutral-300 dark:border-neutral-700 rounded-md text-sm hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors"
+            >
+              + {t("setlist.addLink")}
+            </button>
+          ) : (
+            <span className="text-xs text-neutral-500 self-center" data-testid="links-disabled-hint">
+              {t("setlist.linksDisabledHint")}
+            </span>
+          )}
         </div>
 
         {/* Add songs */}

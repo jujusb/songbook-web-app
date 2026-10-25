@@ -191,6 +191,8 @@ const es: Translations = {
     editTitle: 'Editar artista',
   },
   setlist: {
+    linkNotAllowed: 'Host no permitido para incrustar. Usa el enlace para abrirlo.',
+    linksDisabledHint: 'No hay hosts permitidos para enlaces (define SETLIST_LINK_EMBED_HOSTS).',
     addNote: 'Añadir nota',
     addLink: 'Añadir enlace',
     noteLabel: 'Nota (Markdown)',

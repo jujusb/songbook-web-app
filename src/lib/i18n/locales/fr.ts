@@ -191,6 +191,8 @@ const fr: Translations = {
     editTitle: "Modifier l'artiste",
   },
   setlist: {
+    linkNotAllowed: 'Hôte non autorisé pour l\'intégration. Utilisez le lien pour l\'ouvrir.',
+    linksDisabledHint: 'Aucun hôte autorisé pour les liens (définir SETLIST_LINK_EMBED_HOSTS).',
     addNote: 'Ajouter une note',
     addLink: 'Ajouter un lien',
     noteLabel: 'Note (Markdown)',

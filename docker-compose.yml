@@ -44,6 +44,7 @@ services:
       - SONGBOOK_VOICES_NAVIDROME_SONGS_URL=${SONGBOOK_VOICES_NAVIDROME_SONGS_URL:-}
       - SONGBOOK_VOICES_NAVIDROME_USERNAME=${SONGBOOK_VOICES_NAVIDROME_USERNAME:-}
       - SONGBOOK_VOICES_NAVIDROME_PASSWORD=${SONGBOOK_VOICES_NAVIDROME_PASSWORD:-}
+      - SONGBOOK_NAVIDROME_FRAME_ORIGINS="${SONGBOOK_VOICES_NAVIDROME_SONGS_URL:-} ${SONGBOOK_NAVIDROME_SONGS_URL:-}"
       # Voice-matching vocabulary defaults to content/config/voices.json inside
       # the mounted content tree; uncomment to point at a custom JSON file.
       # - SONGBOOK_VOICES_MATCHING_FILE=/app/content/config/voices.json
@@ -51,6 +52,8 @@ services:
       - SONGBOOK_PUBLIC_URL=${SONGBOOK_PUBLIC_URL:-}
       # --- Setlist limits ---
       - SETLIST_MAX_SONGS=${SETLIST_MAX_SONGS:-50}
+      - SETLIST_LINK_EMBED_HOSTS=${SETLIST_LINK_EMBED_HOSTS:-}
+      - SETLIST_LINK_ALLOW_HTTP=${SETLIST_LINK_ALLOW_HTTP:-false}
       # --- Branding & Contact (optional) ---
       - SONGBOOK_APP_NAME=${SONGBOOK_APP_NAME:-Songbook}
       - SONGBOOK_CONTACT_EMAIL=${SONGBOOK_CONTACT_EMAIL:-}
@@ -107,6 +110,7 @@ services:
       - SONGBOOK_VOICES_NAVIDROME_SONGS_URL=${SONGBOOK_VOICES_NAVIDROME_SONGS_URL:-}
       - SONGBOOK_VOICES_NAVIDROME_USERNAME=${SONGBOOK_VOICES_NAVIDROME_USERNAME:-}
       - SONGBOOK_VOICES_NAVIDROME_PASSWORD=${SONGBOOK_VOICES_NAVIDROME_PASSWORD:-}
+      - SONGBOOK_NAVIDROME_FRAME_ORIGINS=${SONGBOOK_NAVIDROME_FRAME_ORIGINS:-}
       # Voice-matching vocabulary defaults to content/config/voices.json inside
       # the mounted content tree; uncomment to point at a custom JSON file.
       # - SONGBOOK_VOICES_MATCHING_FILE=/app/content/config/voices.json
@@ -114,6 +118,8 @@ services:
       - SONGBOOK_PUBLIC_URL=${SONGBOOK_PUBLIC_URL:-}
       # --- Setlist limits ---
       - SETLIST_MAX_SONGS=${SETLIST_MAX_SONGS:-50}
+      - SETLIST_LINK_EMBED_HOSTS=${SETLIST_LINK_EMBED_HOSTS:-}
+      - SETLIST_LINK_ALLOW_HTTP=${SETLIST_LINK_ALLOW_HTTP:-false}
       # --- Branding & Contact (optional) ---
       - SONGBOOK_APP_NAME=${SONGBOOK_APP_NAME:-Songbook}
       - SONGBOOK_CONTACT_EMAIL=${SONGBOOK_CONTACT_EMAIL:-}

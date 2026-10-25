@@ -189,6 +189,8 @@ const en = {
     editTitle: 'Edit artist',
   },
   setlist: {
+    linkNotAllowed: 'Host not allowed for embedding. Use the link to open it.',
+    linksDisabledHint: 'No hosts are allowed for links (set SETLIST_LINK_EMBED_HOSTS).',
     addNote: 'Add note',
     addLink: 'Add link',
     noteLabel: 'Note (Markdown)',

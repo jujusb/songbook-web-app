@@ -1,3 +1,6 @@
+import { headers } from "next/headers";
+import { validateLinkUrl, safeHost } from "@/lib/setlist-links";
+import { getSetlistLinkAllowedHosts, getSetlistLinkAllowHttp } from "@/lib/config";
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import { getSetlist, getSong, getSongTranslation, getSongTranslations, getSongTitle } from "@/lib/content";
@@ -116,10 +119,18 @@ export default async function SetlistPage({
   }
 
   // Ordered entries: songs reference songDetails by position, notes/links pass through
+  const linkPolicy = {
+    allowedHosts: getSetlistLinkAllowedHosts(),
+    allowHttp: getSetlistLinkAllowHttp(),
+    ownHosts: (await headers()).get("host") ? [(await headers()).get("host")!.replace(/:\d+$/, "")] : [],
+  };
   let songCursor = 0;
   const entries: SetlistReadOnlyEntry[] = sourceSetlist.songs.map((item) => {
     if (isNoteItem(item)) return { type: "note", id: item.id, text: item.text };
-    if (isLinkItem(item)) return { type: "link", id: item.id, url: item.url, title: item.title };
+    if (isLinkItem(item)) {
+      const check = validateLinkUrl(item.url, linkPolicy);
+      return { type: "link", id: item.id, url: item.url, title: item.title, embeddable: check.ok, host: check.ok ? check.host : safeHost(item.url) };
+    }
     return { type: "song", index: songCursor++ };
   });
 

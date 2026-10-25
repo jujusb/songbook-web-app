@@ -1,3 +1,4 @@
+import { getSetlistLinkAllowedHosts, getSetlistLinkAllowHttp } from "@/lib/config";
 import { notFound, redirect } from "next/navigation";
 import Link from "next/link";
 import { getSetlist, listSongs, getSongTranslations, getShareBaseUrl } from "@/lib/content";
@@ -64,6 +65,8 @@ export default async function SetlistEditPage({
       )}
 
       <SetlistEditor
+        allowedLinkHosts={getSetlistLinkAllowedHosts()}
+        allowHttpLinks={getSetlistLinkAllowHttp()}
         availableSongs={songsWithLangs}
         initialSetlist={{
           id: setlist.id,

@@ -54,3 +54,10 @@ and no setlist id or owner information. The token is the credential.
 - [Tutorial 3 — Build and share a setlist](../tutorials/03-build-and-share-a-setlist.md)
 - [ADR-0008 — Setlists share by token](../explanation/decisions/0008-setlists-share-by-token.md)
 - [Generate voice playlists](./generate-voice-playlists.md)
+
+## Notes and embedded links
+
+Setlists can contain Markdown notes and embedded links. Links are only allowed for hosts listed in
+`SETLIST_LINK_EMBED_HOSTS` (comma-separated, `*.example.org` wildcards; empty means links cannot be
+added). Only https links are accepted unless `SETLIST_LINK_ALLOW_HTTP=true`. Embeds run in a sandbox
+and always show an "Open in new tab" link.

@@ -14,7 +14,7 @@ import {
 } from "@/app/actions";
 import { useTranslation } from "@/lib/i18n";
 import { MarkdownView } from "@/components/MarkdownView";
-import { EmbedFrame } from "@/components/OpenInNewTabButton";
+import { EmbedFrame, OpenInNewTabButton } from "@/components/OpenInNewTabButton";
 import type { VoiceSection, VoiceGroup } from "@/lib/navidrome/voices";
 
 export interface SetlistReadOnlySong {
@@ -37,7 +37,7 @@ export interface SetlistReadOnlySong {
 export type SetlistReadOnlyEntry =
   | { type: "song"; index: number }
   | { type: "note"; id: string; text: string }
-  | { type: "link"; id: string; url: string; title?: string };
+  | { type: "link"; id: string; url: string; title?: string; embeddable: boolean; host: string };
 
 interface UserPreferences {
   showChords: boolean;
@@ -520,15 +520,23 @@ export function SetlistReadOnlyView({
             </button>
           )}
         </div>
-        {linkOpen && (
+        {linkOpen && !entry.embeddable && (
+          <div className="px-4 pb-3 text-sm text-neutral-500" data-testid="link-not-allowed">
+            <p>{entry.host}: {t("setlist.linkNotAllowed")}</p>
+            <OpenInNewTabButton href={entry.url} />
+          </div>
+        )}
+        {linkOpen && entry.embeddable && (
           <div className="px-4 pb-3">
+            <p className="text-xs text-neutral-500 mb-1">{entry.host}</p>
             <EmbedFrame href={entry.url}>
               <iframe
                 src={entry.url}
                 title={entry.title || entry.url}
                 loading="lazy"
                 referrerPolicy="no-referrer"
-                sandbox="allow-scripts allow-same-origin allow-popups allow-forms"
+                sandbox="allow-scripts allow-same-origin allow-popups"
+                allow=""
                 className="w-full h-[70vh] rounded-md border border-neutral-200 dark:border-neutral-800 bg-white"
               />
             </EmbedFrame>
