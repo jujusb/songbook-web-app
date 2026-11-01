@@ -68,7 +68,7 @@ export default async function ComparePage({
               <span className="font-semibold text-sm">{langLabel(lang)}</span>
             </div>
             <div className="p-4">
-              <ChordSheet initialSource={body} songKey={meta.key ?? null} references={meta.references} idPrefix={lang} lang={lang} />
+              <ChordSheet initialSource={body} songKey={meta.key ?? null} references={meta.references} idPrefix={lang} lang={lang} autoScroll={false} />
             </div>
           </div>
         ))}

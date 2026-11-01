@@ -8,6 +8,7 @@ import { ProfileRepeatsForm } from "@/components/ProfileRepeatsForm";
 import { ProfilePartitionsForm } from "@/components/ProfilePartitionsForm";
 import { ProfilePdfLayoutForm } from "@/components/ProfilePdfLayoutForm";
 import { ProfileNotationForm } from "@/components/ProfileNotationForm";
+import { ProfileAutoSpeedForm } from "@/components/ProfileAutoSpeedForm";
 
 export default async function ProfilePage() {
   const user = await getCurrentUser();
@@ -33,6 +34,10 @@ export default async function ProfilePage() {
         initialTocColumns={user.pdfTocColumns}
       />
       <ProfileNotationForm initialNotation={user.chordNotation} />
+      <ProfileAutoSpeedForm
+        initialAutoAdvanceSeconds={user.autoAdvanceSeconds}
+        initialAutoScrollSeconds={user.autoScrollSeconds}
+      />
     </div>
   );
 }

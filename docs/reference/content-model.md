@@ -213,6 +213,8 @@ same from the edit UI.
 | `setlistLyricsView` | `all` \| `list` | `all` | default view mode for setlist lyrics: `all` (expanded) or `list` (collapsed) |
 | `inlineChords` | boolean | `false` | show chords inline with lyrics in setlist lyrics view |
 | `setlistTranspose` | object | `{}` | per-setlist transpose overrides: `setlistId` → `{ songId → semitones }` |
+| `autoAdvanceSeconds` | number | — | optional; seconds per section in the projection auto-advance |
+| `autoScrollSeconds` | number | — | optional; seconds per screen in the song/setlist page auto-scroll |
  
 `Permissions` is `{ editSong: {songId, lang}[], editAlbum: {albumId, lang}[], editLanguage: string[] }`.
 

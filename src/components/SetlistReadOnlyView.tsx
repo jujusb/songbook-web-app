@@ -13,6 +13,7 @@ import {
   updateSetlistTransposeAction,
 } from "@/app/actions";
 import { useTranslation } from "@/lib/i18n";
+import { AutoScrollControl } from "@/components/AutoScrollControl";
 import { MarkdownView } from "@/components/MarkdownView";
 import { EmbedFrame, OpenInNewTabButton } from "@/components/OpenInNewTabButton";
 import type { VoiceSection, VoiceGroup } from "@/lib/navidrome/voices";
@@ -46,6 +47,7 @@ interface UserPreferences {
   inlineChords: boolean;
   setlistLyricsView: "all" | "list";
   setlistTranspose: Record<string, number>;
+  autoScrollSeconds?: number;
 }
 
 interface SetlistReadOnlyViewProps {
@@ -667,6 +669,10 @@ export function SetlistReadOnlyView({
           {orderedItems}
         </ol>
       </div>
+
+      <AutoScrollControl
+        initialSecondsPerScreen={userPreferences.autoScrollSeconds}
+      />
     </>
   );
 }

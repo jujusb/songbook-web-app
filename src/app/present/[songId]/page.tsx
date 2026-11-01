@@ -1,5 +1,6 @@
 import { notFound } from "next/navigation";
 import { getSong, getSongTranslation, getSongTranslations, getSongTitle } from "@/lib/content";
+import { getCurrentUser } from "@/lib/auth";
 import { PresentationView } from "@/components/PresentationView";
 
 export default async function PresentPage({
@@ -26,6 +27,7 @@ export default async function PresentPage({
 
   const { body } = await getSongTranslation(songId, lang);
   const localizedTitle = await getSongTitle(songId, lang);
+  const currentUser = await getCurrentUser();
 
   return (
     <PresentationView
@@ -33,6 +35,7 @@ export default async function PresentPage({
       title={localizedTitle}
       source={body}
       isAudience={display === "audience"}
+      initialAutoAdvanceSeconds={currentUser?.autoAdvanceSeconds}
     />
   );
 }

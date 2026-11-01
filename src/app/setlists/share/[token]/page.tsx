@@ -116,6 +116,7 @@ export default async function SetlistSharePage({
     inlineChords: boolean;
     setlistLyricsView: "all" | "list";
     setlistTranspose: Record<string, number>;
+    autoScrollSeconds?: number;
   };
 
   const userPrefs: UserPreferences = currentUser ? {
@@ -125,6 +126,7 @@ export default async function SetlistSharePage({
     inlineChords: currentUser.inlineChords ?? false,
     setlistLyricsView: currentUser.setlistLyricsView ?? 'all',
     setlistTranspose: currentUser.setlistTranspose?.[sourceSetlistId] ?? {},
+    autoScrollSeconds: currentUser.autoScrollSeconds,
   } : {
     showChords: true,
     showRepeats: true,

@@ -15,6 +15,7 @@ The setlist page (`/setlists/[setlistId]`) now includes an expandable lyrics vie
   - **Inline Chords**: Show chords inline with lyrics instead of on separate rows
 - **Per-song expand/collapse**: Click any song row to expand/collapse individual songs (when not in "Display All" mode)
 - **Mobile-friendly**: Lyrics have `max-h-96 overflow-y-auto` for scrolling on mobile
+- **Auto-scroll**: A floating **Auto ON/OFF** control scrolls the setlist continuously at a chosen speed (seconds per screen). The same control appears on the song page.
 
 ### User Preferences
 
@@ -28,8 +29,10 @@ The following preferences are persisted per user and applied as defaults:
 | `showRepeats` | User profile | Default repeat sections setting |
 | `chordNotation` | User profile | Default chord notation |
 | `setlistTranspose` | User profile | Per-setlist, per-song transpose offsets (semitones) |
+| `autoScrollSeconds` | User profile | Seconds per screen for the song and setlist page auto-scroll |
+| `autoAdvanceSeconds` | User profile | Seconds per section for projection auto-advance |
 
-These can be changed via the global options panel on any setlist page, and changes are saved to your user profile via server actions.
+These can be changed via the global options panel on any setlist page, the floating auto-scroll control, or the profile page, and changes are saved to your user profile via server actions.
 
 ### Keyboard Shortcuts
 

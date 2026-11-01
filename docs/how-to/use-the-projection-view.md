@@ -17,7 +17,17 @@ meant for a projector or a wall display. It has no site chrome and is driven by 
 | `→` or `Space` | next section; past the last section, next song |
 | `←` | previous section; before the first section, previous song |
 | `C` | toggle chords on/off |
+| `A` | toggle automatic advance |
 | `Esc` | go back |
+
+## Automatic advance
+
+Use the **Auto ON/OFF** button (or `A`) to move to the next section by itself, then to the next
+song when projecting a setlist. The speed selector next to it sets the delay per section, from 3
+seconds up to two minutes. The chosen speed is saved to your user profile when you are signed in
+(and to the browser otherwise), so it follows you across songs and setlists. The on/off state is
+remembered in the browser. Auto-advance stops at the last section of the last song; navigate back
+to resume it.
 
 ## Audience mode
 

@@ -1,6 +1,7 @@
 import { isSongItem } from "@/lib/content/schemas";
 import { notFound } from "next/navigation";
 import { findSetlistByShareToken, getSong, getSongTranslation } from "@/lib/content";
+import { getCurrentUser } from "@/lib/auth";
 import { PresentationView } from "@/components/PresentationView";
 
 /**
@@ -19,6 +20,8 @@ export default async function SetlistSharePresentPage({
 
   const setlist = await findSetlistByShareToken(token);
   if (!setlist || setlist.songs.length === 0) notFound();
+
+  const currentUser = await getCurrentUser();
 
   const setlistSongs = await Promise.all(
     setlist.songs.filter(isSongItem).map(async (item) => {
@@ -50,6 +53,7 @@ export default async function SetlistSharePresentPage({
       isAudience={display === "audience"}
       setlistSongs={validSongs}
       setlistTitle={setlist.title}
+      initialAutoAdvanceSeconds={currentUser?.autoAdvanceSeconds}
     />
   );
 }

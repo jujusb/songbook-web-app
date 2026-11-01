@@ -50,6 +50,10 @@ export type VoiceSection = z.infer<typeof VoiceSectionSchema>;
     inlineChords: z.boolean().optional().default(false),
     /** Per-setlist transpose overrides: setlistId -> { songId -> semitones }. */
     setlistTranspose: z.record(z.string(), z.record(z.string(), z.number())).optional().default({}),
+    /** Seconds each projection-view section stays on screen before auto-advancing. */
+    autoAdvanceSeconds: z.number().int().min(1).max(300).optional(),
+    /** Page auto-scroll speed multiplier: 1, 2, or 3. */
+    autoScrollSpeed: z.number().int().min(1).max(3).optional(),
   });
 
 export type User = z.infer<typeof UserSchema>;

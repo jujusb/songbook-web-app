@@ -5,6 +5,12 @@ import { useRouter } from "next/navigation";
 import { renderVisualChordSheet } from "@/lib/chordpro/visual-render";
 import { SECTION_TYPES } from "@/lib/chordpro/chord-utils";
 import { useTranslation } from "@/lib/i18n";
+import {
+  AUTO_ADVANCE_SPEED_OPTIONS,
+  DEFAULT_AUTO_ADVANCE_SECONDS,
+  speedOptionsWith,
+} from "@/lib/auto-speed";
+import { updateMyAutoAdvanceSpeedAction } from "@/app/actions";
 
 const SECTION_TYPES_RE = SECTION_TYPES.join("|");
 const START_OF_RE = new RegExp(
@@ -15,6 +21,9 @@ const END_OF_RE = new RegExp(
   `\\{(?:end_of_|e)(${SECTION_TYPES_RE})\\}`,
   "i"
 );
+
+const AUTO_DELAY_STORAGE_KEY = "songbook-presentation-auto-delay";
+const AUTO_ENABLED_STORAGE_KEY = "songbook-presentation-auto-enabled";
 
 interface Section {
   label: string;
@@ -104,6 +113,7 @@ export function PresentationView({
   isAudience,
   setlistSongs,
   setlistTitle,
+  initialAutoAdvanceSeconds,
 }: {
   songId: string;
   title: string;
@@ -111,6 +121,7 @@ export function PresentationView({
   isAudience: boolean;
   setlistSongs?: SetlistSong[];
   setlistTitle?: string;
+  initialAutoAdvanceSeconds?: number;
 }) {
   const router = useRouter();
   const { t } = useTranslation();
@@ -118,6 +129,10 @@ export function PresentationView({
   const [currentSongIndex, setCurrentSongIndex] = useState(0);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [showChords, setShowChords] = useState(!isAudience);
+  const [autoAdvance, setAutoAdvance] = useState(false);
+  const [autoDelay, setAutoDelay] = useState(
+    initialAutoAdvanceSeconds ?? DEFAULT_AUTO_ADVANCE_SECONDS
+  );
 
   const activeSong = isSetlist
     ? setlistSongs?.[currentSongIndex]
@@ -182,8 +197,72 @@ export function PresentationView({
   // When switching songs forward, reset to section 0
   // This is handled by goNext returning 0 above
 
+  // Restore the auto-advance preference. A saved profile value wins; the
+  // browser value is the fallback for anonymous presenters.
+  useEffect(() => {
+    try {
+      const storedDelay = Number(localStorage.getItem(AUTO_DELAY_STORAGE_KEY));
+      if (initialAutoAdvanceSeconds == null && Number.isFinite(storedDelay) && storedDelay >= 1) {
+        // eslint-disable-next-line react-hooks/set-state-in-effect
+        setAutoDelay(storedDelay);
+      }
+      if (localStorage.getItem(AUTO_ENABLED_STORAGE_KEY) === "true") {
+        setAutoAdvance(true);
+      }
+    } catch {
+      // localStorage not available
+    }
+  }, [initialAutoAdvanceSeconds]);
+
+  const toggleAutoAdvance = useCallback(() => {
+    setAutoAdvance((prev) => {
+      const next = !prev;
+      try {
+        localStorage.setItem(AUTO_ENABLED_STORAGE_KEY, String(next));
+      } catch {
+        // localStorage not available
+      }
+      return next;
+    });
+  }, []);
+
+  const changeAutoDelay = useCallback((seconds: number) => {
+    if (!Number.isFinite(seconds)) return;
+    const next = Math.min(300, Math.max(1, Math.round(seconds)));
+    setAutoDelay(next);
+    try {
+      localStorage.setItem(AUTO_DELAY_STORAGE_KEY, String(next));
+    } catch {
+      // localStorage not available
+    }
+    void updateMyAutoAdvanceSpeedAction(next).catch(() => {});
+  }, []);
+
+  const isAtEnd =
+    currentIndex >= total - 1 &&
+    (!isSetlist || !setlistSongs || currentSongIndex >= setlistSongs.length - 1);
+
+  // Auto-advance to the next section (and song in a setlist) after the
+  // configured delay. The timer restarts after any manual navigation.
+  useEffect(() => {
+    if (!autoAdvance || isAtEnd || total === 0) return;
+    const timer = setTimeout(goNext, autoDelay * 1000);
+    return () => clearTimeout(timer);
+  }, [autoAdvance, autoDelay, goNext, isAtEnd, total, currentIndex, currentSongIndex]);
+
   useEffect(() => {
     const handleKey = (e: KeyboardEvent) => {
+      const target = e.target as HTMLElement | null;
+      if (
+        target &&
+        (target.tagName === "INPUT" ||
+          target.tagName === "SELECT" ||
+          target.tagName === "TEXTAREA" ||
+          target.isContentEditable)
+      ) {
+        return;
+      }
+
       switch (e.key) {
         case "ArrowRight":
         case " ":
@@ -198,6 +277,10 @@ export function PresentationView({
         case "C":
           setShowChords((s) => !s);
           break;
+        case "a":
+        case "A":
+          toggleAutoAdvance();
+          break;
         case "Escape":
           router.back();
           break;
@@ -206,7 +289,7 @@ export function PresentationView({
 
     window.addEventListener("keydown", handleKey);
     return () => window.removeEventListener("keydown", handleKey);
-  }, [goNext, goPrev, router]);
+  }, [goNext, goPrev, router, toggleAutoAdvance]);
 
   const section = sections[currentIndex >= 0 ? currentIndex : 0];
 
@@ -227,7 +310,29 @@ export function PresentationView({
           >
             {showChords ? t('presentation.chordsOn') : t('presentation.chordsOff')}
           </button>
-          <span>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={toggleAutoAdvance}
+              className={`px-2 py-1 rounded ${autoAdvance ? "bg-blue-600" : "bg-neutral-800"}`}
+              title={t('presentation.autoHint')}
+            >
+              {autoAdvance ? t('presentation.autoOn') : t('presentation.autoOff')}
+            </button>
+            <select
+              value={autoDelay}
+              onChange={(e) => changeAutoDelay(Number(e.target.value))}
+              className="px-1 py-1 rounded bg-neutral-800 text-white"
+              aria-label={t('presentation.speed')}
+              title={t('presentation.speed')}
+            >
+              {speedOptionsWith(AUTO_ADVANCE_SPEED_OPTIONS, autoDelay).map((seconds) => (
+                <option key={seconds} value={seconds}>
+                  {seconds}s
+                </option>
+              ))}
+            </select>
+          </div>
+          <span data-testid="presentation-progress">
             {isSetlist && (
               <span className="mr-3">
                 {t('presentation.song')} {currentSongIndex + 1}/{setlistSongs.length}

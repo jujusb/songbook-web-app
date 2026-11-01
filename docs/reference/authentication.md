@@ -24,7 +24,8 @@ the token is reissued (for example, by logging in again).
 
 `UserSchema` (`src/lib/auth/schemas.ts:17`): `id`, `username`, `passwordHash` (absent for OIDC),
 `role`, optional `displayName`/`email`, `authProvider` (`local`/`oidc`), optional `oidcSub`,
-`created`, optional `permissions`, and optional `voice` (one of `tenor`/`bass`/`alto`/`soprano`).
+`created`, optional `permissions`, optional `voice` (one of `tenor`/`bass`/`alto`/`soprano`), and
+optional `autoAdvanceSeconds`/`autoScrollSeconds` for the automatic advance and scroll speeds.
 Users are stored in `content/users/<id>.yaml`.
 
 `listUsers`, `getUser`, `createUser`, `saveUser`, and `deleteUser` live in `src/lib/auth/index.ts`.

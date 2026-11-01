@@ -1,7 +1,7 @@
 import { isSongItem } from "@/lib/content/schemas";
 import { notFound } from "next/navigation";
 import { getSetlist, getSong, getSongTranslation } from "@/lib/content";
-import { getSession, canEdit, canViewSetlist } from "@/lib/auth";
+import { getSession, getCurrentUser, canEdit, canViewSetlist } from "@/lib/auth";
 import { PresentationView } from "@/components/PresentationView";
 
 export default async function SetlistPresentPage({
@@ -26,6 +26,7 @@ export default async function SetlistPresentPage({
   if (!canViewSetlist(setlist, shareParam, canEdit(session?.role ?? null))) {
     notFound();
   }
+  const currentUser = await getCurrentUser();
 
   if (setlist.songs.length === 0) {
     notFound();
@@ -64,6 +65,7 @@ export default async function SetlistPresentPage({
       isAudience={display === "audience"}
       setlistSongs={validSongs}
       setlistTitle={setlist.title}
+      initialAutoAdvanceSeconds={currentUser?.autoAdvanceSeconds}
     />
   );
 }

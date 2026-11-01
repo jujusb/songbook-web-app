@@ -8,6 +8,7 @@ import path from "path";
 import { isReadOnly, isReadOnlyFor } from "@/lib/readonly";
 import { getSession, canEdit, canAdmin, canCreateSetlist, canManageSetlistShares, getCurrentUser, canEditSong, saveUser } from "@/lib/auth";
 import { songIdFromTitle, slugifySongId, uniqueSongId } from "@/lib/song-ids";
+import { normalizeAutoAdvanceSeconds, normalizeAutoScrollSpeed } from "@/lib/auto-speed";
 import { randomUUID } from "node:crypto";
 
 function assertWritable() {
@@ -1008,6 +1009,62 @@ export async function updateMyRepeatsPreferenceAction(showRepeats: boolean | nul
   const value = showRepeats === null ? undefined : showRepeats;
   try {
     await saveUser({ ...user, showRepeats: value }, { allowReadOnly: true });
+    return { ok: true as const };
+  } catch (err) {
+    return {
+      ok: false as const,
+      error: err instanceof Error ? err.message : "FAILED",
+    };
+  }
+}
+
+/**
+ * Save the logged-in user's preferred projection auto-advance speed (seconds
+ * per section).
+ */
+export async function updateMyAutoAdvanceSpeedAction(seconds: number | null) {
+  const session = await getSession();
+  if (!session) {
+    return { ok: false as const, error: "Unauthorized" };
+  }
+  const user = await getCurrentUser();
+  if (!user) {
+    return { ok: false as const, error: "Unauthorized" };
+  }
+  const value = seconds === null ? undefined : normalizeAutoAdvanceSeconds(seconds);
+  if (seconds !== null && value === undefined) {
+    return { ok: false as const, error: "INVALID_SPEED" };
+  }
+  try {
+    await saveUser({ ...user, autoAdvanceSeconds: value }, { allowReadOnly: true });
+    return { ok: true as const };
+  } catch (err) {
+    return {
+      ok: false as const,
+      error: err instanceof Error ? err.message : "FAILED",
+    };
+  }
+}
+
+/**
+ * Save the logged-in user's preferred page auto-scroll speed multiplier
+ * (1x, 2x, or 3x).
+ */
+export async function updateMyAutoScrollSpeedAction(speed: number | null) {
+  const session = await getSession();
+  if (!session) {
+    return { ok: false as const, error: "Unauthorized" };
+  }
+  const user = await getCurrentUser();
+  if (!user) {
+    return { ok: false as const, error: "Unauthorized" };
+  }
+  const value = speed === null ? undefined : normalizeAutoScrollSpeed(speed);
+  if (speed !== null && value === undefined) {
+    return { ok: false as const, error: "INVALID_SPEED" };
+  }
+  try {
+    await saveUser({ ...user, autoScrollSpeed: value }, { allowReadOnly: true });
     return { ok: true as const };
   } catch (err) {
     return {

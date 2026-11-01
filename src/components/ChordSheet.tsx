@@ -7,6 +7,7 @@ import { SECTION_TYPES, splitSectionAliases } from "@/lib/chordpro/chord-utils";
 import { convertChord } from "@/lib/chordpro/notation";
 import { getReferenceText, getHighlight } from "@/lib/content/references";
 import { useTranslation } from "@/lib/i18n";
+import { AutoScrollControl } from "@/components/AutoScrollControl";
 
 const SECTION_TYPES_RE = SECTION_TYPES.join("|");
 const SECTION_MATCH_RE = new RegExp(
@@ -335,6 +336,8 @@ export function ChordSheet({
   showRepeats = true,
   showChords = true,
   chordNotation = "letters",
+  autoScroll = true,
+  autoScrollSeconds,
 }: {
   initialSource: string;
   songKey: string | null;
@@ -346,6 +349,8 @@ export function ChordSheet({
   showRepeats?: boolean;
   showChords?: boolean;
   chordNotation?: "letters" | "solfege" | "roman" | "nashville";
+  autoScroll?: boolean;
+  autoScrollSeconds?: number;
 }) {
   const { t } = useTranslation();
   const [semitones, setSemitones] = useState(0);
@@ -674,6 +679,10 @@ export function ChordSheet({
             ))}
           </ul>
         </div>
+      )}
+
+      {autoScroll && (
+        <AutoScrollControl initialSecondsPerScreen={autoScrollSeconds} />
       )}
     </div>
   );
