@@ -27,7 +27,7 @@ export function ProfileAutoSpeedForm({
   const [autoAdvanceSeconds, setAutoAdvanceSeconds] = useState(
     initialAutoAdvanceSeconds ?? DEFAULT_AUTO_ADVANCE_SECONDS
   );
-  const [autoScrollSpeed, setAutoScrollSpeed] = useState(
+  const [autoScrollSpeed, setAutoScrollSpeed] = useState<number>(
     normalizeAutoScrollSpeed(initialAutoScrollSpeed) ?? DEFAULT_AUTO_SCROLL_SPEED
   );
   const [status, setStatus] = useState<"idle" | "saving" | "saved" | "error">("idle");
@@ -84,7 +84,7 @@ export function ProfileAutoSpeedForm({
           <span>{t("profile.autoScrollSpeed")}</span>
           <select
             value={autoScrollSpeed}
-            onChange={(e) => setAutoScrollSpeed(Number(e.target.value))}
+            onChange={(e) => setAutoScrollSpeed(Number(e.target.value) as number)}
             className="px-2 py-2 border border-neutral-300 dark:border-neutral-700 rounded-md text-sm bg-transparent"
           >
             {scrollOptions.map((speed) => (
