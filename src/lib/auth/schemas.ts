@@ -52,8 +52,8 @@ export type VoiceSection = z.infer<typeof VoiceSectionSchema>;
     setlistTranspose: z.record(z.string(), z.record(z.string(), z.number())).optional().default({}),
     /** Seconds each projection-view section stays on screen before auto-advancing. */
     autoAdvanceSeconds: z.number().int().min(1).max(300).optional(),
-    /** Page auto-scroll speed multiplier: 1, 2, or 3. */
-    autoScrollSpeed: z.number().int().min(1).max(3).optional(),
+    /** Page auto-scroll speed multiplier: 0.5, 1, 2, or 3. */
+    autoScrollSpeed: z.union([z.literal(0.5), z.literal(1), z.literal(2), z.literal(3)]).optional(),
   });
 
 export type User = z.infer<typeof UserSchema>;

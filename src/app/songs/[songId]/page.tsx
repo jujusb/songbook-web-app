@@ -435,7 +435,7 @@ export default async function SongPage({
               showChords={currentUser?.showChords !== false}
               showRepeats={currentUser?.showRepeats !== false}
               chordNotation={(currentUser?.chordNotation as "letters" | "solfege" | "roman" | "nashville") || "letters"}
-              autoScrollSeconds={currentUser?.autoScrollSeconds}
+              autoScrollSpeed={currentUser?.autoScrollSpeed}
             />
 
             {/* References - collapsible on mobile, sidebar on desktop */}

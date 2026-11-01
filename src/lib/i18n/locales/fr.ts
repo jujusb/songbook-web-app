@@ -322,7 +322,7 @@ const fr: Translations = {
     autoSpeed: "Vitesses d'avance automatique",
     autoSpeedDesc: "Choisis les vitesses par défaut pour l'avance et le défilement automatiques.",
     autoAdvanceSpeed: 'Projection : secondes par section',
-    autoScrollSpeed: 'Pages chant et liste : secondes par écran',
+    autoScrollSpeed: 'Pages chant et liste : vitesse de défilement (x0,5, x1, x2, x3)',
     autoSpeedSave: 'Enregistrer les vitesses',
     autoSpeedSaving: 'Enregistrement...',
     autoSpeedSaved: 'Vitesses enregistrées',

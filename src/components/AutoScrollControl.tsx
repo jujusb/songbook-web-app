@@ -5,6 +5,9 @@ import { useTranslation } from "@/lib/i18n";
 import {
   AUTO_SCROLL_SPEED_OPTIONS,
   DEFAULT_AUTO_SCROLL_SPEED,
+  formatAutoScrollSpeed,
+  isAutoScrollSpeed,
+  normalizeAutoScrollSpeed,
   secondsPerScreenForSpeed,
 } from "@/lib/auto-speed";
 import { updateMyAutoScrollSpeedAction } from "@/app/actions";
@@ -23,13 +26,17 @@ export function AutoScrollControl({
 }) {
   const { t } = useTranslation();
   const [enabled, setEnabled] = useState(false);
-  const [speed, setSpeed] = useState(initialSpeed ?? DEFAULT_AUTO_SCROLL_SPEED);
+  const [speed, setSpeed] = useState(
+    normalizeAutoScrollSpeed(initialSpeed) ?? DEFAULT_AUTO_SCROLL_SPEED
+  );
 
   useEffect(() => {
     if (initialSpeed != null) return;
     try {
-      const stored = Number(localStorage.getItem(SPEED_STORAGE_KEY));
-      if (stored === 1 || stored === 2 || stored === 3) {
+      const stored = normalizeAutoScrollSpeed(
+        localStorage.getItem(SPEED_STORAGE_KEY)
+      );
+      if (stored != null) {
         // eslint-disable-next-line react-hooks/set-state-in-effect
         setSpeed(stored);
       }
@@ -39,7 +46,7 @@ export function AutoScrollControl({
   }, [initialSpeed]);
 
   const changeSpeed = useCallback((value: number) => {
-    if (value !== 1 && value !== 2 && value !== 3) return;
+    if (!isAutoScrollSpeed(value)) return;
     setSpeed(value);
     try {
       localStorage.setItem(SPEED_STORAGE_KEY, String(value));
@@ -54,6 +61,7 @@ export function AutoScrollControl({
 
     let frame = 0;
     let last = performance.now();
+    let remaining = 0;
 
     const step = (now: number) => {
       const elapsed = Math.min(now - last, 100);
@@ -66,7 +74,14 @@ export function AutoScrollControl({
       }
 
       const secondsPerScreen = secondsPerScreenForSpeed(speed);
-      window.scrollBy(0, (window.innerHeight / secondsPerScreen) * (elapsed / 1000));
+      // Accumulate fractional pixels so slow speeds (x0.5) still move smoothly
+      // instead of being rounded away by the browser.
+      remaining += (window.innerHeight / secondsPerScreen) * (elapsed / 1000);
+      const pixels = Math.floor(remaining);
+      if (pixels > 0) {
+        remaining -= pixels;
+        window.scrollBy(0, pixels);
+      }
       frame = requestAnimationFrame(step);
     };
 
@@ -98,7 +113,7 @@ export function AutoScrollControl({
       >
         {AUTO_SCROLL_SPEED_OPTIONS.map((value) => (
           <option key={value} value={value}>
-            x{value}
+            {formatAutoScrollSpeed(value)}
           </option>
         ))}
       </select>

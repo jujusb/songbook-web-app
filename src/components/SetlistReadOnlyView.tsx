@@ -47,7 +47,7 @@ interface UserPreferences {
   inlineChords: boolean;
   setlistLyricsView: "all" | "list";
   setlistTranspose: Record<string, number>;
-  autoScrollSeconds?: number;
+  autoScrollSpeed?: number;
 }
 
 interface SetlistReadOnlyViewProps {
@@ -671,7 +671,7 @@ export function SetlistReadOnlyView({
       </div>
 
       <AutoScrollControl
-        initialSecondsPerScreen={userPreferences.autoScrollSeconds}
+        initialSpeed={userPreferences.autoScrollSpeed}
       />
     </>
   );

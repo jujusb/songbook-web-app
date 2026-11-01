@@ -6,7 +6,9 @@ import {
   AUTO_ADVANCE_SPEED_OPTIONS,
   AUTO_SCROLL_SPEED_OPTIONS,
   DEFAULT_AUTO_ADVANCE_SECONDS,
-  DEFAULT_AUTO_SCROLL_SECONDS,
+  DEFAULT_AUTO_SCROLL_SPEED,
+  formatAutoScrollSpeed,
+  normalizeAutoScrollSpeed,
   speedOptionsWith,
 } from "@/lib/auto-speed";
 import {
@@ -16,17 +18,17 @@ import {
 
 export function ProfileAutoSpeedForm({
   initialAutoAdvanceSeconds,
-  initialAutoScrollSeconds,
+  initialAutoScrollSpeed,
 }: {
   initialAutoAdvanceSeconds?: number;
-  initialAutoScrollSeconds?: number;
+  initialAutoScrollSpeed?: number;
 }) {
   const { t } = useTranslation();
   const [autoAdvanceSeconds, setAutoAdvanceSeconds] = useState(
     initialAutoAdvanceSeconds ?? DEFAULT_AUTO_ADVANCE_SECONDS
   );
-  const [autoScrollSeconds, setAutoScrollSeconds] = useState(
-    initialAutoScrollSeconds ?? DEFAULT_AUTO_SCROLL_SECONDS
+  const [autoScrollSpeed, setAutoScrollSpeed] = useState(
+    normalizeAutoScrollSpeed(initialAutoScrollSpeed) ?? DEFAULT_AUTO_SCROLL_SPEED
   );
   const [status, setStatus] = useState<"idle" | "saving" | "saved" | "error">("idle");
 
@@ -36,7 +38,7 @@ export function ProfileAutoSpeedForm({
       // Sequential writes: each action reads the user file before saving, so
       // running them in parallel could drop one of the two preferences.
       const advanceResult = await updateMyAutoAdvanceSpeedAction(autoAdvanceSeconds);
-      const scrollResult = await updateMyAutoScrollSpeedAction(autoScrollSeconds);
+      const scrollResult = await updateMyAutoScrollSpeedAction(autoScrollSpeed);
       if (advanceResult.ok && scrollResult.ok) {
         setStatus("saved");
         setTimeout(() => setStatus("idle"), 2000);
@@ -54,7 +56,7 @@ export function ProfileAutoSpeedForm({
   );
   const scrollOptions = speedOptionsWith(
     AUTO_SCROLL_SPEED_OPTIONS,
-    autoScrollSeconds
+    autoScrollSpeed
   );
 
   return (
@@ -81,13 +83,13 @@ export function ProfileAutoSpeedForm({
         <label className="flex flex-col gap-1.5 text-sm">
           <span>{t("profile.autoScrollSpeed")}</span>
           <select
-            value={autoScrollSeconds}
-            onChange={(e) => setAutoScrollSeconds(Number(e.target.value))}
+            value={autoScrollSpeed}
+            onChange={(e) => setAutoScrollSpeed(Number(e.target.value))}
             className="px-2 py-2 border border-neutral-300 dark:border-neutral-700 rounded-md text-sm bg-transparent"
           >
-            {scrollOptions.map((seconds) => (
-              <option key={seconds} value={seconds}>
-                {seconds}s
+            {scrollOptions.map((speed) => (
+              <option key={speed} value={speed}>
+                {formatAutoScrollSpeed(speed)}
               </option>
             ))}
           </select>

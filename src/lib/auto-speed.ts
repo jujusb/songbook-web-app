@@ -1,10 +1,12 @@
 export const AUTO_ADVANCE_SPEED_OPTIONS = [3, 5, 8, 10, 15, 20, 30, 45, 60, 90, 120];
 export const DEFAULT_AUTO_ADVANCE_SECONDS = 10;
 
-export const AUTO_SCROLL_SPEED_OPTIONS = [1, 2, 3];
+export const AUTO_SCROLL_SPEED_OPTIONS = [0.5, 1, 2, 3] as const;
 export const DEFAULT_AUTO_SCROLL_SPEED = 1;
 /** Seconds it takes the x1 auto-scroll to move one screen height. */
 export const AUTO_SCROLL_BASE_SECONDS_PER_SCREEN = 60;
+
+export type AutoScrollSpeed = (typeof AUTO_SCROLL_SPEED_OPTIONS)[number];
 
 export function normalizeAutoAdvanceSeconds(value: unknown): number | undefined {
   const seconds = typeof value === "string" ? Number(value) : value;
@@ -14,14 +16,24 @@ export function normalizeAutoAdvanceSeconds(value: unknown): number | undefined 
   return rounded;
 }
 
-export function normalizeAutoScrollSpeed(value: unknown): 1 | 2 | 3 | undefined {
+export function isAutoScrollSpeed(value: unknown): value is AutoScrollSpeed {
+  return (
+    typeof value === "number" &&
+    (AUTO_SCROLL_SPEED_OPTIONS as readonly number[]).includes(value)
+  );
+}
+
+export function normalizeAutoScrollSpeed(value: unknown): AutoScrollSpeed | undefined {
   const speed = typeof value === "string" ? Number(value) : value;
-  if (speed === 1 || speed === 2 || speed === 3) return speed;
-  return undefined;
+  return isAutoScrollSpeed(speed) ? speed : undefined;
 }
 
 export function secondsPerScreenForSpeed(speed: number): number {
-  return AUTO_SCROLL_BASE_SECONDS_PER_SCREEN / Math.max(1, speed);
+  return AUTO_SCROLL_BASE_SECONDS_PER_SCREEN / Math.max(0.5, speed);
+}
+
+export function formatAutoScrollSpeed(speed: number): string {
+  return `x${speed}`;
 }
 
 export function speedOptionsWith(options: readonly number[], value: number): number[] {

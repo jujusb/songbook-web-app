@@ -29,7 +29,7 @@ The following preferences are persisted per user and applied as defaults:
 | `showRepeats` | User profile | Default repeat sections setting |
 | `chordNotation` | User profile | Default chord notation |
 | `setlistTranspose` | User profile | Per-setlist, per-song transpose offsets (semitones) |
-| `autoScrollSeconds` | User profile | Seconds per screen for the song and setlist page auto-scroll |
+| `autoScrollSpeed` | User profile | Scroll speed multiplier (x0.5, x1, x2, x3) for the song and setlist page auto-scroll |
 | `autoAdvanceSeconds` | User profile | Seconds per section for projection auto-advance |
 
 These can be changed via the global options panel on any setlist page, the floating auto-scroll control, or the profile page, and changes are saved to your user profile via server actions.

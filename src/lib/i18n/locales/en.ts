@@ -352,7 +352,7 @@ const en = {
     autoSpeed: 'Auto-advance speeds',
     autoSpeedDesc: 'Choose the default speeds used by automatic advancing and scrolling.',
     autoAdvanceSpeed: 'Projection: seconds per section',
-    autoScrollSpeed: 'Song and setlist pages: seconds per screen',
+    autoScrollSpeed: 'Song and setlist pages: scroll speed (x0.5, x1, x2, x3)',
     autoSpeedSave: 'Save speed preferences',
     autoSpeedSaving: 'Saving...',
     autoSpeedSaved: 'Speed preferences saved',

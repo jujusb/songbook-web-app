@@ -214,7 +214,7 @@ same from the edit UI.
 | `inlineChords` | boolean | `false` | show chords inline with lyrics in setlist lyrics view |
 | `setlistTranspose` | object | `{}` | per-setlist transpose overrides: `setlistId` → `{ songId → semitones }` |
 | `autoAdvanceSeconds` | number | — | optional; seconds per section in the projection auto-advance |
-| `autoScrollSeconds` | number | — | optional; seconds per screen in the song/setlist page auto-scroll |
+| `autoScrollSpeed` | number | — | optional; scroll speed multiplier (`0.5`, `1`, `2`, `3`) for the song/setlist page auto-scroll |
  
 `Permissions` is `{ editSong: {songId, lang}[], editAlbum: {albumId, lang}[], editLanguage: string[] }`.
 

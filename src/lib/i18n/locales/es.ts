@@ -354,7 +354,7 @@ const es: Translations = {
     autoSpeed: 'Velocidades de avance automático',
     autoSpeedDesc: 'Elige las velocidades por defecto para el avance y el desplazamiento automáticos.',
     autoAdvanceSpeed: 'Proyección: segundos por sección',
-    autoScrollSpeed: 'Páginas de canción y lista: segundos por pantalla',
+    autoScrollSpeed: 'Páginas de canción y lista: velocidad de desplazamiento (x0.5, x1, x2, x3)',
     autoSpeedSave: 'Guardar velocidades',
     autoSpeedSaving: 'Guardando...',
     autoSpeedSaved: 'Velocidades guardadas',

@@ -1048,7 +1048,7 @@ export async function updateMyAutoAdvanceSpeedAction(seconds: number | null) {
 
 /**
  * Save the logged-in user's preferred page auto-scroll speed multiplier
- * (1x, 2x, or 3x).
+ * (0.5x, 1x, 2x, or 3x).
  */
 export async function updateMyAutoScrollSpeedAction(speed: number | null) {
   const session = await getSession();

@@ -37,12 +37,22 @@ describe('Server Actions — auto speed preferences', () => {
     await loginAsSinger();
 
     await expect(actions.updateMyAutoAdvanceSpeedAction(20)).resolves.toEqual({ ok: true });
-    await expect(actions.updateMyAutoScrollSpeedAction(90)).resolves.toEqual({ ok: true });
+    await expect(actions.updateMyAutoScrollSpeedAction(2)).resolves.toEqual({ ok: true });
 
     const { getUser } = await import('@/lib/auth');
     const user = await getUser('singer');
     expect(user?.autoAdvanceSeconds).toBe(20);
-    expect(user?.autoScrollSeconds).toBe(90);
+    expect(user?.autoScrollSpeed).toBe(2);
+  });
+
+  it('accepts the x0.5 auto-scroll speed', async () => {
+    await loginAsSinger();
+
+    await expect(actions.updateMyAutoScrollSpeedAction(0.5)).resolves.toEqual({ ok: true });
+
+    const { getUser } = await import('@/lib/auth');
+    const user = await getUser('singer');
+    expect(user?.autoScrollSpeed).toBe(0.5);
   });
 
   it('rejects speeds outside the allowed range', async () => {
@@ -51,8 +61,11 @@ describe('Server Actions — auto speed preferences', () => {
     const advance = await actions.updateMyAutoAdvanceSpeedAction(999);
     expect(advance.ok).toBe(false);
 
-    const scroll = await actions.updateMyAutoScrollSpeedAction(1);
+    const scroll = await actions.updateMyAutoScrollSpeedAction(4);
     expect(scroll.ok).toBe(false);
+
+    const fractional = await actions.updateMyAutoScrollSpeedAction(1.5);
+    expect(fractional.ok).toBe(false);
   });
 
   it('requires an authenticated user', async () => {
@@ -63,7 +76,7 @@ describe('Server Actions — auto speed preferences', () => {
     const advance = await actions.updateMyAutoAdvanceSpeedAction(20);
     expect(advance.ok).toBe(false);
 
-    const scroll = await actions.updateMyAutoScrollSpeedAction(90);
+    const scroll = await actions.updateMyAutoScrollSpeedAction(2);
     expect(scroll.ok).toBe(false);
   });
 });

@@ -36,7 +36,7 @@ export default async function ProfilePage() {
       <ProfileNotationForm initialNotation={user.chordNotation} />
       <ProfileAutoSpeedForm
         initialAutoAdvanceSeconds={user.autoAdvanceSeconds}
-        initialAutoScrollSeconds={user.autoScrollSeconds}
+        initialAutoScrollSpeed={user.autoScrollSpeed}
       />
     </div>
   );

@@ -337,7 +337,7 @@ export function ChordSheet({
   showChords = true,
   chordNotation = "letters",
   autoScroll = true,
-  autoScrollSeconds,
+  autoScrollSpeed,
 }: {
   initialSource: string;
   songKey: string | null;
@@ -350,7 +350,7 @@ export function ChordSheet({
   showChords?: boolean;
   chordNotation?: "letters" | "solfege" | "roman" | "nashville";
   autoScroll?: boolean;
-  autoScrollSeconds?: number;
+  autoScrollSpeed?: number;
 }) {
   const { t } = useTranslation();
   const [semitones, setSemitones] = useState(0);
@@ -682,7 +682,7 @@ export function ChordSheet({
       )}
 
       {autoScroll && (
-        <AutoScrollControl initialSecondsPerScreen={autoScrollSeconds} />
+        <AutoScrollControl initialSpeed={autoScrollSpeed} />
       )}
     </div>
   );
