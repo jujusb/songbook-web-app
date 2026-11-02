@@ -703,7 +703,10 @@ export function NoteForm({ initialNote, isNew = true, noteId }: NoteFormProps) {
                                       </select>
                                     </div>
                                     <div className="space-y-1">
-                                      {activeKeys.filter((k) => valueKeys.includes(k)).concat(valueKeys.filter((k) => !activeKeys.includes(k))).map((key, pos, arr) => {
+                                      {(Array.isArray(cfg.fieldOrder) && cfg.fieldOrder.length
+                                        ? activeKeys
+                                        : activeKeys.filter((k) => valueKeys.includes(k)).concat(valueKeys.filter((k) => !activeKeys.includes(k)))
+                                      ).map((key, pos, arr) => {
                                         const fieldStyle = (cfg.fieldStyles as Record<string, string> | undefined)?.[key] || (section.fieldStyles || {})[key] || "plain";
                                         return (
                                           <div key={key} className="flex items-center gap-2 text-xs border rounded p-2">
