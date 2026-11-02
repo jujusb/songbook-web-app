@@ -159,7 +159,7 @@ function normalizeSections(note: Partial<NoteMetadata>): NoteSection[] {
   return (sections ?? []).map((s) => ({ ...s }));
 }
 
-function normalizeNote(note: Partial<NoteMetadata>): NoteMetadata {
+export function normalizeNote(note: Partial<NoteMetadata>): NoteMetadata {
   const sections = normalizeSections(note);
   const apiSources =
     Array.isArray(note.api_sources) && (note.api_sources as unknown[]).length > 0
@@ -189,94 +189,50 @@ export const notesStorage = storage;
  
 // Notes API module - named export for route imports
 export const notesApi = {
-  // Fetch notes from API (placeholder for future API integration)
   fetchNotes: async (): Promise<NoteMetadata[]> => {
-    const s = getStorageFromLocal();
-    return Object.values(s).map((note) => normalizeNote(note)).filter(note =>
-      note.recurrent_type ? true : false
-    );
+    const res = await fetch('/api/notes');
+    if (!res.ok) return [];
+    return res.json();
   },
- 
-  // Fetch a single note
   fetchNote: async (noteId: string): Promise<NoteMetadata | null> => {
-    const s = getStorageFromLocal();
-    return s[noteId] ? normalizeNote(s[noteId]) : null;
+    const res = await fetch(`/api/notes/${encodeURIComponent(noteId)}`);
+    if (!res.ok) return null;
+    return res.json();
   },
- 
-  // Create a new note
   createNote: async (note: Partial<NoteMetadata>): Promise<NoteMetadata> => {
-    const hasSections =
-      Array.isArray(note.sections) || Array.isArray(note.content) || Array.isArray(note.api_sources);
-    const sections = hasSections ? normalizeSections(note) : [{ type: 'manual' as const, md: '' }];
-    const newNote = normalizeNote({
-      ...note,
-      id: note.id || `note-${Date.now()}`,
-      sections,
-      content: sections,
-      last_fetched: new Date().toISOString(),
-      last_edited: new Date().toISOString(),
-      created: new Date().toISOString(),
+    const res = await fetch('/api/notes', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(note),
     });
-
-    const s = getStorageFromLocal();
-    s[newNote.id] = newNote;
-    saveStorageToLocal(s);
-    return newNote;
+    if (!res.ok) throw new Error('Failed to create note');
+    return res.json();
   },
- 
-  // Update a note
   updateNote: async (noteId: string, updates: Partial<NoteMetadata>): Promise<NoteMetadata> => {
-    const s = getStorageFromLocal();
-
-    if (!s[noteId]) {
-      throw new Error('Note not found');
-    }
-
-    const updatedNote = normalizeNote({
-      ...normalizeNote(s[noteId]),
-      ...updates,
-      id: noteId,
-      last_edited: new Date().toISOString(),
+    const res = await fetch(`/api/notes/${encodeURIComponent(noteId)}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(updates),
     });
-
-    const sUpdated = getStorageFromLocal();
-    sUpdated[noteId] = updatedNote;
-    saveStorageToLocal(sUpdated);
-    return updatedNote;
+    if (!res.ok) throw new Error('Failed to update note');
+    return res.json();
   },
-
-  // Delete a note
   deleteNote: async (noteId: string): Promise<boolean> => {
-    const s = getStorageFromLocal();
- 
-    if (!s[noteId]) {
-      return false;
-    }
- 
-    const { [noteId]: deleted, ...remaining } = s;
-    saveStorageToLocal(remaining);
-    return true;
+    const res = await fetch(`/api/notes/${encodeURIComponent(noteId)}`, {
+      method: 'DELETE',
+    });
+    return res.ok;
   },
- 
-  // Search notes
-  searchNotes: async (query: string, filters?: {
-    recurrentType?: string;
-    language: string;
-  }): Promise<NoteSearchResult[]> => {
-    const s = getStorageFromLocal();
+  searchNotes: async (query: string, filters?: { recurrentType?: string; language: string }): Promise<NoteSearchResult[]> => {
+    const notes = await notesApi.fetchNotes();
     const results: NoteSearchResult[] = [];
- 
-    for (const [noteId, rawNote] of Object.entries(s)) {
-      const note = normalizeNote(rawNote);
+    for (const note of notes) {
       const matchesTitle = note.title.toLowerCase().includes(query.toLowerCase());
-      const matchesLanguage = note.language === filters?.language;
-      const matchesRecurrentType = filters?.recurrentType 
-        ? note.recurrent_type === filters.recurrentType 
-        : true;
- 
+      const matchesLanguage = filters?.language ? note.language === filters.language : true;
+      const matchesRecurrentType = filters?.recurrentType ? note.recurrent_type === filters.recurrentType : true;
       if (matchesTitle || matchesLanguage || matchesRecurrentType) {
         results.push({
-          noteId,
+          noteId: note.id,
           title: note.title,
           language: note.language,
           recurrentType: note.recurrent_type,
@@ -285,15 +241,13 @@ export const notesApi = {
         });
       }
     }
- 
     return results.slice(0, 10);
   },
- 
-  // Get all notes
   getAllNotes: async (): Promise<NoteMetadata[]> => {
-    return Object.values(getStorageFromLocal()).map((note) => normalizeNote(note));
+    return notesApi.fetchNotes();
   },
 } as const;
+
 
 // --- External API helpers (date + nested JSON extraction) ---
 
