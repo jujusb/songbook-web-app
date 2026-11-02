@@ -110,7 +110,7 @@ export function NoteView({ noteId }: NoteViewProps) {
     if (cancelled) return;
     setTabbed(tabsCandidate && tabsCandidate.length > 1 ? tabsCandidate : null);
     setActiveTab(0);
-    setPreviewText(chunks.filter(Boolean).join("\\n\\n"));
+    setPreviewText(chunks.filter(Boolean).join("\n\n"));
     setPreviewLoading(false);
   };
     load();

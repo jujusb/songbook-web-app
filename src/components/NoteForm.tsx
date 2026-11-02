@@ -47,6 +47,31 @@ interface NoteFormProps {
   noteId?: string;
 }
 
+function normalizeTypeValue(value: unknown): string {
+  return String(value ?? "").replace(/_\d+$/, "");
+}
+
+function hasFieldValue(value: unknown): boolean {
+  return value !== null && value !== undefined && value !== "";
+}
+
+/** Flatten a preview payload the same way the discriminator preview does. */
+function collectDiscriminatedObjects(data: unknown, resultSection?: string): any[] {
+  const source = getNestedValue(data, resultSection);
+  const top = Array.isArray(source) ? source : source ? [source] : [];
+  const objs: any[] = [];
+  for (const item of top) {
+    if (!item || typeof item !== "object") continue;
+    const listProp = Object.keys(item).find((k) => Array.isArray((item as any)[k]) && (item as any)[k].some((x: any) => x && typeof x === "object"));
+    if (listProp) {
+      for (const child of (item as any)[listProp]) if (child && typeof child === "object") objs.push(child);
+    } else {
+      objs.push(item);
+    }
+  }
+  return objs;
+}
+
 /**
  * Rebuild the editor-only state of an API section from the persisted config
  * (discriminatorValues[].fieldsOrdered / fields), so the field mapping UI is
@@ -227,13 +252,19 @@ export function NoteForm({ initialNote, isNew = true, noteId }: NoteFormProps) {
           };
         }
         const baseValues = Array.from(new Set(Object.keys(s.typeStyles || {})));
+        // Only keep fields that have a value in the previewed API data for this type.
+        // Without a preview there is no data to check, so all configured fields are kept.
+        const previewObjs = previews[i]?.data !== undefined ? collectDiscriminatedObjects(previews[i]?.data, s.resultSection) : null;
         const discriminatorValues = baseValues.map((base) => {
           const cfg = s.typeConfigs?.[base] || {};
           const cfgKeys = Array.isArray(cfg.fieldOrder) && cfg.fieldOrder.length ? cfg.fieldOrder : keys;
+          const savedKeys = previewObjs
+            ? cfgKeys.filter((k) => previewObjs.some((o) => normalizeTypeValue(o?.[disc]) === base && hasFieldValue(o?.[k])))
+            : cfgKeys;
           return {
             name: base,
             style: s.typeStyles?.[base] || "plain",
-            fieldsOrdered: cfgKeys.map((k) => ({
+            fieldsOrdered: savedKeys.map((k) => ({
               name: k,
               style: cfg.fieldStyles?.[k] || s.fieldStyles?.[k] || "plain",
             })),
