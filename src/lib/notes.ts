@@ -9,6 +9,9 @@ export type NotePeriodicBehavior = 'same' | 'different_per_period';
 export interface NoteSection {
   type: 'manual' | 'api';
   typeStyles?: Record<string, string>;
+  discriminator?: string;
+  fieldOrder?: string[];
+  fieldStyles?: Record<string, string>;
   md?: string;
   name?: string;
   api_url?: string;
@@ -416,6 +419,27 @@ export const TYPE_STYLE_MAP: Record<string, string> = {
   subtitle: 'h3',
 };
 
+function stripHtmlTags(value: string): string {
+  return value.replace(/<\/?[^>]+>/g, "").replace(/&nbsp;/g, " ").replace(/&amp;/g, "&");
+}
+
+
+export function getApiResultKeys(data: unknown, resultSection?: string): string[] {
+  const target = getNestedValue(data, resultSection);
+  const collect = (obj: unknown): string[] => {
+    if (obj && typeof obj === 'object' && !Array.isArray(obj)) {
+      return Object.keys(obj as Record<string, unknown>);
+    }
+    return [];
+  };
+  if (Array.isArray(target)) {
+    const keys = new Set<string>();
+    for (const item of target) for (const k of collect(item)) keys.add(k);
+    return [...keys];
+  }
+  return collect(target);
+}
+
 export function extractApiSectionText(section: Partial<NoteSection>, data: unknown): string {
   const resultSection =
     (section as Record<string, unknown>).resultSection || (section as Record<string, unknown>).resultPath || (section as Record<string, unknown>).result_path;
@@ -445,6 +469,21 @@ export function extractApiSectionText(section: Partial<NoteSection>, data: unkno
     (section as Record<string, unknown>).type_styles ||
     {};
 
+  const discriminator = String(
+    (section as Record<string, unknown>).discriminator ||
+      (section as Record<string, unknown>).typeField ||
+      "type"
+  );
+
+  const fieldOrder =
+    (section as Record<string, unknown>).fieldOrder ||
+    (section as Record<string, unknown>).field_order;
+
+  const fieldStyles =
+    (section as Record<string, unknown>).fieldStyles ||
+    (section as Record<string, unknown>).field_styles ||
+    {};
+
   const template = (section as Record<string, unknown>).displayTemplate || (section as Record<string, unknown>).template || (section as Record<string, unknown>).display;
 
   // If a display template is provided, render placeholders.
@@ -464,7 +503,7 @@ export function extractApiSectionText(section: Partial<NoteSection>, data: unkno
   let fieldList: Array<{ key: string; style?: string; label?: string }>;
   if (Array.isArray(fields) && fields.length > 0) {
     fieldList = (fields as NoteApiField[]).map((f) => {
-      const elementType = target && typeof target === 'object' && !Array.isArray(target) ? (target as Record<string, unknown>).type : undefined;
+      const elementType = target && typeof target === 'object' && !Array.isArray(target) ? (target as Record<string, unknown>)[discriminator] : undefined;
       const typeStyle =
         typeof elementType === 'string'
           ? (typeStyles as Record<string, string>)[String(elementType).toLowerCase()] ||
@@ -477,20 +516,23 @@ export function extractApiSectionText(section: Partial<NoteSection>, data: unkno
       return { key, style: f.style || (typeof styles === 'object' ? (styles as Record<string, string>)[key] : undefined) || typeStyle, label: f.label };
     });
   } else if (target && typeof target === 'object' && !Array.isArray(target)) {
-    const elementType = (target as Record<string, unknown>).type;
+    const elementType = (target as Record<string, unknown>)[discriminator];
     const typeStyle =
       typeof elementType === 'string'
-        ? (typeStyles as Record<string, string>)[elementType.toLowerCase()] || TYPE_STYLE_MAP[elementType.toLowerCase()]
+        ? (typeStyles as Record<string, string>)[String(elementType).toLowerCase()] || TYPE_STYLE_MAP[String(elementType).toLowerCase()]
         : undefined;
-    fieldList = Object.keys(target as Record<string, unknown>)
-      .filter((k) => k !== 'type')
-      .map((k) => ({
-        key: k,
-        style:
-          typeof styles === 'object' && (styles as Record<string, unknown>)[k]
+    const keys = Object.keys(target as Record<string, unknown>).filter((k) => k !== discriminator);
+    const order = Array.isArray(fieldOrder) && (fieldOrder as unknown[]).length > 0 ? (fieldOrder as string[]) : keys;
+    const resolvedKeys = order.filter((k) => keys.includes(k)).concat(keys.filter((k) => !order.includes(k)));
+    fieldList = resolvedKeys.map((k) => ({
+      key: k,
+      style:
+        typeof fieldStyles === 'object' && (fieldStyles as Record<string, unknown>)[k]
+          ? String((fieldStyles as Record<string, unknown>)[k])
+          : typeof styles === 'object' && (styles as Record<string, unknown>)[k]
             ? String((styles as Record<string, unknown>)[k])
             : typeStyle,
-      }));
+    }));
   } else {
     fieldList = [];
   }
@@ -535,7 +577,7 @@ export function extractApiSectionText(section: Partial<NoteSection>, data: unkno
     if (text) lines.push(text);
   }
 
-  return lines.filter(Boolean).join('\n');
+  return stripHtmlTags(lines.filter(Boolean).join('\n'));
 }
 
 export const extractSectionText = extractApiSectionText;

@@ -342,3 +342,22 @@ API URLs support placeholders:
 ### View mode
 
 `/notes/<id>` lets the user pick an example date and renders the assembled note content for that date, combining manual sections and API-fetched sections.
+
+### Field mapping for array/object API results
+
+For API sections, the editor can derive the result keys from a preview and let the user configure:
+- a single discriminator field (radio, only one) indicating which property contains the section type,
+- a style for each field (`plain`, `bold`, `italic`, `h2`, `h3`, `quote`, `code`),
+- the display order (move up/down).
+
+Stored fields include `discriminator`, `fieldOrder` and `fieldStyles`. Extraction excludes the discriminator from the rendered fields by default, uses its value for type-based styling and applies `fieldStyles` per field.
+
+### Sanitization
+
+Text extracted from external APIs is sanitized by removing HTML tags (`<...>`) and common HTML entities before display or storage.
+
+### Note management UI
+
+- `/notes` redirects card clicks to `/notes/<id>` (view mode); each card has **Edit** and **Delete** buttons.
+- `/notes/<id>` shows the note, a date selector, the assembled content for that date, and **Edit/Delete** actions.
+- `/notes/<id>/edit` provides the full editor, per-section previews and field mapping.

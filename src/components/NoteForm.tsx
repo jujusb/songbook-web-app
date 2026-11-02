@@ -3,7 +3,7 @@
 import { useState, useCallback, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { notFound } from "next/navigation";
-import { notesApi, NoteMetadata, NoteSection, interpolateApiUrl, extractApiSectionText } from "@/lib/notes";
+import { notesApi, NoteMetadata, NoteSection, interpolateApiUrl, extractApiSectionText, getApiResultKeys } from "@/lib/notes";
 
 const LANGUAGES = [
   { value: "en", label: "English" },
@@ -186,6 +186,9 @@ export function NoteForm({ initialNote, isNew = true, noteId }: NoteFormProps) {
           authorization: s.authorization,
           languages: s.languages,
           typeStyles,
+          discriminator: s.discriminator,
+          fieldOrder: s.fieldOrder,
+          fieldStyles: s.fieldStyles,
         };
       });
       if (builtSections.length === 0) builtSections.push({ type: "manual", md: "" });
@@ -401,6 +404,67 @@ export function NoteForm({ initialNote, isNew = true, noteId }: NoteFormProps) {
                       <pre className="text-xs overflow-auto max-h-64 mt-1">{JSON.stringify(previews[index]?.data, null, 2)}</pre>
                     </details>
                   )}
+                  {(() => {
+                    const keys = getApiResultKeys(previews[index]?.data, section.resultSection);
+                    if (!keys.length) return null;
+                    const order = Array.isArray(section.fieldOrder) && section.fieldOrder.length ? section.fieldOrder : keys;
+                    const disc = section.discriminator || (keys.includes("type") ? "type" : keys[0]);
+                    return (
+                      <div className="mt-3 space-y-2">
+                        <label className="block text-sm font-medium">Field mapping (order, discriminator, style)</label>
+                        <div className="space-y-2">
+                          {order.filter((k) => keys.includes(k)).concat(keys.filter((k) => !order.includes(k))).map((key, pos, arr) => (
+                            <div key={key} className="flex items-center gap-2 text-xs border rounded p-2">
+                              <label className="flex items-center gap-1">
+                                <input
+                                  type="radio"
+                                  name={`disc-${index}`}
+                                  checked={disc === key}
+                                  onChange={() => updateSection(index, { discriminator: key })}
+                                />
+                                disc.
+                              </label>
+                              <span className="font-mono min-w-24">{key}</span>
+                              <select
+                                value={section.fieldStyles?.[key] || "plain"}
+                                onChange={(e) => updateSection(index, { fieldStyles: { ...(section.fieldStyles || {}), [key]: e.target.value } })}
+                                className="px-2 py-1 border rounded"
+                              >
+                                <option value="plain">plain</option>
+                                <option value="bold">bold</option>
+                                <option value="italic">italic</option>
+                                <option value="h2">h2</option>
+                                <option value="h3">h3</option>
+                                <option value="quote">quote</option>
+                                <option value="code">code</option>
+                              </select>
+                              <button type="button" onClick={() => {
+                                const next = [...arr];
+                                if (pos <= 0) return;
+                                [next[pos - 1], next[pos]] = [next[pos], next[pos - 1]];
+                                updateSection(index, { fieldOrder: next });
+                              }} className="px-2 py-1 border rounded">↑</button>
+                              <button type="button" onClick={() => {
+                                const next = [...arr];
+                                if (pos >= next.length - 1) return;
+                                [next[pos + 1], next[pos]] = [next[pos], next[pos + 1]];
+                                updateSection(index, { fieldOrder: next });
+                              }} className="px-2 py-1 border rounded">↓</button>
+                            </div>
+                          ))}
+                        </div>
+                        {!section.fieldOrder && (
+                          <button
+                            type="button"
+                            onClick={() => updateSection(index, { fieldOrder: keys, discriminator: keys.includes("type") ? "type" : keys[0] })}
+                            className="text-xs px-2 py-1 border rounded"
+                          >
+                            Initialize mapping from preview
+                          </button>
+                        )}
+                      </div>
+                    );
+                  })()}
                 </div>
               )}
             </div>
