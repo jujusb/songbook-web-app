@@ -58,6 +58,8 @@ export interface NoteMetadata {
   last_edited?: string;
   created: string;
   tags: string[];
+  published?: boolean;
+  publishedDates?: string[];
 }
  
 // API Configuration

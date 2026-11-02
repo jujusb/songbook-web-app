@@ -65,6 +65,12 @@ export function NoteForm({ initialNote, isNew = true, noteId }: NoteFormProps) {
   const [recurrentSchedule, setRecurrentSchedule] = useState(initialNote?.recurrent_schedule ?? "sunday");
   const [periodicBehavior, setPeriodicBehavior] = useState(initialNote?.periodic_behavior ?? "same");
   const [tags, setTags] = useState(initialNote?.tags ? initialNote.tags.join(", ") : "");
+  const [publishMode, setPublishMode] = useState<"private" | "all" | "dates">(
+    initialNote?.published ? "all" : (initialNote?.publishedDates && initialNote.publishedDates.length ? "dates" : "private")
+  );
+  const [publishedDates, setPublishedDates] = useState(
+    initialNote?.publishedDates ? initialNote.publishedDates.join(", ") : ""
+  );
   const [exampleDate, setExampleDate] = useState(new Date().toISOString().slice(0, 10));
   const [sections, setSections] = useState<NoteSection[]>(
     initialNote?.sections?.length
@@ -86,6 +92,8 @@ export function NoteForm({ initialNote, isNew = true, noteId }: NoteFormProps) {
         setRecurrentSchedule(n.recurrent_schedule);
         setPeriodicBehavior(n.periodic_behavior);
         setTags(n.tags ? n.tags.join(", ") : "");
+        setPublishMode(n.published ? "all" : (n.publishedDates && n.publishedDates.length ? "dates" : "private"));
+        setPublishedDates(n.publishedDates ? n.publishedDates.join(", ") : "");
         const secs = n.sections?.length ? n.sections : n.content?.length ? n.content : [{ type: "manual", md: "" } as NoteSection];
         setSections(secs);
         setIsLoading(false);
@@ -221,6 +229,10 @@ export function NoteForm({ initialNote, isNew = true, noteId }: NoteFormProps) {
         last_fetched: isEdit ? "" : new Date().toISOString(),
         last_edited: new Date().toISOString(),
         tags: tags.split(",").map((t) => t.trim()).filter(Boolean),
+        published: publishMode === "all",
+        publishedDates: publishMode === "dates"
+          ? publishedDates.split(",").map((d) => d.trim()).filter(Boolean)
+          : [],
         sections: builtSections,
         content: builtSections,
         created: isEdit ? "" : new Date().toISOString(),
@@ -238,7 +250,7 @@ export function NoteForm({ initialNote, isNew = true, noteId }: NoteFormProps) {
     } finally {
       setSaving(false);
     }
-  }, [title, language, recurrentType, recurrentSchedule, periodicBehavior, tags, sections, previews, isEdit, noteId, router]);
+  }, [title, language, recurrentType, recurrentSchedule, periodicBehavior, tags, publishMode, publishedDates, sections, previews, isEdit, noteId, router]);
 
   if (notFoundFlag) notFound();
   if (isLoading) return <div className="p-6 max-w-2xl"><p className="text-sm text-neutral-500">Loading note…</p></div>;
@@ -284,6 +296,20 @@ export function NoteForm({ initialNote, isNew = true, noteId }: NoteFormProps) {
           <label className="block text-sm font-medium mb-1">Tags (comma-separated)</label>
           <input type="text" value={tags} onChange={(e) => setTags(e.target.value)} placeholder="gospel, lectionary, weekly" className="w-full px-3 py-2 border rounded-md text-sm" />
         </div>
+        <div>
+          <label className="block text-sm font-medium mb-1">Publish to other users</label>
+          <select value={publishMode} onChange={(e) => setPublishMode(e.target.value as "private" | "all" | "dates")} className="w-full px-3 py-2 border rounded-md text-sm">
+            <option value="private">Private (default)</option>
+            <option value="all">Published entirely</option>
+            <option value="dates">Published only on specific dates</option>
+          </select>
+        </div>
+        {publishMode === "dates" && (
+          <div>
+            <label className="block text-sm font-medium mb-1">Published dates (comma-separated, YYYY-MM-DD)</label>
+            <input type="text" value={publishedDates} onChange={(e) => setPublishedDates(e.target.value)} placeholder="2026-11-08, 2026-11-15" className="w-full px-3 py-2 border rounded-md text-sm" />
+          </div>
+        )}
       </div>
 
       <div className="border-t border-neutral-200 dark:border-neutral-800 pt-6">
