@@ -377,3 +377,35 @@ When an API result is an array of objects, each containing an array property of 
 ### Generalization
 
 Implementation avoids hard-coded mass/lecture terms and instead detects any array-of-objects whose elements each contain at least one array-of-objects property.
+
+## Addendum — Latest evolution of API sections
+
+### Normalized discriminator types
+
+- Discriminator values such as `lecture_1`, `lecture_2`, `lecture_3` are normalized to a base type (`lecture`) for styling and grouping.
+- The editor shows a summary list of the raw discriminator values from the fetched data:
+  `lecture_1   lecture   style`,
+  `psaume      psaume    style`,
+  `lecture_2   lecture   style`,
+  etc.
+- Only the distinct normalized types are shown as tabs.
+- Style is set per normalized type, and applies to all raw values sharing that base.
+- Items whose normalized type style is `none` are not displayed.
+- Fields whose value is empty or null are not displayed in the field mapping.
+- Discriminator values can also be reordered, and the selected active tab shows only that type's field mapping and its own ordering.
+
+### Discriminator and field-mapping UX
+
+- `none` is available as a discriminator option: all keys are treated as ordinary fields, including `type`.
+- A checkbox allows displaying the discriminator field itself.
+- When a discriminator is selected, the global field list is hidden; only the per-discriminator tabs and field mappings are shown.
+- When there is only one discriminator value, no tabs are shown; only that value's field mapping is displayed.
+- Field mapping supports a `none` (do not display) style per field.
+- Mapping data is persisted (`allFields`, `rawDiscriminatorValues`, `discriminatorValues`, `typeStyleOrder`, `typeConfigs`) so it is restored on later edits without needing to re-run the preview.
+
+### Rendering tabs and visibility
+
+- API results that are arrays of objects with nested object arrays are rendered as tabs; only multiple top-level objects become tabs, otherwise a single view is used.
+- The tab title is derived from the first available string property.
+- If a normalized type is marked `none`, all corresponding items are omitted.
+- Null/empty fields are omitted from both mapping and rendered output.

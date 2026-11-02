@@ -10,12 +10,14 @@ export interface NoteSection {
   type: 'manual' | 'api';
   typeStyles?: Record<string, string>;
   typeStyleOrder?: string[];
+  typeVisibility?: Record<string, boolean>;
   typeConfigs?: Record<string, { fieldOrder?: string[]; fieldStyles?: Record<string, string>; showDiscriminator?: boolean; typeStyles?: Record<string, string> }>;
   discriminator?: string;
   fieldOrder?: string[];
   fieldStyles?: Record<string, string>;
   allFields?: string[];
   discriminatorValues?: string[];
+  rawDiscriminatorValues?: string[];
   showDiscriminator?: boolean;
   md?: string;
   name?: string;
@@ -113,7 +115,7 @@ function getStorageFromLocal(): NotesStorage {
 }
  
 function saveStorageToLocal(storage: NotesStorage): void {
-  if (typeof window !== 'undefined') {
+  if (typeof window !== 'undefined' && typeof window.localStorage !== 'undefined') {
     localStorage.setItem('songbook_notes_storage', JSON.stringify(storage));
   }
 }
@@ -488,6 +490,11 @@ export function getApiResultKeys(data: unknown, resultSection?: string): string[
   return collect(target);
 }
 
+function normalizeDiscriminatorValue(value: unknown): string {
+  const raw = String(value ?? '');
+  return raw.replace(/_\d+$/, '');
+}
+
 export function extractApiSectionText(rawSection: Partial<NoteSection>, data: unknown): string {
   const discKey = String((rawSection as Record<string, unknown>).discriminator || (rawSection as Record<string, unknown>).typeField || 'type');
   const rawDiscValue =
@@ -495,9 +502,10 @@ export function extractApiSectionText(rawSection: Partial<NoteSection>, data: un
       ? (data as Record<string, unknown>)[discKey]
       : undefined;
   const typeConfigs = (rawSection as Record<string, unknown>).typeConfigs as Record<string, unknown> | undefined;
+  const normalizedRawDisc = normalizeDiscriminatorValue(rawDiscValue);
   const cfg =
-    rawDiscValue != null && typeConfigs && typeConfigs[String(rawDiscValue)]
-      ? (typeConfigs[String(rawDiscValue)] as Record<string, unknown>)
+    rawDiscValue != null && typeConfigs && (typeConfigs[normalizedRawDisc] || typeConfigs[String(rawDiscValue)])
+      ? (typeConfigs[normalizedRawDisc] || typeConfigs[String(rawDiscValue)]) as Record<string, unknown>
       : {};
   const section: Partial<NoteSection> = {
     ...rawSection,
@@ -569,17 +577,18 @@ export function extractApiSectionText(rawSection: Partial<NoteSection>, data: un
     const { resultSection: _a, resultPath: _b, result_path: _c, ...rest } = section as Record<string, unknown>;
     const discriminator = String((section as Record<string, unknown>).discriminator || (section as Record<string, unknown>).typeField || 'type');
     const order = (section as Record<string, unknown>).typeStyleOrder;
-    let sortedTarget = target;
-    if (Array.isArray(order) && order.length && target.every((x) => x && typeof x === 'object')) {
-      sortedTarget = [...target].sort((a, b) => {
-        const av = String((a as Record<string, unknown>)[discriminator] ?? '');
-        const bv = String((b as Record<string, unknown>)[discriminator] ?? '');
-        const ai = order.indexOf(av);
-        const bi = order.indexOf(bv);
-        return (ai === -1 ? 999 : ai) - (bi === -1 ? 999 : bi);
-      });
-    }
-    return sortedTarget
+    const tv = (section as Record<string, unknown>).typeVisibility as Record<string, boolean> | undefined;
+    // Skip items whose type is hidden or styled as 'none'
+    const workingTarget = target.filter((item) => {
+      if (!item || typeof item !== 'object') return true;
+      const nt = normalizeDiscriminatorValue((item as Record<string, unknown>)[discriminator]);
+      const ts = (section as Record<string, unknown>).typeStyles as Record<string, string> | undefined;
+      if (tv && tv[nt] === false) return false;
+      if (tv && tv[String((item as Record<string, unknown>)[discriminator])] === false) return false;
+      const style = String(ts?.[nt] ?? ts?.[String((item as Record<string, unknown>)[discriminator])] ?? '').toLowerCase();
+      return style !== 'none';
+    });
+    return workingTarget
       .map((item) => extractApiSectionText(rest as Partial<NoteSection>, item))
       .filter(Boolean)
       .join('\n');
@@ -603,9 +612,13 @@ export function extractApiSectionText(rawSection: Partial<NoteSection>, data: un
     });
   } else if (target && typeof target === 'object' && !Array.isArray(target)) {
     const elementType = (target as Record<string, unknown>)[discriminator];
+    const normalizedElementType = normalizeDiscriminatorValue(elementType);
     const typeStyle =
       typeof elementType === 'string'
-        ? (typeStyles as Record<string, string>)[String(elementType).toLowerCase()] || TYPE_STYLE_MAP[String(elementType).toLowerCase()]
+        ? (typeStyles as Record<string, string>)[normalizedElementType.toLowerCase()] ||
+          (typeStyles as Record<string, string>)[String(elementType).toLowerCase()] ||
+          TYPE_STYLE_MAP[normalizedElementType.toLowerCase()] ||
+          TYPE_STYLE_MAP[String(elementType).toLowerCase()]
         : undefined;
     const keys = Object.keys(target as Record<string, unknown>).filter((k) => k !== discriminator || (section as Record<string, unknown>).showDiscriminator === true);
     const order = Array.isArray(fieldOrder) && (fieldOrder as unknown[]).length > 0 ? (fieldOrder as string[]) : keys;

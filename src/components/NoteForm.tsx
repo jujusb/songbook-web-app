@@ -152,10 +152,12 @@ export function NoteForm({ initialNote, isNew = true, noteId }: NoteFormProps) {
         }
       }
       const discField = section.discriminator || (Array.isArray(section.allFields) && section.allFields.includes("type") ? "type" : (section.allFields?.[0] || "type"));
-      const vals = [...new Set(objs.map((o) => o?.[discField]).filter((v) => v !== undefined && v !== null).map((v) => String(v)))];
+      const rawVals = [...new Set(objs.map((o) => String(o?.[discField] ?? "")).filter((v) => v !== ""))] ;
+      const vals = [...new Set(rawVals.map((v) => v.replace(/_\d+$/, "")))];
       const allFields = getApiResultKeys(data, section.resultSection);
       updateSection(index, {
         allFields,
+        rawDiscriminatorValues: rawVals,
         typeStyleOrder: Array.isArray(section.typeStyleOrder) && section.typeStyleOrder.length ? section.typeStyleOrder : vals,
         discriminatorValues: vals,
       });
@@ -183,6 +185,7 @@ export function NoteForm({ initialNote, isNew = true, noteId }: NoteFormProps) {
           authorization: s.authorization,
           languages: s.languages,
           typeStyles: s.typeStyles,
+          typeVisibility: s.typeVisibility,
           typeStyleOrder: s.typeStyleOrder,
           discriminatorValues: s.discriminatorValues,
           discriminator: s.discriminator,
@@ -484,7 +487,7 @@ export function NoteForm({ initialNote, isNew = true, noteId }: NoteFormProps) {
                               previewObjs.push(item);
                             }
                           }
-                          const previewValues = preview ? [...new Set(previewObjs.map((o) => o?.[disc]).filter((v) => v !== undefined && v !== null).map((v) => String(v)))] : [];
+                          const previewValues = preview ? [...new Set(previewObjs.map((o) => String(o?.[disc] ?? "").replace(/_\d+$/, "")).filter((v) => v !== ""))] : [];
                           const values = previewValues.length
                             ? previewValues
                             : (Array.isArray(section.typeStyleOrder) && section.typeStyleOrder.length
@@ -494,6 +497,9 @@ export function NoteForm({ initialNote, isNew = true, noteId }: NoteFormProps) {
                           const order = Array.isArray(section.typeStyleOrder) && section.typeStyleOrder.length ? section.typeStyleOrder : values;
                           const sortedValues = order.filter((v) => values.includes(v)).concat(values.filter((v) => !order.includes(v)));
                           if (sortedValues.length <= 1) return null;
+                          const rawSummaryValues = previewObjs.length
+                            ? [...new Set(previewObjs.map((o) => String(o?.[disc] ?? "")).filter((v) => v !== ''))]
+                            : (section.rawDiscriminatorValues || []);
                           return (
                             <div className="mt-3 space-y-1">
                               <label className="flex items-center gap-2 text-xs">
@@ -504,38 +510,52 @@ export function NoteForm({ initialNote, isNew = true, noteId }: NoteFormProps) {
                                 />
                                 Display discriminator field
                               </label>
+                              {rawSummaryValues.length > 0 && (
+                                <div className="space-y-1 mb-3">
+                                  { rawSummaryValues.map((rawVal) => {
+                                      const rawBase = String(rawVal).replace(/_\d+$/, "");
+                                      return (
+                                        <div key={rawVal} className="flex items-center gap-3 text-xs">
+                                          <input
+                                            type="checkbox"
+                                            checked={(section.typeVisibility?.[rawBase] ?? true) && (section.typeStyles?.[rawBase] || "plain").toLowerCase() !== "none"}
+                                            onChange={(e) => updateSection(index, {
+                                              typeVisibility: { ...(section.typeVisibility || {}), [rawBase]: e.target.checked },
+                                              ...( !e.target.checked ? { typeStyles: { ...(section.typeStyles || {}), [rawBase]: "none" } } : {} ),
+                                            })}
+                                          />
+                                          <span className="font-mono min-w-24">{rawVal}</span>
+                                          <span className="text-neutral-500 min-w-20">{rawBase}</span>
+                                          <select
+                                            value={section.typeStyles?.[rawBase] || "plain"}
+                                            onChange={(e) => updateSection(index, { typeStyles: { ...(section.typeStyles || {}), [rawBase]: e.target.value } })}
+                                            className="px-2 py-1 border rounded"
+                                          >
+                                            <option value="plain">plain</option>
+                                            <option value="bold">bold</option>
+                                            <option value="italic">italic</option>
+                                            <option value="h2">h2</option>
+                                            <option value="h3">h3</option>
+                                            <option value="quote">quote</option>
+                                            <option value="code">code</option>
+                                            <option value="none">none (do not display)</option>
+                                          </select>
+                                        </div>
+                                      );
+                                    })}
+                                </div>
+                              )}
                               <label className="block text-sm font-medium">Discriminator values (style and order)</label>
                               <div className="flex flex-wrap gap-2 mb-2">
-                                {sortedValues.map((val, pos) => (
-                                  <div key={val} className="flex items-center gap-1">
-                                    <button
-                                      type="button"
-                                      onClick={() => {
-                                        const next = [...sortedValues];
-                                        if (pos <= 0) return;
-                                        [next[pos - 1], next[pos]] = [next[pos], next[pos - 1]];
-                                        updateSection(index, { typeStyleOrder: next });
-                                      }}
-                                      className="px-1 py-1 text-xs border rounded"
-                                    >←</button>
-                                    <button
-                                      type="button"
-                                      onClick={() => setActiveTypeTab((prev) => ({ ...prev, [index]: val }))}
-                                      className={`px-3 py-1.5 text-xs border rounded ${ (activeTypeTab[index] || sortedValues[0]) === val ? "bg-blue-600 text-white" : "bg-neutral-100 dark:bg-neutral-800" }`}
-                                    >
-                                      {val}
-                                    </button>
-                                    <button
-                                      type="button"
-                                      onClick={() => {
-                                        const next = [...sortedValues];
-                                        if (pos >= next.length - 1) return;
-                                        [next[pos + 1], next[pos]] = [next[pos], next[pos + 1]];
-                                        updateSection(index, { typeStyleOrder: next });
-                                      }}
-                                      className="px-1 py-1 text-xs border rounded"
-                                    >→</button>
-                                  </div>
+                                {sortedValues.map((val) => (
+                                  <button
+                                    key={val}
+                                    type="button"
+                                    onClick={() => setActiveTypeTab((prev) => ({ ...prev, [index]: val }))}
+                                    className={`px-3 py-1.5 text-xs border rounded ${ (activeTypeTab[index] || sortedValues[0]) === val ? "bg-blue-600 text-white" : "bg-neutral-100 dark:bg-neutral-800" }`}
+                                  >
+                                    {val}
+                                  </button>
                                 ))}
                               </div>
                               {(() => {
