@@ -88,6 +88,7 @@ function evaluatePage(pathname: string, session: GuardSession | null): GuardResu
     pathname === '/songs/new' ||
     pathname === '/artists/new' ||
     pathname === '/albums/new' ||
+    pathname === '/notes/new' ||
     /^\/albums\/[^/]+\/edit$/.test(pathname) ||
     /^\/edit\/[^/]+\/[^/]+$/.test(pathname)
   ) {

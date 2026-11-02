@@ -7,6 +7,7 @@ const fr: Translations = {
     albums: 'Albums',
     setlists: 'Listes',
     artists: 'Artistes',
+    notes: 'Notes',
     newSong: '+ Nouvelle Chanson',
     newSetlist: '+ Nouvelle Liste',
     admin: 'Admin',

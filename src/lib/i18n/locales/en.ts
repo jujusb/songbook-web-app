@@ -5,6 +5,7 @@ const en = {
     albums: 'Albums',
     setlists: 'Setlists',
     artists: 'Artists',
+    notes: 'Notes',
     newSong: '+ New Song',
     newSetlist: '+ New Setlist',
     admin: 'Admin',

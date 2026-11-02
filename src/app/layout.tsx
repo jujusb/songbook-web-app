@@ -113,6 +113,9 @@ export default async function RootLayout({
               <Link href="/browse" className={NAV_LINK_CLASS}>
                 <T k="nav.browse" />
               </Link>
+              <Link href="/notes" className={NAV_LINK_CLASS}>
+                <T k="nav.notes" />
+              </Link>
               <Link href="/songs" className={NAV_LINK_CLASS}>
                 <T k="nav.songs" />
               </Link>

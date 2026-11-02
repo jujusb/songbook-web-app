@@ -7,6 +7,7 @@ const es: Translations = {
     albums: 'Álbumes',
     setlists: 'Listas',
     artists: 'Artistas',
+    notes: 'Notas',
     newSong: '+ Nueva Canción',
     newSetlist: '+ Nueva Lista',
     admin: 'Admin',
