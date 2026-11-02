@@ -409,3 +409,19 @@ Implementation avoids hard-coded mass/lecture terms and instead detects any arra
 - The tab title is derived from the first available string property.
 - If a normalized type is marked `none`, all corresponding items are omitted.
 - Null/empty fields are omitted from both mapping and rendered output.
+
+## Addendum — Publishing and server-side storage
+
+### Publishing
+
+- A note is private by default.
+- It can be published entirely to other users, or published only for specific dates.
+- Publishing mode and published dates are stored in the note metadata (`published`, `publishedDates`).
+
+### Server-side storage
+
+- Notes are no longer stored in browser local storage.
+- They are persisted through `/api/notes` and `/api/notes/[id]`.
+- Files live under `DATA_DIR/content/notes/<note-id>/`:
+  - `config.yaml` contains the note metadata and sections.
+  - `<YYYY-MM-DD>/note.md` contains the saved note body.

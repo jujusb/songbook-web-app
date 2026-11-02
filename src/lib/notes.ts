@@ -58,6 +58,7 @@ export interface NoteMetadata {
   last_edited?: string;
   created: string;
   tags: string[];
+  periodOverrides?: Record<string, string>;
   published?: boolean;
   publishedDates?: string[];
 }

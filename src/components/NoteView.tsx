@@ -140,6 +140,8 @@ export function NoteView({ noteId }: NoteViewProps) {
       </div>
       <p className="text-sm text-neutral-500">
         {note.language} • {note.recurrent_type} • {note.periodic_behavior}
+        {note.published ? " • published" : " • private"}
+        {note.publishedDates && note.publishedDates.length ? ` (dates: ${note.publishedDates.join(", ")})` : ""}
       </p>
 
       <div>
