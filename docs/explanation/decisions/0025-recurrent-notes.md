@@ -361,3 +361,19 @@ Text extracted from external APIs is sanitized by removing HTML tags (`<...>`) a
 - `/notes` redirects card clicks to `/notes/<id>` (view mode); each card has **Edit** and **Delete** buttons.
 - `/notes/<id>` shows the note, a date selector, the assembled content for that date, and **Edit/Delete** actions.
 - `/notes/<id>/edit` provides the full editor, per-section previews and field mapping.
+
+### Nested array navigation and filtering
+
+`resultSection` supports nested navigation:
+- `[]` selects every item of an array.
+- `[n]` selects a single index.
+- `[key="value"]` filters an array to items matching `key == value`.
+- Filters can be chained, e.g. `groups[].items[type="evangile"]`.
+
+### Tabbed rendering
+
+When an API result is an array of objects, each containing an array property of objects, the view renders one tab per top-level object. The tab title is derived from the first available string property (`title`, `titre`, `name`, `label`, `heading`, ...). Inside each tab, all items of the nested array are rendered. If there is only one top-level object, a single view is rendered instead of tabs.
+
+### Generalization
+
+Implementation avoids hard-coded mass/lecture terms and instead detects any array-of-objects whose elements each contain at least one array-of-objects property.

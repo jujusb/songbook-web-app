@@ -3,7 +3,7 @@
 import { useState, useCallback, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { notFound } from "next/navigation";
-import { notesApi, NoteMetadata, NoteSection, interpolateApiUrl, extractApiSectionText, getApiResultKeys } from "@/lib/notes";
+import { notesApi, NoteMetadata, NoteSection, interpolateApiUrl, extractApiSectionText, getApiResultKeys, getNestedValue } from "@/lib/notes";
 
 const LANGUAGES = [
   { value: "en", label: "English" },
@@ -73,12 +73,8 @@ export function NoteForm({ initialNote, isNew = true, noteId }: NoteFormProps) {
         ? initialNote.content
         : [{ type: "manual", md: "" } as NoteSection]
   );
-  const [sectionStylesText, setSectionStylesText] = useState<string[]>(
-    (initialNote?.sections?.length ? initialNote.sections : initialNote?.content?.length ? initialNote.content : [{ type: "manual", md: "" } as NoteSection]).map(
-      (s) => (s.typeStyles ? JSON.stringify(s.typeStyles, null, 2) : "")
-    )
-  );
   const [previews, setPreviews] = useState<Record<number, SectionPreview>>({});
+  const [activeTypeTab, setActiveTypeTab] = useState<Record<number, string>>({});
 
   useEffect(() => {
     if (!isNew && noteId && !initialNote) {
@@ -92,7 +88,6 @@ export function NoteForm({ initialNote, isNew = true, noteId }: NoteFormProps) {
         setTags(n.tags ? n.tags.join(", ") : "");
         const secs = n.sections?.length ? n.sections : n.content?.length ? n.content : [{ type: "manual", md: "" } as NoteSection];
         setSections(secs);
-        setSectionStylesText(secs.map((s) => (s.typeStyles ? JSON.stringify(s.typeStyles, null, 2) : "")));
         setIsLoading(false);
       });
     }
@@ -104,29 +99,16 @@ export function NoteForm({ initialNote, isNew = true, noteId }: NoteFormProps) {
     setSections((prev) => prev.map((s, i) => (i === index ? { ...s, ...patch } : s)));
   }, []);
 
-  const updateStylesText = useCallback((index: number, value: string) => {
-    setSectionStylesText((prev) => prev.map((v, i) => (i === index ? value : v)));
-  }, []);
-
   const addSection = useCallback((type: "manual" | "api") => {
     setSections((prev) => [...prev, emptySection(type)]);
-    setSectionStylesText((prev) => [...prev, ""]);
   }, []);
 
   const removeSection = useCallback((index: number) => {
     setSections((prev) => prev.filter((_, i) => i !== index));
-    setSectionStylesText((prev) => prev.filter((_, i) => i !== index));
   }, []);
 
   const moveSection = useCallback((index: number, dir: -1 | 1) => {
     setSections((prev) => {
-      const next = [...prev];
-      const j = index + dir;
-      if (j < 0 || j >= next.length) return prev;
-      [next[index], next[j]] = [next[j], next[index]];
-      return next;
-    });
-    setSectionStylesText((prev) => {
       const next = [...prev];
       const j = index + dir;
       if (j < 0 || j >= next.length) return prev;
@@ -155,15 +137,33 @@ export function NoteForm({ initialNote, isNew = true, noteId }: NoteFormProps) {
       }
       const payload = await res.json();
       const data = payload.data;
-      let typeStyles: Record<string, string> | undefined;
-      const txt = sectionStylesText[index]?.trim();
-      if (txt) { try { typeStyles = JSON.parse(txt); } catch { typeStyles = undefined; } }
-      const extracted = extractApiSectionText({ ...section, typeStyles }, data);
+      const extracted = extractApiSectionText(section, data);
+      // Persist result keys and discriminator values so mapping survives re-edit.
+      const source = getNestedValue(data, section.resultSection);
+      const top = Array.isArray(source) ? source : source ? [source] : [];
+      const objs: any[] = [];
+      for (const item of top) {
+        if (!item || typeof item !== "object") continue;
+        const listProp = Object.keys(item).find((k) => Array.isArray((item as any)[k]) && (item as any)[k].some((x: any) => x && typeof x === "object"));
+        if (listProp) {
+          for (const child of (item as any)[listProp]) if (child && typeof child === "object") objs.push(child);
+        } else {
+          objs.push(item);
+        }
+      }
+      const discField = section.discriminator || (Array.isArray(section.allFields) && section.allFields.includes("type") ? "type" : (section.allFields?.[0] || "type"));
+      const vals = [...new Set(objs.map((o) => o?.[discField]).filter((v) => v !== undefined && v !== null).map((v) => String(v)))];
+      const allFields = getApiResultKeys(data, section.resultSection);
+      updateSection(index, {
+        allFields,
+        typeStyleOrder: Array.isArray(section.typeStyleOrder) && section.typeStyleOrder.length ? section.typeStyleOrder : vals,
+        discriminatorValues: vals,
+      });
       setPreviews((p) => ({ ...p, [index]: { loading: false, error: null, data, extracted } }));
     } catch (err) {
       setPreviews((p) => ({ ...p, [index]: { loading: false, error: err instanceof Error ? err.message : "Preview failed" } }));
     }
-  }, [sections, language, exampleDate, sectionStylesText]);
+  }, [sections, language, exampleDate]);
 
   const handleSave = useCallback(async () => {
     if (!title.trim()) {
@@ -175,9 +175,6 @@ export function NoteForm({ initialNote, isNew = true, noteId }: NoteFormProps) {
     try {
       const builtSections: NoteSection[] = sections.map((s, i) => {
         if (s.type === "manual") return { type: "manual", md: s.md || "", periodic_behavior: s.periodic_behavior || "same" };
-        let typeStyles: Record<string, string> | undefined;
-        const txt = sectionStylesText[i]?.trim();
-        if (txt) { try { typeStyles = JSON.parse(txt); } catch { typeStyles = undefined; } }
         return {
           type: "api",
           name: s.name || "custom-api",
@@ -185,10 +182,18 @@ export function NoteForm({ initialNote, isNew = true, noteId }: NoteFormProps) {
           resultSection: (s.resultSection || "").trim(),
           authorization: s.authorization,
           languages: s.languages,
-          typeStyles,
+          typeStyles: s.typeStyles,
+          typeStyleOrder: s.typeStyleOrder,
+          discriminatorValues: s.discriminatorValues,
           discriminator: s.discriminator,
           fieldOrder: s.fieldOrder,
           fieldStyles: s.fieldStyles,
+          showDiscriminator: s.showDiscriminator,
+          allFields: (() => {
+            const pk = getApiResultKeys(previews[i]?.data, (s.resultSection || "").trim());
+            if (pk.length) return pk;
+            return Array.isArray(s.allFields) ? s.allFields : undefined;
+          })(),
         };
       });
       if (builtSections.length === 0) builtSections.push({ type: "manual", md: "" });
@@ -230,7 +235,7 @@ export function NoteForm({ initialNote, isNew = true, noteId }: NoteFormProps) {
     } finally {
       setSaving(false);
     }
-  }, [title, language, recurrentType, recurrentSchedule, periodicBehavior, tags, sections, sectionStylesText, isEdit, noteId, router]);
+  }, [title, language, recurrentType, recurrentSchedule, periodicBehavior, tags, sections, previews, isEdit, noteId, router]);
 
   if (notFoundFlag) notFound();
   if (isLoading) return <div className="p-6 max-w-2xl"><p className="text-sm text-neutral-500">Loading note…</p></div>;
@@ -371,16 +376,6 @@ export function NoteForm({ initialNote, isNew = true, noteId }: NoteFormProps) {
                       className="w-full px-3 py-2 border rounded-md text-sm"
                     />
                   </div>
-                  <div>
-                    <label className="block text-sm font-medium mb-1">Type → style map (JSON, optional)</label>
-                    <textarea
-                      value={sectionStylesText[index] || ""}
-                      onChange={(e) => updateStylesText(index, e.target.value)}
-                      rows={3}
-                      placeholder='{"title":"h2","heading":"h2","subtitle":"h3"}'
-                      className="w-full px-3 py-2 border rounded-md text-sm font-mono"
-                    />
-                  </div>
                   <button
                     type="button"
                     onClick={() => handlePreview(index)}
@@ -405,25 +400,33 @@ export function NoteForm({ initialNote, isNew = true, noteId }: NoteFormProps) {
                     </details>
                   )}
                   {(() => {
-                    const keys = getApiResultKeys(previews[index]?.data, section.resultSection);
+                    const previewKeys = getApiResultKeys(previews[index]?.data, section.resultSection);
+                    const keys = previewKeys.length
+                      ? previewKeys
+                      : (Array.isArray(section.allFields) && section.allFields.length
+                          ? section.allFields
+                          : (Array.isArray(section.fieldOrder) ? section.fieldOrder : []));
                     if (!keys.length) return null;
                     const order = Array.isArray(section.fieldOrder) && section.fieldOrder.length ? section.fieldOrder : keys;
                     const disc = section.discriminator || (keys.includes("type") ? "type" : keys[0]);
                     return (
                       <div className="mt-3 space-y-2">
                         <label className="block text-sm font-medium">Field mapping (order, discriminator, style)</label>
+                        <div className="flex items-center gap-2 mb-2">
+                          <label className="text-sm">Discriminator field</label>
+                          <select
+                            value={disc}
+                            onChange={(e) => updateSection(index, { discriminator: e.target.value })}
+                            className="px-2 py-1 border rounded text-sm"
+                          >
+                            <option value="none">none (no discriminator)</option>
+                            {keys.map((k) => <option key={k} value={k}>{k}</option>)}
+                          </select>
+                        </div>
+                        {disc === "none" && (
                         <div className="space-y-2">
                           {order.filter((k) => keys.includes(k)).concat(keys.filter((k) => !order.includes(k))).map((key, pos, arr) => (
                             <div key={key} className="flex items-center gap-2 text-xs border rounded p-2">
-                              <label className="flex items-center gap-1">
-                                <input
-                                  type="radio"
-                                  name={`disc-${index}`}
-                                  checked={disc === key}
-                                  onChange={() => updateSection(index, { discriminator: key })}
-                                />
-                                disc.
-                              </label>
                               <span className="font-mono min-w-24">{key}</span>
                               <select
                                 value={section.fieldStyles?.[key] || "plain"}
@@ -437,6 +440,7 @@ export function NoteForm({ initialNote, isNew = true, noteId }: NoteFormProps) {
                                 <option value="h3">h3</option>
                                 <option value="quote">quote</option>
                                 <option value="code">code</option>
+                                <option value="none">none (do not display)</option>
                               </select>
                               <button type="button" onClick={() => {
                                 const next = [...arr];
@@ -453,7 +457,8 @@ export function NoteForm({ initialNote, isNew = true, noteId }: NoteFormProps) {
                             </div>
                           ))}
                         </div>
-                        {!section.fieldOrder && (
+                        )}
+                        {!section.fieldOrder && disc === "none" && (
                           <button
                             type="button"
                             onClick={() => updateSection(index, { fieldOrder: keys, discriminator: keys.includes("type") ? "type" : keys[0] })}
@@ -462,6 +467,181 @@ export function NoteForm({ initialNote, isNew = true, noteId }: NoteFormProps) {
                             Initialize mapping from preview
                           </button>
                         )}
+
+                        {(() => {
+                          const disc = section.discriminator || (keys.includes("type") ? "type" : keys[0]);
+                          if (disc === "none") return null;
+                          const preview = previews[index]?.data;
+                          const source = preview ? getNestedValue(preview, section.resultSection) : null;
+                          const top = Array.isArray(source) ? source : source ? [source] : [];
+                          let previewObjs: any[] = [];
+                          for (const item of top) {
+                            if (!item || typeof item !== "object") continue;
+                            const listProp = Object.keys(item).find((k) => Array.isArray((item as any)[k]) && (item as any)[k].some((x: any) => x && typeof x === "object"));
+                            if (listProp) {
+                              for (const child of (item as any)[listProp]) if (child && typeof child === "object") previewObjs.push(child);
+                            } else {
+                              previewObjs.push(item);
+                            }
+                          }
+                          const previewValues = preview ? [...new Set(previewObjs.map((o) => o?.[disc]).filter((v) => v !== undefined && v !== null).map((v) => String(v)))] : [];
+                          const values = previewValues.length
+                            ? previewValues
+                            : (Array.isArray(section.typeStyleOrder) && section.typeStyleOrder.length
+                                ? section.typeStyleOrder
+                                : (Array.isArray(section.discriminatorValues) ? section.discriminatorValues : []));
+                          if (!values.length || disc === "none") return null;
+                          const order = Array.isArray(section.typeStyleOrder) && section.typeStyleOrder.length ? section.typeStyleOrder : values;
+                          const sortedValues = order.filter((v) => values.includes(v)).concat(values.filter((v) => !order.includes(v)));
+                          if (sortedValues.length <= 1) return null;
+                          return (
+                            <div className="mt-3 space-y-1">
+                              <label className="flex items-center gap-2 text-xs">
+                                <input
+                                  type="checkbox"
+                                  checked={section.showDiscriminator === true}
+                                  onChange={(e) => updateSection(index, { showDiscriminator: e.target.checked })}
+                                />
+                                Display discriminator field
+                              </label>
+                              <label className="block text-sm font-medium">Discriminator values (style and order)</label>
+                              <div className="flex flex-wrap gap-2 mb-2">
+                                {sortedValues.map((val, pos) => (
+                                  <div key={val} className="flex items-center gap-1">
+                                    <button
+                                      type="button"
+                                      onClick={() => {
+                                        const next = [...sortedValues];
+                                        if (pos <= 0) return;
+                                        [next[pos - 1], next[pos]] = [next[pos], next[pos - 1]];
+                                        updateSection(index, { typeStyleOrder: next });
+                                      }}
+                                      className="px-1 py-1 text-xs border rounded"
+                                    >←</button>
+                                    <button
+                                      type="button"
+                                      onClick={() => setActiveTypeTab((prev) => ({ ...prev, [index]: val }))}
+                                      className={`px-3 py-1.5 text-xs border rounded ${ (activeTypeTab[index] || sortedValues[0]) === val ? "bg-blue-600 text-white" : "bg-neutral-100 dark:bg-neutral-800" }`}
+                                    >
+                                      {val}
+                                    </button>
+                                    <button
+                                      type="button"
+                                      onClick={() => {
+                                        const next = [...sortedValues];
+                                        if (pos >= next.length - 1) return;
+                                        [next[pos + 1], next[pos]] = [next[pos], next[pos + 1]];
+                                        updateSection(index, { typeStyleOrder: next });
+                                      }}
+                                      className="px-1 py-1 text-xs border rounded"
+                                    >→</button>
+                                  </div>
+                                ))}
+                              </div>
+                              {(() => {
+                                const activeVal = activeTypeTab[index] || sortedValues[0];
+                                const cfg = section.typeConfigs?.[activeVal] || {};
+                                const previewData = previews[index]?.data;
+                                const previewSource = getNestedValue(previewData, section.resultSection);
+                                const previewTop = Array.isArray(previewSource) ? previewSource : previewSource ? [previewSource] : [];
+                                const previewObjs: any[] = [];
+                                for (const item of previewTop) {
+                                  if (!item || typeof item !== 'object') continue;
+                                  const listProp = Object.keys(item).find((k) => Array.isArray((item as any)[k]) && (item as any)[k].some((x: any) => x && typeof x === 'object'));
+                                  if (listProp) {
+                                    for (const child of (item as any)[listProp]) if (child && typeof child === 'object') previewObjs.push(child);
+                                  } else {
+                                    previewObjs.push(item);
+                                  }
+                                }
+                                const valueObjs = previewObjs.filter((o) => String(o?.[disc]) === String(activeVal));
+                                let valueKeys = [...new Set((valueObjs.length ? valueObjs : previewObjs).flatMap((o) => Object.keys(o || {})))]
+                                  .filter((k) => (valueObjs.length ? valueObjs : previewObjs).some((o) => o?.[k] !== null && o?.[k] !== undefined))
+                                  .filter((k) => k !== disc || section.showDiscriminator === true);
+                                if (!valueKeys.length && Array.isArray(section.allFields)) {
+                                  valueKeys = section.allFields.filter((k) => k !== disc || section.showDiscriminator === true);
+                                }
+                                if (!valueKeys.length && Array.isArray(section.fieldOrder)) {
+                                  valueKeys = section.fieldOrder.filter((k) => k !== disc || section.showDiscriminator === true);
+                                }
+                                const activeKeys = Array.isArray(cfg.fieldOrder) && cfg.fieldOrder.length ? cfg.fieldOrder : (Array.isArray(section.fieldOrder) && section.fieldOrder.length ? section.fieldOrder : valueKeys.length ? valueKeys : keys);
+                                return (
+                                  <div className="space-y-2">
+                                    <div className="flex items-center gap-2">
+                                      <span className="text-xs font-medium">{activeVal} style</span>
+                                      <select
+                                        value={section.typeStyles?.[activeVal] || "plain"}
+                                        onChange={(e) => updateSection(index, { typeStyles: { ...(section.typeStyles || {}), [activeVal]: e.target.value } })}
+                                        className="px-2 py-1 border rounded text-xs"
+                                      >
+                                        <option value="plain">plain</option>
+                                        <option value="bold">bold</option>
+                                        <option value="italic">italic</option>
+                                        <option value="h2">h2</option>
+                                        <option value="h3">h3</option>
+                                        <option value="quote">quote</option>
+                                        <option value="code">code</option>
+                                        <option value="none">none (do not display)</option>
+                                      </select>
+                                    </div>
+                                    <div className="space-y-1">
+                                      {activeKeys.filter((k) => valueKeys.includes(k)).concat(valueKeys.filter((k) => !activeKeys.includes(k))).map((key, pos, arr) => {
+                                        const fieldStyle = (cfg.fieldStyles as Record<string, string> | undefined)?.[key] || (section.fieldStyles || {})[key] || "plain";
+                                        return (
+                                          <div key={key} className="flex items-center gap-2 text-xs border rounded p-2">
+                                            <span className="font-mono min-w-24">{key}</span>
+                                            <select
+                                              value={fieldStyle}
+                                              onChange={(e) => {
+                                                const nextCfg = { ...(section.typeConfigs || {}) };
+                                                const current = (nextCfg[activeVal] as Record<string, unknown> | undefined) || {};
+                                                nextCfg[activeVal] = {
+                                                  ...current,
+                                                  fieldOrder: Array.isArray(current.fieldOrder) && (current.fieldOrder as string[]).length ? current.fieldOrder : activeKeys,
+                                                  fieldStyles: { ...((current.fieldStyles as Record<string, string> | undefined) || {}), [key]: e.target.value },
+                                                };
+                                                updateSection(index, { typeConfigs: nextCfg });
+                                              }}
+                                              className="px-2 py-1 border rounded"
+                                            >
+                                              <option value="plain">plain</option>
+                                              <option value="bold">bold</option>
+                                              <option value="italic">italic</option>
+                                              <option value="h2">h2</option>
+                                              <option value="h3">h3</option>
+                                              <option value="quote">quote</option>
+                                              <option value="code">code</option>
+                                              <option value="none">none (do not display)</option>
+                                            </select>
+                                            <button type="button" onClick={() => {
+                                              const next = [...arr];
+                                              if (pos <= 0) return;
+                                              [next[pos - 1], next[pos]] = [next[pos], next[pos - 1]];
+                                              const nextCfg = { ...(section.typeConfigs || {}) };
+                                              const current = (nextCfg[activeVal] as Record<string, unknown> | undefined) || {};
+                                              nextCfg[activeVal] = { ...current, fieldOrder: next };
+                                              updateSection(index, { typeConfigs: nextCfg });
+                                            }} className="px-2 py-1 border rounded">↑</button>
+                                            <button type="button" onClick={() => {
+                                              const next = [...arr];
+                                              if (pos >= next.length - 1) return;
+                                              [next[pos + 1], next[pos]] = [next[pos], next[pos + 1]];
+                                              const nextCfg = { ...(section.typeConfigs || {}) };
+                                              const current = (nextCfg[activeVal] as Record<string, unknown> | undefined) || {};
+                                              nextCfg[activeVal] = { ...current, fieldOrder: next };
+                                              updateSection(index, { typeConfigs: nextCfg });
+                                            }} className="px-2 py-1 border rounded">↓</button>
+                                          </div>
+                                        );
+                                      })}
+                                    </div>
+                                  </div>
+                                );
+                              })()}
+
+                            </div>
+                          );
+                        })()}
                       </div>
                     );
                   })()}

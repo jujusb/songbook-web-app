@@ -9,9 +9,14 @@ export type NotePeriodicBehavior = 'same' | 'different_per_period';
 export interface NoteSection {
   type: 'manual' | 'api';
   typeStyles?: Record<string, string>;
+  typeStyleOrder?: string[];
+  typeConfigs?: Record<string, { fieldOrder?: string[]; fieldStyles?: Record<string, string>; showDiscriminator?: boolean; typeStyles?: Record<string, string> }>;
   discriminator?: string;
   fieldOrder?: string[];
   fieldStyles?: Record<string, string>;
+  allFields?: string[];
+  discriminatorValues?: string[];
+  showDiscriminator?: boolean;
   md?: string;
   name?: string;
   api_url?: string;
@@ -351,22 +356,64 @@ export const interpolateNoteUrl = interpolateApiUrl;
 
 export function getNestedValue(data: unknown, path?: string): unknown {
   if (!path || path.trim() === '') return data;
-  const normalized = path.trim().replace(/\[\]/g, '').replace(/\[(\d+)\]/g, '.$1');
-  const parts = normalized.split('.').filter(Boolean);
-  let current: unknown = data;
-  for (const part of parts) {
-    if (current === null || current === undefined) return undefined;
-    if (Array.isArray(current)) {
-      const index = Number(part);
-      if (!Number.isNaN(index)) current = current[index];
-      else current = (current as unknown as Record<string, unknown>)[part];
-    } else if (typeof current === 'object') {
-      current = (current as Record<string, unknown>)[part];
-    } else {
-      return undefined;
+  const cleaned = path.trim().replace(/\[\]/g, '[]'); // normalize
+  // Tokenize, preserving [] and [..] blocks.
+  const tokens = cleaned.match(/\[\]|\[[^\]]*\]|[^.\[\]]+/g) || [];
+  function walk(current: unknown, rest: string[]): unknown[] {
+    if (rest.length === 0) return [current];
+    const token = rest[0];
+    const tail = rest.slice(1);
+    if (token === '[]') {
+      if (Array.isArray(current)) return current.flatMap((item) => walk(item, tail));
+      return [];
     }
+    const bracket = token.match(/^\[(.*)\]$/);
+    if (bracket) {
+      const inner = bracket[1].trim();
+      if (/^-?\d+$/.test(inner)) {
+        if (Array.isArray(current)) {
+          const v = current[Number(inner)];
+          if (v === undefined) return [];
+          return walk(v, tail);
+        }
+        return [];
+      }
+      const eq = inner.match(/^([^=]+)=(.+)$/);
+      if (eq) {
+        if (Array.isArray(current)) {
+          const key = eq[1].trim();
+          const value = eq[2].trim().replace(/^['"]|['"]$/g, '');
+          const filtered = current.filter((item) => {
+            if (!item || typeof item !== 'object') return false;
+            return String((item as Record<string, unknown>)[key]) === value;
+          });
+          if (tail.length === 0) return filtered;
+          return filtered.flatMap((item) => walk(item, tail));
+        }
+        return [];
+      }
+      if (current && typeof current === 'object') {
+        return walk((current as Record<string, unknown>)[inner], tail);
+      }
+      return [];
+    }
+    if (Array.isArray(current)) {
+      return current.flatMap((item) => {
+        if (item && typeof item === 'object') {
+          return walk((item as Record<string, unknown>)[token], tail);
+        }
+        return [];
+      });
+    }
+    if (current && typeof current === 'object') {
+      return walk((current as Record<string, unknown>)[token], tail);
+    }
+    return [];
   }
-  return current;
+  const values = walk(data, tokens);
+  if (values.length === 0) return undefined;
+  if (values.length === 1) return values[0];
+  return values;
 }
 
 export const getJsonPath = getNestedValue;
@@ -402,6 +449,7 @@ export const STYLE_MAP: Record<string, (text: string) => string> = {
 
 function applyStyle(text: string, style?: string): string {
   if (!style) return text;
+  if (style.toLowerCase() === 'none' || style.toLowerCase() === 'hidden' || style.toLowerCase() === 'skip') return '';
   const fn = STYLE_MAP[style.toLowerCase()];
   return fn ? fn(text) : text;
 }
@@ -428,7 +476,7 @@ export function getApiResultKeys(data: unknown, resultSection?: string): string[
   const target = getNestedValue(data, resultSection);
   const collect = (obj: unknown): string[] => {
     if (obj && typeof obj === 'object' && !Array.isArray(obj)) {
-      return Object.keys(obj as Record<string, unknown>);
+      return Object.keys(obj as Record<string, unknown>).filter((k) => (obj as Record<string, unknown>)[k] !== null && (obj as Record<string, unknown>)[k] !== undefined);
     }
     return [];
   };
@@ -440,7 +488,33 @@ export function getApiResultKeys(data: unknown, resultSection?: string): string[
   return collect(target);
 }
 
-export function extractApiSectionText(section: Partial<NoteSection>, data: unknown): string {
+export function extractApiSectionText(rawSection: Partial<NoteSection>, data: unknown): string {
+  const discKey = String((rawSection as Record<string, unknown>).discriminator || (rawSection as Record<string, unknown>).typeField || 'type');
+  const rawDiscValue =
+    data && typeof data === 'object' && !Array.isArray(data)
+      ? (data as Record<string, unknown>)[discKey]
+      : undefined;
+  const typeConfigs = (rawSection as Record<string, unknown>).typeConfigs as Record<string, unknown> | undefined;
+  const cfg =
+    rawDiscValue != null && typeConfigs && typeConfigs[String(rawDiscValue)]
+      ? (typeConfigs[String(rawDiscValue)] as Record<string, unknown>)
+      : {};
+  const section: Partial<NoteSection> = {
+    ...rawSection,
+    discriminator: discKey,
+    fieldOrder: (cfg as Record<string, unknown>).fieldOrder as string[] | undefined || (rawSection as Record<string, unknown>).fieldOrder as string[] | undefined,
+    fieldStyles: {
+      ...((rawSection as Record<string, unknown>).fieldStyles as Record<string, string> | undefined || {}),
+      ...((cfg as Record<string, unknown>).fieldStyles as Record<string, string> | undefined || {}),
+    },
+    showDiscriminator:
+      (cfg as Record<string, unknown>).showDiscriminator as boolean | undefined ??
+      (rawSection as Record<string, unknown>).showDiscriminator as boolean | undefined,
+    typeStyles: {
+      ...((rawSection as Record<string, unknown>).typeStyles as Record<string, string> | undefined || {}),
+      ...((cfg as Record<string, unknown>).typeStyles as Record<string, string> | undefined || {}),
+    },
+  };
   const resultSection =
     (section as Record<string, unknown>).resultSection || (section as Record<string, unknown>).resultPath || (section as Record<string, unknown>).result_path;
   const source = getNestedValue(data, resultSection as string | undefined);
@@ -493,7 +567,19 @@ export function extractApiSectionText(section: Partial<NoteSection>, data: unkno
   // using its `type` field to decide how the content is displayed.
   if (Array.isArray(target)) {
     const { resultSection: _a, resultPath: _b, result_path: _c, ...rest } = section as Record<string, unknown>;
-    return target
+    const discriminator = String((section as Record<string, unknown>).discriminator || (section as Record<string, unknown>).typeField || 'type');
+    const order = (section as Record<string, unknown>).typeStyleOrder;
+    let sortedTarget = target;
+    if (Array.isArray(order) && order.length && target.every((x) => x && typeof x === 'object')) {
+      sortedTarget = [...target].sort((a, b) => {
+        const av = String((a as Record<string, unknown>)[discriminator] ?? '');
+        const bv = String((b as Record<string, unknown>)[discriminator] ?? '');
+        const ai = order.indexOf(av);
+        const bi = order.indexOf(bv);
+        return (ai === -1 ? 999 : ai) - (bi === -1 ? 999 : bi);
+      });
+    }
+    return sortedTarget
       .map((item) => extractApiSectionText(rest as Partial<NoteSection>, item))
       .filter(Boolean)
       .join('\n');
@@ -521,7 +607,7 @@ export function extractApiSectionText(section: Partial<NoteSection>, data: unkno
       typeof elementType === 'string'
         ? (typeStyles as Record<string, string>)[String(elementType).toLowerCase()] || TYPE_STYLE_MAP[String(elementType).toLowerCase()]
         : undefined;
-    const keys = Object.keys(target as Record<string, unknown>).filter((k) => k !== discriminator);
+    const keys = Object.keys(target as Record<string, unknown>).filter((k) => k !== discriminator || (section as Record<string, unknown>).showDiscriminator === true);
     const order = Array.isArray(fieldOrder) && (fieldOrder as unknown[]).length > 0 ? (fieldOrder as string[]) : keys;
     const resolvedKeys = order.filter((k) => keys.includes(k)).concat(keys.filter((k) => !order.includes(k)));
     fieldList = resolvedKeys.map((k) => ({
