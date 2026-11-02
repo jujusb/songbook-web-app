@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from 'react';
-import { notesApi, NoteMetadata, NoteContent } from '@/lib/notes';
+import { notesApi, normalizeNote, NoteMetadata } from '@/lib/notes';
 
 interface NotesEditorProps {
   noteId?: string;
@@ -31,32 +31,15 @@ export const NotesEditor: React.FC<NotesEditorProps> = ({
     created: new Date().toISOString(),
   });
 
-  // Load note if noteId is provided
+  // Load the stored note when noteId is provided
   useEffect(() => {
-    if (noteId) {
-      setNote({
-        id: noteId,
-        title: 'Gospel for Sunday',
-        language: 'en',
-        recurrent_type: 'weekly',
-        recurrent_schedule: 'sunday',
-        periodic_behavior: 'same',
-        api_source: 'api',
-        api_sources: [
-          {
-            name: 'gospel-api',
-            api_url: 'https://liturgical-api.example.com/gospel?lang=${LANG}',
-            resultSection: 'text',
-          }
-        ],
-        last_fetched: new Date().toISOString(),
-        last_edited: new Date().toISOString(),
-        tags: ['gospel', 'lectionary'],
-        sections: [{ type: 'api', name: 'gospel-api', api_url: 'https://liturgical-api.example.com/gospel?lang=${LANG}', resultSection: 'text' }],
-        content: [{ type: 'api', name: 'gospel-api', api_url: 'https://liturgical-api.example.com/gospel?lang=${LANG}', resultSection: 'text' }],
-        created: new Date().toISOString(),
-      });
-    }
+    if (!noteId) return;
+    let cancelled = false;
+    notesApi.fetchNote(noteId).then((n) => {
+      if (cancelled || !n) return;
+      setNote(normalizeNote(n));
+    });
+    return () => { cancelled = true; };
   }, [noteId]);
 
   const handleSave = () => {
@@ -200,15 +183,15 @@ export const NotesEditor: React.FC<NotesEditorProps> = ({
           <textarea
             className="w-full p-2 border rounded focus:ring-2 focus-blue-500 resize-h"
             rows={10}
-            value={note.content.length > 0 ? note.content[0]?.md || '' : ''}
+            value={(note.content ?? []).length > 0 ? note.content?.[0]?.md || '' : ''}
             onChange={(e) => setNote({
               ...note,
-              content: note.content.map(c => c.type === 'manual' ? { type: 'manual', md: e.target.value } : c)
+              content: (note.content ?? []).map(c => c.type === 'manual' ? { type: 'manual', md: e.target.value } : c)
             })}
             disabled={note.api_source === 'api'}
             
           >
-            {note.content.length > 0 ? note.content[0]?.md || '' : ''}
+            {(note.content ?? []).length > 0 ? note.content?.[0]?.md || '' : ''}
           </textarea>
         </div>
       </div>

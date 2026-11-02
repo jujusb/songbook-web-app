@@ -425,3 +425,9 @@ Implementation avoids hard-coded mass/lecture terms and instead detects any arra
 - Files live under `DATA_DIR/content/notes/<note-id>/`:
   - `config.yaml` contains the note metadata and sections.
   - `<YYYY-MM-DD>/note.md` contains the saved note body.
+
+## Addendum — Final saved schema for API sections
+- persisted `config.yaml` now stores `sections` only, without a duplicated `content` alias
+- `discriminator: "none"` sections use `fields: [{ name, style }]`
+- discriminated sections use `discriminatorValues: [{ name, style, fieldsOrdered: [{ name, style }] }]`
+- field/style mappings are preserved through load, save, preview, and edit

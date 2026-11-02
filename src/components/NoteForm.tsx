@@ -47,6 +47,34 @@ interface NoteFormProps {
   noteId?: string;
 }
 
+/**
+ * Rebuild the editor-only state of an API section from the persisted config
+ * (discriminatorValues[].fieldsOrdered / fields), so the field mapping UI is
+ * populated on edit even before a preview is fetched.
+ */
+function hydrateSection(sec: NoteSection): NoteSection {
+  if (sec.type !== "api") return sec;
+  const dvs = (sec.discriminatorValues || []) as any[];
+  const dvFieldNames = Array.from(new Set(dvs.flatMap((dv) => (dv.fieldsOrdered || dv.fields || []).map((f: any) => f.name as string))));
+  const savedFieldNames = (sec.fields || []).map((f) => f.name);
+  const fieldNames = dvFieldNames.length ? dvFieldNames : savedFieldNames;
+  return {
+    ...sec,
+    typeStyles: sec.typeStyles || (dvs.length ? Object.fromEntries(dvs.map((dv) => [dv.name, dv.style || "plain"])) : undefined),
+    typeConfigs: sec.typeConfigs || (dvs.length
+      ? Object.fromEntries(dvs.map((dv) => [dv.name, {
+          fieldOrder: (dv.fieldsOrdered || []).map((f: any) => f.name),
+          fieldStyles: Object.fromEntries((dv.fieldsOrdered || []).map((f: any) => [f.name, f.style || "plain"])),
+          showDiscriminator: sec.showDiscriminator,
+        }]))
+      : undefined),
+    allFields: sec.allFields?.length ? sec.allFields : (fieldNames.length ? fieldNames : undefined),
+    fieldOrder: sec.fieldOrder?.length ? sec.fieldOrder : (fieldNames.length ? fieldNames : undefined),
+    fieldStyles: sec.fieldStyles || (sec.fields ? Object.fromEntries(sec.fields.map((f: any) => [f.name, f.style || "plain"])) : undefined),
+    rawDiscriminatorValues: sec.rawDiscriminatorValues?.length ? sec.rawDiscriminatorValues : dvs.map((dv) => dv.name as string),
+  } as NoteSection;
+}
+
 function emptySection(type: "manual" | "api"): NoteSection {
   if (type === "manual") return { type: "manual", md: "" };
   return { type: "api", name: "custom-api", api_url: "", resultSection: "", authorization: "", typeStyles: undefined };
@@ -73,11 +101,7 @@ export function NoteForm({ initialNote, isNew = true, noteId }: NoteFormProps) {
   );
   const [exampleDate, setExampleDate] = useState(new Date().toISOString().slice(0, 10));
   const [sections, setSections] = useState<NoteSection[]>(
-    initialNote?.sections?.length
-      ? initialNote.sections
-      : initialNote?.content?.length
-        ? initialNote.content
-        : [{ type: "manual", md: "" } as NoteSection]
+    (initialNote?.sections?.length ? initialNote.sections : initialNote?.content?.length ? initialNote.content : [{ type: "manual", md: "" } as NoteSection]).map(hydrateSection)
   );
   const [previews, setPreviews] = useState<Record<number, SectionPreview>>({});
   const [activeTypeTab, setActiveTypeTab] = useState<Record<number, string>>({});
@@ -95,7 +119,7 @@ export function NoteForm({ initialNote, isNew = true, noteId }: NoteFormProps) {
         setPublishMode(n.published ? "all" : (n.publishedDates && n.publishedDates.length ? "dates" : "private"));
         setPublishedDates(n.publishedDates ? n.publishedDates.join(", ") : "");
         const secs = n.sections?.length ? n.sections : n.content?.length ? n.content : [{ type: "manual", md: "" } as NoteSection];
-        setSections(secs);
+        setSections(secs.map(hydrateSection));
         setIsLoading(false);
       });
     }
@@ -166,8 +190,8 @@ export function NoteForm({ initialNote, isNew = true, noteId }: NoteFormProps) {
       updateSection(index, {
         allFields,
         rawDiscriminatorValues: rawVals,
-        typeStyleOrder: Array.isArray(section.typeStyleOrder) && section.typeStyleOrder.length ? section.typeStyleOrder : vals,
-        discriminatorValues: vals,
+        typeStyles: { ...(section.typeStyles || {}), ...Object.fromEntries(vals.map((v) => [v, section.typeStyles?.[v] || "plain"])) },
+        discriminatorValues: vals.map((v) => ({ name: v, style: section.typeStyles?.[v] || "plain" })),
       });
       setPreviews((p) => ({ ...p, [index]: { loading: false, error: null, data, extracted } }));
     } catch (err) {
@@ -185,6 +209,36 @@ export function NoteForm({ initialNote, isNew = true, noteId }: NoteFormProps) {
     try {
       const builtSections: NoteSection[] = sections.map((s, i) => {
         if (s.type === "manual") return { type: "manual", md: s.md || "", periodic_behavior: s.periodic_behavior || "same" };
+        const disc = s.discriminator || (Array.isArray(s.allFields) && s.allFields.includes("type") ? "type" : (s.allFields?.[0] || "type"));
+        const keys = Array.isArray(s.fieldOrder) && s.fieldOrder.length
+          ? s.fieldOrder
+          : (Array.isArray(s.allFields) ? s.allFields : []);
+        if (disc === "none") {
+          return {
+            type: "api",
+            name: s.name || "custom-api",
+            api_url: (s.api_url || "").trim(),
+            resultSection: (s.resultSection || "").trim(),
+            authorization: s.authorization,
+            languages: s.languages,
+            discriminator: "none",
+            showDiscriminator: s.showDiscriminator,
+            fields: keys.map((k) => ({ name: k, style: s.fieldStyles?.[k] || "plain" })),
+          };
+        }
+        const baseValues = Array.from(new Set(Object.keys(s.typeStyles || {})));
+        const discriminatorValues = baseValues.map((base) => {
+          const cfg = s.typeConfigs?.[base] || {};
+          const cfgKeys = Array.isArray(cfg.fieldOrder) && cfg.fieldOrder.length ? cfg.fieldOrder : keys;
+          return {
+            name: base,
+            style: s.typeStyles?.[base] || "plain",
+            fieldsOrdered: cfgKeys.map((k) => ({
+              name: k,
+              style: cfg.fieldStyles?.[k] || s.fieldStyles?.[k] || "plain",
+            })),
+          };
+        });
         return {
           type: "api",
           name: s.name || "custom-api",
@@ -192,19 +246,9 @@ export function NoteForm({ initialNote, isNew = true, noteId }: NoteFormProps) {
           resultSection: (s.resultSection || "").trim(),
           authorization: s.authorization,
           languages: s.languages,
-          typeStyles: s.typeStyles,
-          typeVisibility: s.typeVisibility,
-          typeStyleOrder: s.typeStyleOrder,
-          discriminatorValues: s.discriminatorValues,
-          discriminator: s.discriminator,
-          fieldOrder: s.fieldOrder,
-          fieldStyles: s.fieldStyles,
+          discriminator: disc,
           showDiscriminator: s.showDiscriminator,
-          allFields: (() => {
-            const pk = getApiResultKeys(previews[i]?.data, (s.resultSection || "").trim());
-            if (pk.length) return pk;
-            return Array.isArray(s.allFields) ? s.allFields : undefined;
-          })(),
+          discriminatorValues,
         };
       });
       if (builtSections.length === 0) builtSections.push({ type: "manual", md: "" });
@@ -234,7 +278,6 @@ export function NoteForm({ initialNote, isNew = true, noteId }: NoteFormProps) {
           ? publishedDates.split(",").map((d) => d.trim()).filter(Boolean)
           : [],
         sections: builtSections,
-        content: builtSections,
         created: isEdit ? "" : new Date().toISOString(),
       };
       if (isEdit) {
@@ -516,11 +559,9 @@ export function NoteForm({ initialNote, isNew = true, noteId }: NoteFormProps) {
                           const previewValues = preview ? [...new Set(previewObjs.map((o) => String(o?.[disc] ?? "").replace(/_\d+$/, "")).filter((v) => v !== ""))] : [];
                           const values = previewValues.length
                             ? previewValues
-                            : (Array.isArray(section.typeStyleOrder) && section.typeStyleOrder.length
-                                ? section.typeStyleOrder
-                                : (Array.isArray(section.discriminatorValues) ? section.discriminatorValues : []));
+                            : (Array.isArray(section.discriminatorValues) ? section.discriminatorValues.map((v: any) => typeof v === "string" ? v : v.name) : []);
                           if (!values.length || disc === "none") return null;
-                          const order = Array.isArray(section.typeStyleOrder) && section.typeStyleOrder.length ? section.typeStyleOrder : values;
+                          const order = values;
                           const sortedValues = order.filter((v) => values.includes(v)).concat(values.filter((v) => !order.includes(v)));
                           if (sortedValues.length <= 1) return null;
                           const rawSummaryValues = previewObjs.length

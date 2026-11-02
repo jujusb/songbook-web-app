@@ -6,20 +6,32 @@
 // Note structure and types
 export type NotePeriodicBehavior = 'same' | 'different_per_period';
 
+export interface NoteOrderedField {
+  name: string;
+  style?: string;
+}
+
+export interface NoteDiscriminatorValue {
+  name: string;
+  style?: string;
+  fieldsOrdered?: NoteOrderedField[];
+  fields?: NoteOrderedField[];
+}
+
 export interface NoteSection {
   type: 'manual' | 'api';
   typeStyles?: Record<string, string>;
-  typeStyleOrder?: string[];
   typeVisibility?: Record<string, boolean>;
   typeConfigs?: Record<string, { fieldOrder?: string[]; fieldStyles?: Record<string, string>; showDiscriminator?: boolean; typeStyles?: Record<string, string> }>;
   discriminator?: string;
   fieldOrder?: string[];
   fieldStyles?: Record<string, string>;
   allFields?: string[];
-  discriminatorValues?: string[];
+  discriminatorValues?: NoteDiscriminatorValue[];
   rawDiscriminatorValues?: string[];
   showDiscriminator?: boolean;
   md?: string;
+  fields?: NoteOrderedField[];
   name?: string;
   api_url?: string;
   resultSection?: string;
@@ -49,8 +61,8 @@ export interface NoteMetadata {
   // A note is an ordered list of sections; each section is either manual
   // text or a call to an external API.
   sections: NoteSection[];
-  // Alias kept for backwards compatibility.
-  content: NoteSection[];
+  // Alias kept for backwards compatibility (not persisted).
+  content?: NoteSection[];
   // Legacy aggregate fields, derived from `sections`.
   api_source: 'manual' | 'api' | 'custom';
   api_sources: NoteApiSource[];
@@ -142,6 +154,33 @@ function deriveApiSource(sections: NoteSection[], fallback?: NoteMetadata['api_s
   return fallback || 'manual';
 }
 
+function migrateSection(sec: any): NoteSection {
+  const s = { ...sec } as NoteSection;
+  if (s.type === 'api') {
+    if (!Array.isArray(s.fields) && s.discriminator === 'none' && Array.isArray(s.fieldOrder)) {
+      s.fields = s.fieldOrder.map((k) => ({ name: k, style: s.fieldStyles?.[k] || 'plain' }));
+    }
+    if (!Array.isArray(s.discriminatorValues) && s.discriminator && s.discriminator !== 'none') {
+      const types = (s.typeStyles || {}) as Record<string, string>;
+      const configs = (s.typeConfigs || {}) as Record<string, any>;
+      const keys = s.typeStyles ? Object.keys(s.typeStyles) : [];
+      const fromConfigs = Object.keys(configs);
+      const bases = fromConfigs.length ? fromConfigs : keys;
+      if (!bases.length && Array.isArray(s.fieldOrder)) bases.push('type');
+      s.discriminatorValues = bases.map((base) => {
+        const cfg = configs[base] || {};
+        const order = Array.isArray(cfg.fieldOrder) ? cfg.fieldOrder : s.fieldOrder || [];
+        return {
+          name: base,
+          style: s.typeStyles?.[base] || 'plain',
+          fieldsOrdered: order.map((k: string) => ({ name: k, style: cfg.fieldStyles?.[k] || s.fieldStyles?.[k] || 'plain' })),
+        };
+      });
+    }
+  }
+  return s;
+}
+
 function normalizeSections(note: Partial<NoteMetadata>): NoteSection[] {
   let sections: NoteSection[] | null = null;
   if (Array.isArray(note.sections)) sections = note.sections as NoteSection[];
@@ -159,7 +198,7 @@ function normalizeSections(note: Partial<NoteMetadata>): NoteSection[] {
       }));
     }
   }
-  return (sections ?? []).map((s) => ({ ...s }));
+  return (sections ?? []).map((s) => migrateSection(s));
 }
 
 export function normalizeNote(note: Partial<NoteMetadata>): NoteMetadata {
@@ -177,7 +216,6 @@ export function normalizeNote(note: Partial<NoteMetadata>): NoteMetadata {
     recurrent_schedule: (note.recurrent_schedule as string) || 'sunday',
     periodic_behavior: (note.periodic_behavior as NoteMetadata['periodic_behavior']) || 'same',
     sections,
-    content: sections,
     api_source: apiSource,
     api_sources: apiSources,
     last_fetched: note.last_fetched as string | undefined,
@@ -239,7 +277,7 @@ export const notesApi = {
           title: note.title,
           language: note.language,
           recurrentType: note.recurrent_type,
-          snippet: note.content.length > 0 ? note.content[0].md || note.title.substring(0, 100) : '',
+          snippet: (note.sections || note.content || []).length > 0 ? ((note.sections || note.content || [])[0].md || note.title.substring(0, 100)) : '',
           highlightTerms: [query],
         });
       }
@@ -458,8 +496,39 @@ function normalizeDiscriminatorValue(value: unknown): string {
   return raw.replace(/_\d+$/, '');
 }
 
-export function extractApiSectionText(rawSection: Partial<NoteSection>, data: unknown): string {
-  const discKey = String((rawSection as Record<string, unknown>).discriminator || (rawSection as Record<string, unknown>).typeField || 'type');
+export function extractApiSectionText(rawSection0: Partial<NoteSection>, data: unknown): string {
+  // Use the saved shape directly (fields / discriminatorValues) while keeping
+  // backward compatibility with legacy structures.
+  const working: Record<string, unknown> = { ...rawSection0 };
+  const reqFields = (rawSection0 as Record<string, unknown>).fields;
+  const reqDvs = (rawSection0 as Record<string, unknown>).discriminatorValues;
+  if (Array.isArray(reqFields)) {
+    working.fieldOrder = (working.fieldOrder as string[] | undefined) || reqFields.map((f: any) => f.name);
+    working.fieldStyles = working.fieldStyles || Object.fromEntries(reqFields.map((f: any) => [f.name, f.style || 'plain']));
+    working.allFields = working.allFields || (working.fieldOrder as string[]);
+  }
+  if (Array.isArray(reqDvs)) {
+    const types: Record<string, string> = (working.typeStyles as Record<string, string>) || {};
+    const configs: Record<string, any> = (working.typeConfigs as Record<string, any>) || {};
+    for (const dv of reqDvs as any[]) {
+      types[dv.name] = dv.style || types[dv.name] || 'plain';
+      configs[dv.name] = {
+        fieldOrder: dv.fieldsOrdered ? dv.fieldsOrdered.map((f: any) => f.name) : [],
+        fieldStyles: Object.fromEntries((dv.fieldsOrdered || dv.fields || []).map((f: any) => [f.name, f.style || 'plain'])),
+        showDiscriminator: working.showDiscriminator,
+      };
+    }
+    working.typeStyles = types;
+    working.typeConfigs = configs;
+    if (!working.discriminatorValues) working.discriminatorValues = reqDvs;
+  }
+  const rawSection2: Partial<NoteSection> = working as Partial<NoteSection>;  
+
+  // use rawSection2 from here
+  const discKey = String((rawSection2 as Record<string, unknown>).discriminator || (rawSection2 as Record<string, unknown>).typeField || 'type');
+  const rawSection = rawSection2;
+  const rawSectionTmp = rawSection;
+
   const rawDiscValue =
     data && typeof data === 'object' && !Array.isArray(data)
       ? (data as Record<string, unknown>)[discKey]
@@ -532,6 +601,15 @@ export function extractApiSectionText(rawSection: Partial<NoteSection>, data: un
   const template = (section as Record<string, unknown>).displayTemplate || (section as Record<string, unknown>).template || (section as Record<string, unknown>).display;
 
   // If a display template is provided, render placeholders.
+  const normalizedDisc = String((section as any).discriminator || 'none');
+  if (normalizedDisc !== 'none' && data && typeof data === 'object' && !Array.isArray(data)) {
+    const rawType = (data as Record<string, unknown>)[normalizedDisc];
+    const normalizedType = normalizeDiscriminatorValue(rawType);
+    const dv = ((section as Record<string, unknown>).discriminatorValues as Array<any> | undefined)?.find((d) => normalizeDiscriminatorValue(d.name) === normalizedType);
+    const tv = (section as Record<string, unknown>).typeVisibility as Record<string, boolean> | undefined;
+    if (dv && (tv?.[normalizedType] === false || String(dv.style || '').toLowerCase() === 'none')) return '';
+  }
+
   const target = source === undefined ? data : source;
 
   // Arrays (e.g. messes.lectures or messes.lectures[]): render each element,
@@ -576,25 +654,42 @@ export function extractApiSectionText(rawSection: Partial<NoteSection>, data: un
   } else if (target && typeof target === 'object' && !Array.isArray(target)) {
     const elementType = (target as Record<string, unknown>)[discriminator];
     const normalizedElementType = normalizeDiscriminatorValue(elementType);
+    const dv = normalizedDisc !== 'none'
+      ? (((section as Record<string, unknown>).discriminatorValues as any[]) || []).find((d) => normalizeDiscriminatorValue(d.name) === normalizedElementType)
+      : undefined;
     const typeStyle =
-      typeof elementType === 'string'
+      dv && typeof dv.style === 'string' ? dv.style
+      : typeof elementType === 'string'
         ? (typeStyles as Record<string, string>)[normalizedElementType.toLowerCase()] ||
           (typeStyles as Record<string, string>)[String(elementType).toLowerCase()] ||
           TYPE_STYLE_MAP[normalizedElementType.toLowerCase()] ||
           TYPE_STYLE_MAP[String(elementType).toLowerCase()]
         : undefined;
-    const keys = Object.keys(target as Record<string, unknown>).filter((k) => k !== discriminator || (section as Record<string, unknown>).showDiscriminator === true);
-    const order = Array.isArray(fieldOrder) && (fieldOrder as unknown[]).length > 0 ? (fieldOrder as string[]) : keys;
-    const resolvedKeys = order.filter((k) => keys.includes(k)).concat(keys.filter((k) => !order.includes(k)));
-    fieldList = resolvedKeys.map((k) => ({
-      key: k,
-      style:
-        typeof fieldStyles === 'object' && (fieldStyles as Record<string, unknown>)[k]
-          ? String((fieldStyles as Record<string, unknown>)[k])
-          : typeof styles === 'object' && (styles as Record<string, unknown>)[k]
-            ? String((styles as Record<string, unknown>)[k])
-            : typeStyle,
-    }));
+    const keys = Object.keys(target as Record<string, unknown>).filter((k) => (section as Record<string, unknown>).showDiscriminator === true || (normalizedDisc === 'none' ? true : k !== discriminator));
+    // If requested fields (none case) or per-discriminator fieldsOrdered exist, prefer them.
+    let ordered: string[] = keys;
+    if (normalizedDisc === 'none') {
+      const reqFields = (section as Record<string, unknown>).fields as any[] | undefined;
+      if (Array.isArray(reqFields) && reqFields.length) {
+        ordered = reqFields.map((f) => f.name).filter((k) => keys.includes(k)).concat(keys.filter((k) => !reqFields.map((f: any) => f.name).includes(k)));
+      }
+    } else if (dv && Array.isArray(dv.fieldsOrdered) && dv.fieldsOrdered.length) {
+      ordered = dv.fieldsOrdered.map((f: any) => f.name).filter((k: string) => keys.includes(k)).concat(keys.filter((k: string) => !dv.fieldsOrdered.map((f: any) => f.name).includes(k)));
+    } else if (Array.isArray(fieldOrder) && (fieldOrder as unknown[]).length > 0) {
+      ordered = (fieldOrder as string[]).filter((k) => keys.includes(k)).concat(keys.filter((k) => !(fieldOrder as string[]).includes(k)));
+    }
+    fieldList = ordered.map((k) => {
+      const reqStyle =
+        normalizedDisc === 'none'
+          ? ((section as Record<string, unknown>).fields as any[] | undefined)?.find((f) => f.name === k)?.style
+          : dv?.fieldsOrdered?.find((f: any) => f.name === k)?.style;
+      const style =
+        reqStyle ||
+        (typeof fieldStyles === 'object' && (fieldStyles as Record<string, unknown>)[k] ? String((fieldStyles as Record<string, unknown>)[k]) : undefined) ||
+        (typeof styles === 'object' && (styles as Record<string, unknown>)[k] ? String((styles as Record<string, unknown>)[k]) : undefined) ||
+        typeStyle;
+      return { key: k, style };
+    });
   } else {
     fieldList = [];
   }

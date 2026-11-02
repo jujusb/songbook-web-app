@@ -16,7 +16,7 @@ interface Note {
   last_edited?: string;
   created: string;
   tags: string[];
-  content: Array<{ type: string; md?: string }>;
+  content?: Array<{ type: string; md?: string }>;
 }
 
 export const NotesList: React.FC = () => {
