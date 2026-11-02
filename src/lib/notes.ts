@@ -435,7 +435,13 @@ export function getApiResultKeys(data: unknown, resultSection?: string): string[
   const target = getNestedValue(data, resultSection);
   const collect = (obj: unknown): string[] => {
     if (obj && typeof obj === 'object' && !Array.isArray(obj)) {
-      return Object.keys(obj as Record<string, unknown>).filter((k) => (obj as Record<string, unknown>)[k] !== null && (obj as Record<string, unknown>)[k] !== undefined);
+      return Object.keys(obj as Record<string, unknown>).filter((k) => {
+        const v = (obj as Record<string, unknown>)[k];
+        if (v === null || v === undefined) return false;
+        if (v === '') return false;
+        if (Array.isArray(v) && v.length === 0) return false;
+        return true;
+      });
     }
     return [];
   };

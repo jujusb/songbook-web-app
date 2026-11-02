@@ -602,7 +602,7 @@ export function NoteForm({ initialNote, isNew = true, noteId }: NoteFormProps) {
                                 }
                                 const valueObjs = previewObjs.filter((o) => String(o?.[disc]) === String(activeVal));
                                 let valueKeys = [...new Set((valueObjs.length ? valueObjs : previewObjs).flatMap((o) => Object.keys(o || {})))]
-                                  .filter((k) => (valueObjs.length ? valueObjs : previewObjs).some((o) => o?.[k] !== null && o?.[k] !== undefined))
+                                  .filter((k) => (valueObjs.length ? valueObjs : previewObjs).some((o) => o?.[k] !== null && o?.[k] !== undefined && o?.[k] !== ""))
                                   .filter((k) => k !== disc || section.showDiscriminator === true);
                                 if (!valueKeys.length && Array.isArray(section.allFields)) {
                                   valueKeys = section.allFields.filter((k) => k !== disc || section.showDiscriminator === true);
