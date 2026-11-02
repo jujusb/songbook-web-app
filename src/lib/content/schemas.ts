@@ -215,6 +215,14 @@ export const SetlistLinkItemSchema = z.object({
   title: z.string().max(SETLIST_LINK_TITLE_MAX_LENGTH).optional(),
 });
 
+/** Reference to a recurrent note (from /notes), rendered for a specific date. */
+export const SetlistRecurrentNoteItemSchema = z.object({
+  type: z.literal('recurrent-note'),
+  id: z.string().min(1),
+  noteId: z.string().min(1),
+  date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Date must be YYYY-MM-DD'),
+});
+
 /** Legacy items (no `type`) are songs. */
 export const SetlistItemSchema = z.preprocess(
   (v) =>
@@ -225,13 +233,15 @@ export const SetlistItemSchema = z.preprocess(
     SetlistSongItemSchema,
     SetlistNoteItemSchema,
     SetlistLinkItemSchema,
+    SetlistRecurrentNoteItemSchema,
   ]),
 );
 
 export type SetlistSongItem = z.infer<typeof SetlistSongItemSchema>;
 export type SetlistNoteItem = z.infer<typeof SetlistNoteItemSchema>;
 export type SetlistLinkItem = z.infer<typeof SetlistLinkItemSchema>;
-export type SetlistItem = SetlistSongItem | SetlistNoteItem | SetlistLinkItem;
+export type SetlistRecurrentNoteItem = z.infer<typeof SetlistRecurrentNoteItemSchema>;
+export type SetlistItem = SetlistSongItem | SetlistNoteItem | SetlistLinkItem | SetlistRecurrentNoteItem;
 
 export function isSongItem(item: { type?: string }): item is SetlistSongItem {
   return item.type === 'song' || item.type === undefined;
@@ -241,6 +251,9 @@ export function isNoteItem(item: { type?: string }): item is SetlistNoteItem {
 }
 export function isLinkItem(item: { type?: string }): item is SetlistLinkItem {
   return item.type === 'link';
+}
+export function isRecurrentNoteItem(item: { type?: string }): item is SetlistRecurrentNoteItem {
+  return item.type === 'recurrent-note';
 }
 
 export const VoiceShareSectionSchema = z.enum(['tenor', 'bass', 'alto', 'soprano']);

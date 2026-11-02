@@ -1,15 +1,17 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useTranslation } from "@/lib/i18n";
 import { getSetlistMaxSongs } from "@/lib/config";
 import { validateLinkUrl } from "@/lib/setlist-links";
+import { notesApi } from "@/lib/notes";
 import {
   isHttpUrl,
   isSongItem,
   isNoteItem,
   isLinkItem,
+  isRecurrentNoteItem,
   SETLIST_NOTE_MAX_LENGTH,
   SETLIST_LINK_MAX_LENGTH,
   SETLIST_LINK_TITLE_MAX_LENGTH,
@@ -64,6 +66,22 @@ export function SetlistEditor({
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [dragIndex, setDragIndex] = useState<number | null>(null);
+  const [showRecurrent, setShowRecurrent] = useState(false);
+  const [recurrentNotes, setRecurrentNotes] = useState<Array<{ id: string; title: string }>>([]);
+  const [pickNoteId, setPickNoteId] = useState("");
+  const [pickDate, setPickDate] = useState(() => new Date().toISOString().slice(0, 10));
+
+  useEffect(() => {
+    let cancelled = false;
+    notesApi.fetchNotes().then((notes) => {
+      if (!cancelled) setRecurrentNotes(notes.map((n) => ({ id: n.id, title: n.title })));
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+  const noteTitle = (noteId: string) => recurrentNotes.find((n) => n.id === noteId)?.title || noteId;
+
 
   const songCount = songs.filter(isSongItem).length;
   const songMap = new Map(availableSongs.map((s) => [s.id, s]));
@@ -90,6 +108,13 @@ export function SetlistEditor({
   const addLink = useCallback(() => {
     setSongs((prev) => [...prev, { type: "link", id: newItemId(), url: "", title: "" }]);
   }, []);
+
+  const addRecurrentNote = useCallback(() => {
+    if (!pickNoteId || !pickDate) return;
+    setSongs((prev) => [...prev, { type: "recurrent-note", id: newItemId(), noteId: pickNoteId, date: pickDate }]);
+    setShowRecurrent(false);
+    setPickNoteId("");
+  }, [pickNoteId, pickDate]);
 
   const uploadSetlistImage = useCallback(async (file: File) => {
     const form = new FormData();
@@ -342,6 +367,16 @@ export function SetlistEditor({
                         data-testid="setlist-note-input"
                       />
                     </div>
+                  ) : isRecurrentNoteItem(item) ? (
+                    <div className="flex-1 min-w-0 flex items-center gap-2">
+                      <span className="text-sm font-medium truncate">{noteTitle(item.noteId)}</span>
+                      <input
+                        type="date"
+                        value={item.date}
+                        onChange={(e) => updateItem(index, { date: e.target.value })}
+                        className="px-2 py-1 border border-neutral-300 dark:border-neutral-700 rounded bg-white dark:bg-neutral-900 text-xs"
+                      />
+                    </div>
                   ) : isLinkItem(item) ? (
                     <div className="flex-1 min-w-0 space-y-1">
                       <input
@@ -378,7 +413,7 @@ export function SetlistEditor({
                   {/* Language picker */}
                   {!isSongItem(item) ? (
                     <span className="text-xs px-1.5 py-0.5 bg-neutral-100 dark:bg-neutral-800 rounded text-neutral-500">
-                      {isNoteItem(item) ? t("setlist.itemNote") : t("setlist.itemLink")}
+                      {isNoteItem(item) ? t("setlist.itemNote") : isRecurrentNoteItem(item) ? t("setlist.itemRecurrentNote") : t("setlist.itemLink")}
                     </span>
                   ) : meta && meta.translations.length > 1 ? (
                     <select
@@ -448,6 +483,14 @@ export function SetlistEditor({
           >
             + {t("setlist.addNote")}
           </button>
+          <button
+            type="button"
+            onClick={() => setShowRecurrent((v) => !v)}
+            className="px-3 py-1.5 border border-neutral-300 dark:border-neutral-700 rounded-md text-sm hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors"
+          >
+            + {t("setlist.addRecurrentNote")}
+          </button>
+
           {allowedLinkHosts.length > 0 ? (
             <button
               type="button"
@@ -462,6 +505,39 @@ export function SetlistEditor({
             </span>
           )}
         </div>
+
+        {showRecurrent && (
+          <div className="flex flex-wrap items-center gap-2 mb-3 p-3 border border-neutral-200 dark:border-neutral-800 rounded-md">
+            <select
+              value={pickNoteId}
+              onChange={(e) => setPickNoteId(e.target.value)}
+              className="flex-1 min-w-48 px-2 py-1.5 border border-neutral-300 dark:border-neutral-700 rounded bg-white dark:bg-neutral-900 text-sm"
+              aria-label={t("setlist.chooseNote")}
+            >
+              <option value="">{t("setlist.chooseNote")}</option>
+              {recurrentNotes.map((n) => (
+                <option key={n.id} value={n.id}>
+                  {n.title}
+                </option>
+              ))}
+            </select>
+            <label className="text-xs text-neutral-500">{t("setlist.noteDate")}</label>
+            <input
+              type="date"
+              value={pickDate}
+              onChange={(e) => setPickDate(e.target.value)}
+              className="px-2 py-1.5 border border-neutral-300 dark:border-neutral-700 rounded bg-white dark:bg-neutral-900 text-sm"
+            />
+            <button
+              type="button"
+              onClick={addRecurrentNote}
+              disabled={!pickNoteId || !pickDate}
+              className="px-3 py-1.5 bg-blue-600 text-white rounded-md text-sm disabled:opacity-50"
+            >
+              {t("setlist.addRecurrentNoteConfirm")}
+            </button>
+          </div>
+        )}
 
         {/* Add songs */}
         <div className="relative">

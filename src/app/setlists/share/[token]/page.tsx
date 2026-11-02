@@ -18,7 +18,8 @@ import {
 import { getLocale } from "@/lib/i18n/server";
 import { getSession, getCurrentUser } from "@/lib/auth";
 import { getSetlistVoiceShares } from "@/lib/navidrome/setlist-shares";
-import { isSongItem, isNoteItem, isLinkItem } from "@/lib/content/schemas";
+import { isSongItem, isNoteItem, isLinkItem, isRecurrentNoteItem } from "@/lib/content/schemas";
+import { renderNoteRefText } from "@/lib/note-render";
 import { SetlistReadOnlyView, type SetlistReadOnlyEntry } from "@/components/SetlistReadOnlyView";
 import { SetlistPdfButton } from "@/components/SetlistPdfButton";
 import { saveSharedSetlistAction } from "@/app/actions";
@@ -114,9 +115,15 @@ export default async function SetlistSharePage({
     allowHttp: getSetlistLinkAllowHttp(),
     ownHosts: (await headers()).get("host") ? [(await headers()).get("host")!.replace(/:\d+$/, "")] : [],
   };
+  const noteRefTexts = new Map(
+    await Promise.all(
+      sourceSetlist.songs.filter(isRecurrentNoteItem).map(async (item) => [item.id, await renderNoteRefText(item.noteId, item.date)] as const)
+    )
+  );
   let songCursor = 0;
   const entries: SetlistReadOnlyEntry[] = sourceSetlist.songs.map((item) => {
     if (isNoteItem(item)) return { type: "note", id: item.id, text: item.text };
+    if (isRecurrentNoteItem(item)) return { type: "note", id: item.id, text: noteRefTexts.get(item.id) ?? "" };
     if (isLinkItem(item)) {
       const check = validateLinkUrl(item.url, linkPolicy);
       return { type: "link", id: item.id, url: item.url, title: item.title, embeddable: check.ok, host: check.ok ? check.host : safeHost(item.url) };
