@@ -3,7 +3,7 @@ import { notesApi } from '@/lib/notes';
 
 interface SetlistNoteAdderProps {
   setlistId: string;
-  onNoteSelected: (note: any, date: string) => void;
+  onNoteSelected: (note: unknown, date: string) => void;
 }
 
 export const SetlistNoteAdder: React.FC<SetlistNoteAdderProps> = ({
@@ -14,8 +14,8 @@ export const SetlistNoteAdder: React.FC<SetlistNoteAdderProps> = ({
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [showNoteSelector, setShowNoteSelector] = useState(false);
   
-  const handleNoteSelect = async (note: any) => {
-    setNoteId(note.id);
+  const handleNoteSelect = async (note: unknown) => {
+    setNoteId((note as { id?: string }).id || '');
     setSelectedDate(new Date());
     onNoteSelected(note, selectedDate.toISOString());
     setShowNoteSelector(false);

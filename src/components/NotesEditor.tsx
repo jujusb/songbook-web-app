@@ -5,7 +5,7 @@ import { notesApi, NoteMetadata, NoteContent } from '@/lib/notes';
 
 interface NotesEditorProps {
   noteId?: string;
-  onSave: (note: any) => void;
+  onSave: (note: NoteMetadata) => void;
   isEdit: boolean;
 }
 
@@ -26,6 +26,7 @@ export const NotesEditor: React.FC<NotesEditorProps> = ({
     last_fetched: '',
     last_edited: new Date().toISOString(),
     tags: [],
+    sections: [{ type: 'manual', md: '' }],
     content: [{ type: 'manual', md: '' }],
     created: new Date().toISOString(),
   });
@@ -51,6 +52,7 @@ export const NotesEditor: React.FC<NotesEditorProps> = ({
         last_fetched: new Date().toISOString(),
         last_edited: new Date().toISOString(),
         tags: ['gospel', 'lectionary'],
+        sections: [{ type: 'api', name: 'gospel-api', api_url: 'https://liturgical-api.example.com/gospel?lang=${LANG}', resultSection: 'text' }],
         content: [{ type: 'api', name: 'gospel-api', api_url: 'https://liturgical-api.example.com/gospel?lang=${LANG}', resultSection: 'text' }],
         created: new Date().toISOString(),
       });

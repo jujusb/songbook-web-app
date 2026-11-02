@@ -314,3 +314,31 @@ The note search interface includes a filter:
 
 This allows administrators to quickly find notes that support per-week customization vs. those with static text.
 
+
+## Addendum — External API sections and viewing
+
+### List-based sections
+
+A note is now an ordered list of sections. Each section is either:
+- `type: "manual"` with Markdown (`md`) and its own `periodic_behavior`.
+- `type: "api"` representing an external API call (`api_url`, `resultSection`, `authorization`, `typeStyles`).
+
+The note editing UI supports adding, removing, reordering and previewing these sections. The list page links to `/notes/<id>` (view mode) and exposes an **Edit** button to `/notes/<id>/edit`.
+
+### External API placeholders
+
+API URLs support placeholders:
+- `${LANG}` / `$LANG` for the note language.
+- `$DATE` / `${DATE}` with an optional format: `$DATE(YYYY-MM-DD)`, `${DATE:DD/MM/YYYY}`, etc.
+- A default format can be supplied via `dateFormat`.
+
+### Nested result selection
+
+`resultSection` may traverse objects and arrays, e.g. `messes.lectures[0]` or `messes.lectures[]`.
+- Use `[]` to select every item of an array.
+- Each item's `type` field determines how it is displayed, using the `TYPE_STYLE_MAP` (defaulting to title/heading/subtitle). Custom per-section overrides can be provided through `typeStyles` (JSON in the editor).
+- The preview pane shows the extracted text and the raw JSON for an example date.
+
+### View mode
+
+`/notes/<id>` lets the user pick an example date and renders the assembled note content for that date, combining manual sections and API-fetched sections.

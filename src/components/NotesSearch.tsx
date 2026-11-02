@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { notesApi, NoteSearchResult } from '@/lib/notes';
 
 interface NotesSearchProps {
-  onSelect: (note: any) => void;
+  onSelect: (note: unknown) => void;
   defaultQuery?: string;
 }
 
