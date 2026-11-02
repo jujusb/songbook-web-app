@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import { notFound, redirect } from "next/navigation";
 import { getSession, canEdit } from "@/lib/auth";
 import { isReadOnly } from "@/lib/readonly";
@@ -15,3 +16,5 @@ export default async function NewNotePage() {
     </div>
   );
 }
+
+export const metadata: Metadata = { title: "New Note" };

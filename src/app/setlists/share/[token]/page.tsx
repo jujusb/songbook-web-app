@@ -2,6 +2,7 @@ import { headers } from "next/headers";
 import { validateLinkUrl, safeHost } from "@/lib/setlist-links";
 import { getSetlistLinkAllowedHosts, getSetlistLinkAllowHttp } from "@/lib/config";
 import { notFound } from "next/navigation";
+import type { Metadata } from "next";
 import Link from "next/link";
 import { cookies } from "next/headers";
 import {
@@ -29,6 +30,29 @@ import { saveSharedSetlistAction } from "@/app/actions";
  * no login required — making this the target of links shared to the
  * read-only/public instance.
  */
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ token: string }>;
+}): Promise<Metadata> {
+  const { token } = await params;
+  const setlist = await findSetlistByShareToken(token);
+  if (!setlist) return { title: "Setlist" };
+  return {
+    title: setlist.title,
+    openGraph: {
+      title: setlist.title,
+      images: ["/file.svg"],
+      type: "website",
+    },
+    twitter: {
+      card: "summary",
+      title: setlist.title,
+      images: setlist.image ? [setlist.image] : ["/file.svg"],
+    },
+  };
+}
+
 export default async function SetlistSharePage({
   params,
 }: {
@@ -200,6 +224,11 @@ export default async function SetlistSharePage({
           )}
         </div>
       </div>
+
+      {setlist.image && (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img src={setlist.image} alt={setlist.title} className="max-w-full h-auto rounded mb-4" />
+      )}
 
       <SetlistReadOnlyView
         songs={songDetails}

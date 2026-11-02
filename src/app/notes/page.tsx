@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import NotesList from '@/components/NotesList';
 
 export default function NotesPage() {
@@ -7,3 +8,4 @@ export default function NotesPage() {
     </div>
   );
 }
+export const metadata: Metadata = { title: "Notes" };

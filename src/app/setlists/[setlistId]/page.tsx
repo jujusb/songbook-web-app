@@ -2,6 +2,7 @@ import { headers } from "next/headers";
 import { validateLinkUrl, safeHost } from "@/lib/setlist-links";
 import { getSetlistLinkAllowedHosts, getSetlistLinkAllowHttp } from "@/lib/config";
 import { notFound } from "next/navigation";
+import type { Metadata } from "next";
 import Link from "next/link";
 import { getSetlist, getSong, getSongTranslation, getSongTranslations, getSongTitle } from "@/lib/content";
 import { getSession, getCurrentUser, canEdit, canAdmin, canViewSetlist, canCreateSetlist } from "@/lib/auth";
@@ -10,6 +11,16 @@ import { SetlistReadOnlyView, type SetlistReadOnlyEntry } from "@/components/Set
 import { SetlistPdfButton } from "@/components/SetlistPdfButton";
 import { DeleteButton } from "@/components/DeleteButton";
 import { getSetlistVoiceShares } from "@/lib/navidrome/setlist-shares";
+
+export async function generateMetadata({ params }: { params: Promise<{ setlistId: string }> }): Promise<Metadata> {
+  const { setlistId } = await params;
+  try {
+    const setlist = await getSetlist(setlistId);
+    return { title: setlist.title };
+  } catch {
+    return { title: "Setlist" };
+  }
+}
 
 export default async function SetlistPage({
   params,

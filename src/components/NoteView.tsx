@@ -23,6 +23,9 @@ export function NoteView({ noteId }: NoteViewProps) {
   const [selectedDate, setSelectedDate] = useState(
     new Date().toISOString().slice(0, 10)
   );
+  const [editing, setEditing] = useState(false);
+  const [overrideText, setOverrideText] = useState("");
+  const [saving, setSaving] = useState(false);
   const [previewText, setPreviewText] = useState("");
   const [tabbed, setTabbed] = useState<Array<{ title: string; text: string }> | null>(null);
   const [activeTab, setActiveTab] = useState(0);
@@ -116,6 +119,24 @@ export function NoteView({ noteId }: NoteViewProps) {
     };
   }, [note, selectedDate]);
 
+  useEffect(() => {
+    if (!note) return;
+    setOverrideText(note.periodOverrides?.[selectedDate] || "");
+  }, [note, selectedDate]);
+
+  const handleSaveOverride = async () => {
+    if (!note) return;
+    setSaving(true);
+    try {
+      const next = { ...(note.periodOverrides || {}), [selectedDate]: overrideText };
+      const updated = await notesApi.updateNote(noteId, { periodOverrides: next });
+      setNote(updated);
+      setEditing(false);
+    } finally {
+      setSaving(false);
+    }
+  };
+
   const handleDelete = async () => {
     if (!confirm("Delete this note?")) return;
     await notesApi.deleteNote(noteId);
@@ -153,6 +174,33 @@ export function NoteView({ noteId }: NoteViewProps) {
           className="px-3 py-2 border border-neutral-300 dark:border-neutral-700 rounded-md bg-white dark:bg-neutral-900 text-sm"
         />
       </div>
+
+      {note?.periodic_behavior === "different_per_period" && (
+        <div className="space-y-2">
+          {editing ? (
+            <>
+              <textarea
+                value={overrideText}
+                onChange={(e) => setOverrideText(e.target.value)}
+                rows={6}
+                className="w-full px-3 py-2 border rounded-md text-sm resize-y"
+              />
+              <div className="flex gap-2">
+                <button type="button" onClick={handleSaveOverride} disabled={saving} className="px-3 py-1.5 text-sm bg-blue-600 text-white rounded-md disabled:opacity-50">
+                  {saving ? "Saving..." : "Save override"}
+                </button>
+                <button type="button" onClick={() => setEditing(false)} className="px-3 py-1.5 text-sm border rounded-md">
+                  Cancel
+                </button>
+              </div>
+            </>
+          ) : (
+            <button type="button" onClick={() => setEditing(true)} className="px-3 py-1.5 text-sm border rounded-md">
+              Edit text for this date
+            </button>
+          )}
+        </div>
+      )}
 
       {previewLoading ? (
         <p className="text-sm text-neutral-500">Loading…</p>

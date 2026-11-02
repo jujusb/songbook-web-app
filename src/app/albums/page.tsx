@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { cookies } from "next/headers";
 import { listAlbums, listArtists, listSongs, getLanguagesConfig } from "@/lib/content";
@@ -27,3 +28,5 @@ export default async function AlbumsPage() {
     />
   );
 }
+
+export const metadata: Metadata = { title: "Albums" };

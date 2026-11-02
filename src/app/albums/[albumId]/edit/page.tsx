@@ -1,8 +1,19 @@
+import type { Metadata } from "next";
 import { notFound, redirect } from "next/navigation";
 import { getAlbum, listSongs, listArtists, getLanguagesConfig, resolveSongListTitle } from "@/lib/content";
 import { getSession, canEdit, canEditAlbum, getCurrentUser } from "@/lib/auth";
 import { isReadOnly } from "@/lib/readonly";
 import { AlbumForm } from "@/components/AlbumForm";
+
+export async function generateMetadata({ params }: { params: Promise<{ albumId: string }> }): Promise<Metadata> {
+  const { albumId } = await params;
+  try {
+    const album = await getAlbum(albumId);
+    return { title: `${album.title} - Edit` };
+  } catch {
+    return { title: "Edit Album" };
+  }
+}
 
 export default async function EditAlbumPage({
   params,

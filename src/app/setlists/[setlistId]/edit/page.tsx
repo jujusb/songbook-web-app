@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import { getSetlistLinkAllowedHosts, getSetlistLinkAllowHttp } from "@/lib/config";
 import { notFound, redirect } from "next/navigation";
 import Link from "next/link";
@@ -5,6 +6,16 @@ import { getSetlist, listSongs, getSongTranslations, getShareBaseUrl } from "@/l
 import { getSession, canEdit, canCreateSetlist, canManageSetlistShares } from "@/lib/auth";
 import { SetlistEditor } from "@/components/SetlistEditor";
 import { SetlistShareControls } from "@/components/SetlistShareControls";
+
+export async function generateMetadata({ params }: { params: Promise<{ setlistId: string }> }): Promise<Metadata> {
+  const { setlistId } = await params;
+  try {
+    const setlist = await getSetlist(setlistId);
+    return { title: `${setlist.title} - Edit` };
+  } catch {
+    return { title: "Edit Setlist" };
+  }
+}
 
 export default async function SetlistEditPage({
   params,

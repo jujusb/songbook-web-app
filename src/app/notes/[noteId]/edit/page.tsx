@@ -1,7 +1,15 @@
 import { notFound, redirect } from "next/navigation";
+import type { Metadata } from "next";
 import { getSession, canEdit } from "@/lib/auth";
 import { isReadOnly } from "@/lib/readonly";
 import { NoteForm } from "@/components/NoteForm";
+import { getNote } from "@/lib/content/notes";
+
+export async function generateMetadata({ params }: { params: Promise<{ noteId: string }> }): Promise<Metadata> {
+  const { noteId } = await params;
+  const note = await getNote(noteId);
+  return { title: note ? `${note.title} - Edit` : "Edit Note" };
+}
 
 export default async function NoteEditPage({
   params,

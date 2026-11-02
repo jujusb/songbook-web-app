@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import { notFound, redirect } from "next/navigation";
 import { listSongs, listArtists, getLanguagesConfig, ensureVariousArtists } from "@/lib/content";
 import { getSession, canEdit } from "@/lib/auth";
@@ -42,3 +43,5 @@ export default async function NewAlbumPage({
     />
   );
 }
+
+export const metadata: Metadata = { title: "New Album" };

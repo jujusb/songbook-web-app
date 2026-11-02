@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import { isSongItem } from "@/lib/content/schemas";
 import Link from "next/link";
 import { cookies } from "next/headers";
@@ -122,3 +123,4 @@ export default async function SetlistsPage() {
     </div>
   );
 }
+export const metadata: Metadata = { title: "Setlists" };

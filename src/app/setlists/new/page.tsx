@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import { getSetlistLinkAllowedHosts, getSetlistLinkAllowHttp } from "@/lib/config";
 import { notFound, redirect } from "next/navigation";
 import { getSession, canCreateSetlist } from "@/lib/auth";
@@ -30,3 +31,5 @@ export default async function NewSetlistPage() {
     </div>
   );
 }
+
+export const metadata: Metadata = { title: "New Setlist" };
