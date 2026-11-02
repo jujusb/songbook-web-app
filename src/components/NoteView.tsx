@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { MarkdownView } from "@/components/MarkdownView";
+import { AutoScrollControl } from "@/components/AutoScrollControl";
 import {
   notesApi,
   NoteMetadata,
@@ -225,6 +226,7 @@ export function NoteView({ noteId }: NoteViewProps) {
       ) : (
         <MarkdownView text={previewText} />
       )}
+      <AutoScrollControl />
     </div>
   );
 }
