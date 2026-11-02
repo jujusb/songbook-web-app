@@ -35,6 +35,7 @@ interface SetlistData {
   id?: string;
   title: string;
   description: string;
+  image?: string;
   date: string;
   songs: SetlistItem[];
 }
@@ -56,6 +57,7 @@ export function SetlistEditor({
   const { languageLabel, t } = useTranslation();
   const [title, setTitle] = useState(initialSetlist?.title || "");
   const [description, setDescription] = useState(initialSetlist?.description || "");
+  const [image, setImage] = useState(initialSetlist?.image || "");
   const [date, setDate] = useState(initialSetlist?.date || "");
   const [songs, setSongs] = useState<SetlistItem[]>(initialSetlist?.songs || []);
   const [search, setSearch] = useState("");
@@ -87,6 +89,14 @@ export function SetlistEditor({
 
   const addLink = useCallback(() => {
     setSongs((prev) => [...prev, { type: "link", id: newItemId(), url: "", title: "" }]);
+  }, []);
+
+  const uploadSetlistImage = useCallback(async (file: File) => {
+    const form = new FormData();
+    form.append("file", file);
+    const res = await fetch("/api/images", { method: "POST", body: form });
+    const data = await res.json();
+    if (data?.url) setImage(data.url);
   }, []);
 
   const updateItem = useCallback((index: number, patch: Partial<SetlistItem>) => {
@@ -176,6 +186,7 @@ export function SetlistEditor({
         ...(initialSetlist?.id && { id: initialSetlist.id }),
         title: title.trim(),
         description: description.trim() || undefined,
+        image: image.trim() || undefined,
         date: date.trim() || undefined,
         songs: items,
       };
@@ -250,6 +261,43 @@ export function SetlistEditor({
             className="w-full px-3 py-2 border border-neutral-300 dark:border-neutral-700 rounded-md bg-white dark:bg-neutral-900 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
           />
         </div>
+        <div className="sm:col-span-2">
+          <label className="block text-sm font-medium mb-1">Image URL (optional)</label>
+          <input
+            type="url"
+            value={image}
+            onChange={(e) => setImage(e.target.value)}
+            placeholder="https://example.com/image.jpg"
+            className="w-full px-3 py-2 border border-neutral-300 dark:border-neutral-700 rounded-md bg-white dark:bg-neutral-900 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+          />
+          <div
+            onDragOver={(e) => e.preventDefault()}
+            onDrop={(e) => {
+              e.preventDefault();
+              const file = e.dataTransfer.files?.[0];
+              if (file) uploadSetlistImage(file);
+            }}
+            className="mt-2 border-2 border-dashed border-neutral-300 dark:border-neutral-700 rounded-md p-4 text-center text-sm text-neutral-500"
+          >
+            Drag & drop an image here or
+            <label className="ml-2 text-blue-600 dark:text-blue-400 cursor-pointer">
+              choose file
+              <input
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={(e) => {
+                  const file = e.target.files?.[0];
+                  if (file) uploadSetlistImage(file);
+                }}
+              />
+            </label>
+          </div>
+          {image && (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={image} alt="Setlist image" className="mt-2 max-h-40 rounded" />
+          )}
+        </div>
       </div>
 
       {/* Song list */}
@@ -264,7 +312,7 @@ export function SetlistEditor({
               const meta = isSongItem(item) ? songMap.get(item.songId) : undefined;
               return (
                 <div
-                  key={isSongItem(item) ? `${item.songId}-${index}` : item.id}
+                  key={isSongItem(item) ? `${(item as { songId: string }).songId}-${index}` : ((item as { id?: string }).id ?? String(index))}
                   draggable={isSongItem(item)}
                   onDragStart={() => handleDragStart(index)}
                   onDragOver={(e) => handleDragOver(e, index)}
@@ -317,7 +365,7 @@ export function SetlistEditor({
                   ) : (
                   <div className="flex-1 min-w-0">
                     <span className="text-sm font-medium truncate block">
-                      {meta?.title || item.songId}
+                      {meta?.title || (isSongItem(item) ? item.songId : "")}
                     </span>
                     {meta?.key && (
                       <span className="text-xs text-neutral-400">

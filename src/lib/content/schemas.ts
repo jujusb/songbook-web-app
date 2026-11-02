@@ -272,6 +272,7 @@ export const SetlistSchema = z.object({
   id: z.string(),
   title: z.string(),
   description: z.string().optional(),
+  image: z.string().max(SETLIST_LINK_MAX_LENGTH).refine(isHttpUrl, 'URL must be http(s)').optional(),
   date: z.string().optional(),               // e.g. service date "2025-07-13"
   songs: z.array(SetlistItemSchema).default([]),
   voiceShares: z.array(VoiceShareSchema).default([]),  // per-voice Navidrome shares

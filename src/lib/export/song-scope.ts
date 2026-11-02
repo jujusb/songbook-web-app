@@ -11,6 +11,7 @@ import {
 } from '@/lib/content';
 import type { SongListItem } from '@/lib/content';
 import type { SongMeta } from '@/lib/content/schemas';
+import { isSongItem } from '@/lib/content/schemas';
 
 export type ExportScope = 'song' | 'album' | 'artist' | 'setlist' | 'all' | 'book';
 
@@ -21,7 +22,7 @@ export interface ResolvedScopeSong {
   /** Setlist items carry an explicit language; other scopes use a `null` lang. */
   lang?: string | null;
   /** Non-song setlist entry (note / link); `songId` is then a synthetic `__note_*` / `__link_*` id. */
-  item?: { kind: 'note'; text: string } | { kind: 'link'; url: string; title?: string };
+  item?: { kind: 'note'; text: string } | { kind: 'link'; url: string; title?: string }
 }
 
 /** Check if a song meta (SongListItem or SongMeta) has any published translation. */
@@ -146,7 +147,7 @@ export async function resolveScopeSongs(
           entries.push({ songId: `__note_${item.id}`, meta: null, lang: null, item: { kind: 'note', text: item.text } });
         } else if (item.type === 'link') {
           entries.push({ songId: `__link_${item.id}`, meta: null, lang: null, item: { kind: 'link', url: item.url, title: item.title } });
-        } else {
+        } else if (isSongItem(item)) {
           const meta = allById.get(item.songId) ?? null;
           if (!meta) continue;
           if (role !== 'admin' && !isLanguagePublished(meta, item.lang ?? '')) continue;
