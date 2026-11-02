@@ -1,6 +1,6 @@
 import { headers } from "next/headers";
 import { validateLinkUrl, safeHost } from "@/lib/setlist-links";
-import { getSetlistLinkAllowedHosts, getSetlistLinkAllowHttp } from "@/lib/config";
+import { getSetlistLinkAllowedHosts, getSetlistLinkAllowHttp, getSetlistDefaultMode, getSetlistModesAllowed } from "@/lib/config";
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 import Link from "next/link";
@@ -9,6 +9,7 @@ import { getSession, getCurrentUser, canEdit, canAdmin, canViewSetlist, canCreat
 import { isSongItem, isNoteItem, isLinkItem } from "@/lib/content/schemas";
 import { SetlistReadOnlyView, type SetlistReadOnlyEntry } from "@/components/SetlistReadOnlyView";
 import { SetlistPdfButton } from "@/components/SetlistPdfButton";
+import SetlistModeSelector from "@/components/SetlistModeSelector";
 import { DeleteButton } from "@/components/DeleteButton";
 import { getSetlistVoiceShares } from "@/lib/navidrome/setlist-shares";
 
@@ -27,10 +28,10 @@ export default async function SetlistPage({
   searchParams,
 }: {
   params: Promise<{ setlistId: string }>;
-  searchParams: Promise<{ share?: string }>;
+  searchParams: Promise<{ share?: string; mode?: string }>;
 }) {
   const { setlistId } = await params;
-  const { share } = await searchParams;
+  const { share, mode } = await searchParams;
   const shareParam = typeof share === "string" ? share : undefined;
 
   let setlist;
@@ -39,6 +40,8 @@ export default async function SetlistPage({
   } catch {
     notFound();
   }
+
+  const currentMode = typeof mode === "string" ? mode : (setlist.mode || getSetlistDefaultMode());
 
   const session = await getSession();
   const userId = session?.userId;
@@ -206,6 +209,8 @@ export default async function SetlistPage({
           )}
         </div>
       </div>
+
+      <SetlistModeSelector setlistId={setlistId} currentMode={currentMode} allowedModes={getSetlistModesAllowed()} />
 
       <SetlistReadOnlyView
         songs={songDetails}

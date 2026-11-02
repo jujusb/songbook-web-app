@@ -274,6 +274,7 @@ export const SetlistSchema = z.object({
   description: z.string().optional(),
   image: z.string().max(SETLIST_LINK_MAX_LENGTH).refine(isHttpUrl, 'URL must be http(s)').optional(),
   date: z.string().optional(),               // e.g. service date "2025-07-13"
+  mode: z.string().optional(),              // default rendering mode
   songs: z.array(SetlistItemSchema).default([]),
   voiceShares: z.array(VoiceShareSchema).default([]),  // per-voice Navidrome shares
   public: z.boolean().default(false),        // browsable by anyone (private by default)

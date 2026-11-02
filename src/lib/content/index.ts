@@ -8,6 +8,7 @@ import { getContentDir, getLibraryDir, findSongPath, findSongAlbumId, getSetlist
 import { syncSongToMusicDir } from '@/lib/lyrics-sync';
 import { isReadOnly } from '@/lib/readonly';
 import { FALLBACK_LANGUAGES } from '@/lib/i18n/labels';
+import { getSetlistDefaultMode } from '@/lib/config';
 export { resolveSongListTitle } from '../song-titles';
 export { getContentDir, findSongPath } from './paths';
 import {
@@ -348,8 +349,20 @@ export async function saveSetlist(setlist: SetlistInput): Promise<void> {
   const dir = getSetlistsDir();
   await mkdir(dir, { recursive: true });
   const filePath = path.join(dir, `${validated.id}.yaml`);
+  // Archive the previous active version into a dated folder before overwriting.
+  if (existsSync(filePath)) {
+    try {
+      const previous = await readFile(filePath, 'utf-8');
+      const date = new Date().toISOString().slice(0, 10);
+      const versionDir = path.join(dir, validated.id, date);
+      await mkdir(versionDir, { recursive: true });
+      await writeFile(path.join(versionDir, 'setlist.yaml'), previous, 'utf-8');
+    } catch {
+      // best-effort history
+    }
+  }
   const content = yaml.dump(
-    { ...validated, modified: new Date().toISOString() },
+    { ...validated, mode: validated.mode || getSetlistDefaultMode(), modified: new Date().toISOString() },
     { lineWidth: -1 }
   );
   await writeFile(filePath, content, 'utf-8');
@@ -358,6 +371,35 @@ export async function saveSetlist(setlist: SetlistInput): Promise<void> {
 export async function deleteSetlist(id: string): Promise<void> {
   const filePath = path.join(getSetlistsDir(), `${id}.yaml`);
   await rm(filePath);
+}
+
+export async function listSetlistVersions(baseId: string): Promise<Array<{ label: string; path: string; title: string; date?: string }>> {
+  const versionsDir = path.join(getSetlistsDir(), baseId);
+  if (!existsSync(versionsDir)) return [];
+  const result: Array<{ label: string; path: string; title: string; date?: string }> = [];
+  try {
+    const entries = await readdir(versionsDir, { withFileTypes: true });
+    for (const entry of entries) {
+      if (!entry.isDirectory()) continue;
+      const fp = path.join(versionsDir, entry.name, 'setlist.yaml');
+      if (!existsSync(fp)) continue;
+      try {
+        const raw = await readFile(fp, 'utf-8');
+        const parsed = yaml.load(raw) as { title?: string; date?: string };
+        result.push({ label: entry.name, path: `${entry.name}`, title: parsed.title || baseId, date: parsed.date as string | undefined });
+      } catch {}
+    }
+  } catch {}
+  result.sort((a, b) => b.label.localeCompare(a.label));
+  return result;
+}
+
+export async function restoreSetlistVersion(baseId: string, versionLabel: string): Promise<void> {
+  const src = path.join(getSetlistsDir(), baseId, versionLabel, 'setlist.yaml');
+  if (!existsSync(src)) throw new Error('Version not found');
+  const raw = await readFile(src, 'utf-8');
+  const filePath = path.join(getSetlistsDir(), `${baseId}.yaml`);
+  await writeFile(filePath, raw, 'utf-8');
 }
 
 export async function getSong(id: string): Promise<SongMeta> {

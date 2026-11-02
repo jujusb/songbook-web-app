@@ -35,3 +35,13 @@ export function getNavidromeFrameOrigins(): string[] {
   }
   return [...out];
 }
+
+export function getSetlistDefaultMode(): string {
+  return (process.env.SETLIST_DEFAULT_MODE || 'guitarist').trim();
+}
+
+export function getSetlistModesAllowed(): string[] {
+  const val = process.env.SETLIST_MODES_ALLOWED;
+  if (!val) return ['public', 'guitarist', 'rehersal', 'concert', 'instrumentalist'];
+  return val.split(',').map((v) => v.trim()).filter(Boolean);
+}
