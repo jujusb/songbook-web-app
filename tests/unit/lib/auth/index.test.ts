@@ -368,22 +368,60 @@ describe('auth/index.ts', () => {
   });
 
   describe('ensureDefaultAdmin', () => {
+    let originalAdminPassword: string | undefined;
+
+    beforeEach(() => {
+      originalAdminPassword = process.env.ADMIN_PASSWORD;
+      delete process.env.ADMIN_PASSWORD;
+    });
+
+    afterEach(() => {
+      if (originalAdminPassword !== undefined) {
+        process.env.ADMIN_PASSWORD = originalAdminPassword;
+      } else {
+        delete process.env.ADMIN_PASSWORD;
+      }
+    });
+
     it('creates admin user when none exist', async () => {
+      process.env.ADMIN_PASSWORD = 'testpass';
       await ensureDefaultAdmin();
       
       const users = await listUsers();
       const admin = users.find(u => u.username === 'admin');
       expect(admin).toBeDefined();
       expect(admin?.role).toBe('admin');
+      expect(await verifyPassword(admin!, 'testpass')).toBe(true);
     });
 
-    it('does not create duplicate admin', async () => {
+    it('does not create duplicate admin when users exist', async () => {
       await createUser('existing-admin', 'pass', 'admin');
       await ensureDefaultAdmin();
       
       const users = await listUsers();
       const admins = users.filter(u => u.role === 'admin');
       expect(admins.length).toBe(1);
+    });
+
+    it('updates admin password when ADMIN_PASSWORD env var changes', async () => {
+      await createUser('admin', 'oldpass', 'admin', 'Administrator');
+
+      process.env.ADMIN_PASSWORD = 'newpass';
+      await ensureDefaultAdmin();
+
+      const admin = await getUserByUsername('admin');
+      expect(admin).toBeDefined();
+      expect(await verifyPassword(admin!, 'newpass')).toBe(true);
+      expect(await verifyPassword(admin!, 'oldpass')).toBe(false);
+    });
+
+    it('does not create admin when users exist but no admin user', async () => {
+      await createUser('regular-user', 'pass', 'reviewer');
+      await ensureDefaultAdmin();
+      
+      const users = await listUsers();
+      const admin = users.find(u => u.username === 'admin');
+      expect(admin).toBeUndefined();
     });
   });
 

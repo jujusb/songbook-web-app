@@ -1,5 +1,6 @@
 import { readdir, readFile, mkdir, cp, rename, rm, copyFile } from 'fs/promises';
 import { existsSync } from 'fs';
+import { getDataDir } from './paths';
 import path from 'path';
 import { findSongPath } from './paths';
 
@@ -71,7 +72,7 @@ function assertSafeSegment(value: string, label: string): string {
 export function getRevisionsRoot(): string {
   const configured = process.env.REVISIONS_DIR;
   if (configured) return path.resolve(configured);
-  return path.join(process.cwd(), REVISIONS_DIR);
+  return path.join(getDataDir(), "revisions");
 }
 
 /** `<revisions-root>/<song-id>/<lang>` */

@@ -1,21 +1,44 @@
 import { readdir } from 'fs/promises';
-import { existsSync } from 'fs';
 import path from 'path';
 
 /**
- * Filesystem locations of the content tree.
+ * Filesystem locations of the content and data trees.
  *
  * These live in their own module so that `revisions.ts` can resolve paths
  * without importing `index.ts` — `index.ts` imports the revision helpers, and
  * a cycle between the two would make the module init order significant.
+ *
+ * The new layout keeps setlists, config and users under `DATA_DIR`, separate
+ * from the song/artist/album/notes content that lives under `DATA_DIR/content`.
  */
 
+export function getDataDir(): string {
+  return process.env.DATA_DIR || path.join(process.cwd(), "data");
+}
+
 export function getContentDir(): string {
-  return path.join(process.cwd(), 'content');
+  if (process.env.CONTENT_DIR) return process.env.CONTENT_DIR;
+  return path.join(getDataDir(), "content");
 }
 
 export function getLibraryDir(): string {
   return path.join(getContentDir(), 'library');
+}
+
+export function getSetlistsDir(): string {
+  if (process.env.SETLIST_DIR) return process.env.SETLIST_DIR;
+  if (process.env.SETLISTS_DIR) return process.env.SETLISTS_DIR;
+  return path.join(getDataDir(), "setlists");
+}
+
+export function getConfigDir(): string {
+  if (process.env.CONFIG_DIR) return process.env.CONFIG_DIR;
+  return path.join(getDataDir(), "config");
+}
+
+export function getUsersDir(): string {
+  if (process.env.USERS_DIR) return process.env.USERS_DIR;
+  return path.join(getDataDir(), "users");
 }
 
 /**
@@ -26,11 +49,14 @@ export function getLibraryDir(): string {
 export async function findSongPath(songId: string): Promise<string | null> {
   const libDir = getLibraryDir();
   try {
-    const albumDirs = await readdir(libDir, { withFileTypes: true });
-    for (const albumDir of albumDirs) {
-      if (!albumDir.isDirectory()) continue;
-      const songDir = path.join(libDir, albumDir.name, songId);
-      if (existsSync(songDir)) {
+    const { readdir } = await import("fs/promises");
+    const entries = await readdir(libDir, { withFileTypes: true });
+    for (const entry of entries) {
+      if (!entry.isDirectory()) continue;
+      // eslint-disable-next-line no-await-in-loop
+      const fs = await import("fs");
+      const songDir = path.join(libDir, entry.name, songId);
+      if (fs.existsSync(songDir)) {
         return songDir;
       }
     }
@@ -44,12 +70,13 @@ export async function findSongPath(songId: string): Promise<string | null> {
 export async function findSongAlbumId(songId: string): Promise<string | null> {
   const libDir = getLibraryDir();
   try {
-    const albumDirs = await readdir(libDir, { withFileTypes: true });
-    for (const albumDir of albumDirs) {
-      if (!albumDir.isDirectory()) continue;
-      const songDir = path.join(libDir, albumDir.name, songId);
-      if (existsSync(songDir)) {
-        return albumDir.name;
+    const entries = await readdir(libDir, { withFileTypes: true });
+    for (const entry of entries) {
+      if (!entry.isDirectory()) continue;
+      const fs = await import("fs");
+      const songDir = path.join(libDir, entry.name, songId);
+      if (fs.existsSync(songDir)) {
+        return entry.name;
       }
     }
   } catch {}

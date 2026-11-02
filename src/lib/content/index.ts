@@ -4,7 +4,7 @@ import path from 'path';
 import matter from 'gray-matter';
 import * as yaml from 'js-yaml';
 import { saveRevision, moveRevisions } from './revisions';
-import { getContentDir, getLibraryDir, findSongPath, findSongAlbumId } from './paths';
+import { getContentDir, getLibraryDir, findSongPath, findSongAlbumId, getSetlistsDir, getConfigDir } from './paths';
 import { syncSongToMusicDir } from '@/lib/lyrics-sync';
 import { isReadOnly } from '@/lib/readonly';
 import { FALLBACK_LANGUAGES } from '@/lib/i18n/labels';
@@ -263,11 +263,7 @@ export async function getAlbumTitle(albumId: string, lang: string): Promise<stri
 }
 
 // --- Setlists ---
-// Setlists live at: content/setlists/<setlist-id>.yaml
-
-function getSetlistsDir(): string {
-  return path.join(getContentDir(), 'setlists');
-}
+// Setlists live at: <data>/setlists/<setlist-id>.yaml (falls back to content/setlists)
 
 export interface ListSetlistsOptions {
   /** If provided, include reference setlists owned by this user (saved shared setlists). */
@@ -609,7 +605,7 @@ export async function getLanguagesConfig(): Promise<LanguagesConfig> {
 }
 
 export async function getSiteConfig(): Promise<SiteConfig> {
-  const filePath = path.join(getContentDir(), 'config', 'site.yaml');
+  const filePath = path.join(getConfigDir(), 'site.yaml');
   let raw: string;
   try {
     raw = await readFile(filePath, 'utf-8');
@@ -621,9 +617,17 @@ export async function getSiteConfig(): Promise<SiteConfig> {
       pdfPageSize: 'A4',
       enableArtistPages: true,
     };
-    await mkdir(path.dirname(filePath), { recursive: true });
-    await writeFile(filePath, yaml.dump(defaults), 'utf-8');
-    raw = await readFile(filePath, 'utf-8');
+    try {
+      await mkdir(path.dirname(filePath), { recursive: true });
+      await writeFile(filePath, yaml.dump(defaults), 'utf-8');
+    } catch {
+      // Read-only filesystem (e.g. public instance): keep in-memory defaults.
+    }
+    try {
+      raw = await readFile(filePath, 'utf-8');
+    } catch {
+      raw = yaml.dump(defaults);
+    }
   }
   const parsed = yaml.load(raw) as Record<string, unknown>;
 

@@ -38,7 +38,7 @@ describe('partitions.ts', () => {
 
     it('falls back to public/partitions', () => {
       delete process.env.PARTITIONS_DIR;
-      expect(getPartitionsDir()).toBe(path.join(process.cwd(), 'public', 'partitions'));
+      expect(getPartitionsDir()).toBe(path.join(process.cwd(), 'data', 'content', 'partitions'));
     });
   });
 

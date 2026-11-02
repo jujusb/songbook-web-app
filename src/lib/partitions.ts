@@ -1,5 +1,6 @@
 import { readdir } from 'fs/promises';
 import { existsSync } from 'fs';
+import { getContentDir } from '@/lib/content/paths';
 import path from 'path';
 import type { SongListItem } from '@/lib/content';
 import type { Partition } from '@/lib/content/schemas';
@@ -26,7 +27,7 @@ export interface PartitionMatch {
 }
 
 export function getPartitionsDir(): string {
-  return process.env.PARTITIONS_DIR || path.join(process.cwd(), 'public', 'partitions');
+  return process.env.PARTITIONS_DIR || path.join(getContentDir(), 'partitions');
 }
 
 /**

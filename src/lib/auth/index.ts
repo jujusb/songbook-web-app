@@ -6,6 +6,7 @@ import { cookies } from 'next/headers';
 import { UserSchema, type User, type UserInput, type Role, PermissionSchema, type Permissions } from './schemas';
 import { SESSION_COOKIE_NAME, signSessionToken, verifySessionToken } from './session';
 import { isReadOnly, isReadOnlyFor } from '@/lib/readonly';
+import { getContentDir, getUsersDir } from '@/lib/content/paths';
 
 /**
  * Whether the incoming request was served over HTTPS, used to decide the
@@ -30,9 +31,7 @@ export function isSecureRequest(request: { url: string; headers: Headers }): boo
   }
 }
 
-function getUsersDir(): string {
-  return path.join(process.cwd(), 'content', 'users');
-}
+// (users directory resolution lives in @/lib/content/paths)
 
 export async function listUsers(): Promise<User[]> {
   const dir = getUsersDir();
@@ -232,11 +231,23 @@ export function canViewSetlist(
 
 export async function ensureDefaultAdmin(): Promise<void> {
   if (isReadOnlyFor('user_write')) return;
-  const users = await listUsers();
-  if (users.length === 0) {
-    // Create default admin user
-    const adminPassword = process.env.ADMIN_PASSWORD || 'admin';
-    await createUser('admin', adminPassword, 'admin', 'Administrator');
+  const adminPassword = process.env.ADMIN_PASSWORD || 'admin';
+
+  // Check if the default admin user already exists
+  const existingAdmin = await getUserByUsername('admin');
+
+  if (existingAdmin) {
+    // Sync the admin password with the current ADMIN_PASSWORD env var so
+    // changing the env var automatically updates the actual admin password.
+    const passwordHash = await bcrypt.hash(adminPassword, 10);
+    existingAdmin.passwordHash = passwordHash;
+    await saveUser(existingAdmin);
+  } else {
+    const users = await listUsers();
+    if (users.length === 0) {
+      // Create default admin user on first boot
+      await createUser('admin', adminPassword, 'admin', 'Administrator');
+    }
   }
 }
 

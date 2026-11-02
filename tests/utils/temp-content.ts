@@ -16,11 +16,11 @@ export interface TempContentDir {
 export async function createTempContentDir(): Promise<TempContentDir> {
   const { path: tempPath, cleanup } = await tmp.dir({ prefix: 'songbook-test-', unsafeCleanup: true });
 
-  // The content module expects a 'content' subdirectory
-  const contentPath = path.join(tempPath, 'content');
+  // New layout: everything lives under a data root (no legacy fallback).
+  const contentPath = path.join(tempPath, 'data', 'content');
 
-  // Revisions live next to the content directory, not inside it
-  const revisionsPath = path.join(tempPath, 'revisions');
+  // Revisions live as <data>/revisions (no legacy fallback).
+  const revisionsPath = path.join(tempPath, 'data', 'revisions');
 
   const dirs = [
     'library',
@@ -35,14 +35,17 @@ export async function createTempContentDir(): Promise<TempContentDir> {
     await mkdir(path.join(contentPath, dir), { recursive: true });
   }
   await mkdir(revisionsPath, { recursive: true });
+  await mkdir(path.join(tempPath, 'data', 'config'), { recursive: true });
+  await mkdir(path.join(tempPath, 'data', 'setlists'), { recursive: true });
+  await mkdir(path.join(tempPath, 'data', 'users'), { recursive: true });
   
   await writeFile(
-    path.join(contentPath, 'config', 'site.yaml'),
+    path.join(tempPath, 'data', 'config', 'site.yaml'),
     `title: Test Songbook\ndefaultLanguage: en\npdfPageSize: A4\nenableArtistPages: true\n`
   );
-  
+
   await writeFile(
-    path.join(contentPath, 'config', 'languages.yaml'),
+    path.join(tempPath, 'data', 'config', 'languages.yaml'),
     `languages: [en, es, fr]\ndefault: en\n`
   );
   

@@ -14,18 +14,12 @@ services:
       - ./package.json:/app/package.json
       - ./package-lock.json:/app/package-lock.json
       - ./src:/app/src
-      - ${SONGBOOK_DATA_DIR:-./data}/content:/app/content
-      - ${SONGBOOK_DATA_DIR:-./data}/music:/app/music
-      - ${SONGBOOK_DATA_DIR:-./data}/revisions:/app/revisions
-      - ${SONGBOOK_PARTITION_DIR:-./partitions}:/app/partitions
+      - ${SONGBOOK_DATA_DIR:-./data}:/app/data
     environment:
       - NODE_ENV=development
       - HOSTNAME=0.0.0.0
       - PORT=3000
-      - MUSIC_DIR=/app/music
-      - PARTITIONS_DIR=/app/partitions
-      - REVISIONS_DIR=/app/revisions
-      - CONTENT_DIR=/app/content
+      - DATA_DIR=/app/data
       # --- Revision garbage collection (0 keeps everything) ---
       - REVISIONS_MAX_COUNT=${SONGBOOK_REVISIONS_MAX_COUNT:-50}
       - REVISIONS_MAX_AGE_DAYS=${SONGBOOK_REVISIONS_MAX_AGE_DAYS:-90}
@@ -47,7 +41,7 @@ services:
       - SONGBOOK_NAVIDROME_FRAME_ORIGINS="${SONGBOOK_VOICES_NAVIDROME_SONGS_URL:-} ${SONGBOOK_NAVIDROME_SONGS_URL:-}"
       # Voice-matching vocabulary defaults to content/config/voices.json inside
       # the mounted content tree; uncomment to point at a custom JSON file.
-      # - SONGBOOK_VOICES_MATCHING_FILE=/app/content/config/voices.json
+      # - SONGBOOK_VOICES_MATCHING_FILE=/app/config/voices.json
       # --- Public/read-only instance base URL (used in setlist share links) ---
       - SONGBOOK_PUBLIC_URL=${SONGBOOK_PUBLIC_URL:-}
       # --- Setlist limits ---
@@ -82,20 +76,12 @@ services:
     ports:
       - "${SONGBOOK_PUBLIC_PORT:-9000}:3000"
     volumes:
-      - ${SONGBOOK_DATA_DIR:-./data}/content/artists:/app/content/artists:ro
-      - ${SONGBOOK_DATA_DIR:-./data}/content/library:/app/content/library:ro
-      - ${SONGBOOK_DATA_DIR:-./data}/content/config:/app/content/config:ro
-      - ${SONGBOOK_DATA_DIR:-./data}/content/users:/app/content/users
-      - ${SONGBOOK_DATA_DIR:-./data}/content/setlists:/app/content/setlists
-      - ${SONGBOOK_DATA_DIR:-./data}/revisions:/app/revisions:ro
-      - ${SONGBOOK_PARTITION_DIR:-./partitions}:/app/partitions:ro
+      - ${SONGBOOK_DATA_DIR:-./data}:/app/data
     environment:
       - NODE_ENV=production
       - HOSTNAME=0.0.0.0
       - PORT=3000
-      - PARTITIONS_DIR=/app/partitions
-      - REVISIONS_DIR=/app/revisions
-      - CONTENT_DIR=/app/content
+      - DATA_DIR=/app/data
       - LANGUAGES=${SONGBOOK_LANGUAGES:-en,es,fr}
       - LANGUAGES_DEFAULT=${SONGBOOK_LANGUAGES_DEFAULT:-es}
       - SONGBOOK_READONLY=1
@@ -111,9 +97,6 @@ services:
       - SONGBOOK_VOICES_NAVIDROME_USERNAME=${SONGBOOK_VOICES_NAVIDROME_USERNAME:-}
       - SONGBOOK_VOICES_NAVIDROME_PASSWORD=${SONGBOOK_VOICES_NAVIDROME_PASSWORD:-}
       - SONGBOOK_NAVIDROME_FRAME_ORIGINS=${SONGBOOK_NAVIDROME_FRAME_ORIGINS:-}
-      # Voice-matching vocabulary defaults to content/config/voices.json inside
-      # the mounted content tree; uncomment to point at a custom JSON file.
-      # - SONGBOOK_VOICES_MATCHING_FILE=/app/content/config/voices.json
       # --- Public/read-only instance base URL (used in setlist share links) ---
       - SONGBOOK_PUBLIC_URL=${SONGBOOK_PUBLIC_URL:-}
       # --- Setlist limits ---
