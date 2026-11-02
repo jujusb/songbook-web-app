@@ -207,7 +207,7 @@ services:
     volumes:
       - ./content:/app/content   # persists & is editable outside the container too
     environment:
-      - ADMIN_PASSWORD_HASH=...
+      - ADMIN_PASSWORD=...
 ```
 
 Because content is just files on a mounted volume, backup = `rsync`/`git`, and migration to another host = copy the folder.

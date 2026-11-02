@@ -76,7 +76,7 @@ They are set in `.env`, not inside the app.
 | `SONGBOOK_LANGUAGES_DEFAULT` | `LANGUAGES_DEFAULT` | default language |
 | `SONGBOOK_PUBLIC_PORT` | host port of `songbook-public` | public instance port (default `9000`) |
 | `SONGBOOK_PUBLIC_URL` | passed through | share-link base URL |
-| `ADMIN_PASSWORD` | hashed by `run.sh` to `ADMIN_PASSWORD_HASH` | seed password |
+| `ADMIN_PASSWORD` | passed through to `SONGBOOK_ADMIN_PASSWORD` by `run.sh` | seed password |
 
 `run.sh` also exports `COMPOSE_PROJECT_NAME`, `SONGBOOK_DATA_SUBDIR`, and `COMPOSE_FILE` for the
 duration of the Compose call.
