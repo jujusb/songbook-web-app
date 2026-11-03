@@ -224,6 +224,8 @@ export function normalizeNote(note: Partial<NoteMetadata>): NoteMetadata {
     last_edited: note.last_edited as string | undefined,
     created: (note.created as string) || new Date().toISOString(),
     tags: (note.tags as string[]) || [],
+    published: (note.published as boolean) || false,
+    publishedDates: (note.publishedDates as string[]) || [],
   };
 }
 // Initialize storage
