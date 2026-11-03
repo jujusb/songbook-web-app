@@ -172,6 +172,8 @@ export default async function SetlistPage({
         &larr; All Setlists
       </Link>
 
+      <SetlistHistoryBrowser setlistId={setlistId} canEdit={showEditActions} initialVersions={historyVersions} />
+
       <div className="flex items-center justify-between mb-6">
         <div>
           {setlist.image && (
@@ -237,7 +239,6 @@ export default async function SetlistPage({
         canGenerate={showVoiceShares}
       />
 
-      <SetlistHistoryBrowser setlistId={setlistId} canEdit={showEditActions} initialVersions={historyVersions} />
     </div>
   );
 }

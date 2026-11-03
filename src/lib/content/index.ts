@@ -377,6 +377,14 @@ export async function deleteSetlist(id: string): Promise<void> {
   await rm(filePath);
 }
 
+export async function getSetlistVersion(baseId: string, versionLabel: string): Promise<Setlist> {
+  const fp = path.join(getSetlistsDir(), baseId, versionLabel, 'setlist.yaml');
+  if (!existsSync(fp)) throw new Error('Version not found');
+  const raw = await readFile(fp, 'utf-8');
+  const parsed = yaml.load(raw);
+  return SetlistSchema.parse(parsed);
+}
+
 export async function listSetlistVersions(baseId: string): Promise<Array<{ label: string; path: string; title: string; date?: string; description?: string }>> {
   const versionsDir = path.join(getSetlistsDir(), baseId);
   if (!existsSync(versionsDir)) return [];

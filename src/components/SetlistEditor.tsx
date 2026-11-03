@@ -239,6 +239,27 @@ export function SetlistEditor({
     }
   };
 
+  const saveNewDate = async (copy: boolean) => {
+    const date = window.prompt("New date (YYYY-MM-DD)", new Date().toISOString().slice(0, 10));
+    if (!date || !initialSetlist?.id) return;
+    try {
+      const res = await fetch(`/api/setlists/${initialSetlist.id}/history/new-date`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ date, copy }),
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        setError(data?.error || "Failed to create date version");
+        return;
+      }
+      router.push(`/setlists/${initialSetlist.id}`);
+      router.refresh();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed");
+    }
+  };
+
   const lowerSearch = search.toLowerCase();
   const filteredSongs = search.trim()
     ? availableSongs.filter(
@@ -602,6 +623,24 @@ export function SetlistEditor({
         >
           {saving ? "Saving..." : isNew ? "Create Setlist" : "Save Changes"}
         </button>
+        {!isNew && initialSetlist?.id && (
+          <>
+            <button
+              type="button"
+              onClick={() => void saveNewDate(true)}
+              className="px-4 py-2 bg-neutral-700 text-white rounded-md text-sm hover:bg-neutral-800 transition-colors"
+            >
+              New date (copy)
+            </button>
+            <button
+              type="button"
+              onClick={() => void saveNewDate(false)}
+              className="px-4 py-2 border border-neutral-300 dark:border-neutral-700 rounded-md text-sm hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors"
+            >
+              New date (empty)
+            </button>
+          </>
+        )}
         <button
           type="button"
           onClick={() => router.back()}

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 
 interface HistoryVersion {
   label: string;
@@ -14,10 +15,13 @@ interface Props {
   setlistId: string;
   canEdit: boolean;
   initialVersions: HistoryVersion[];
+  currentVersion: string | null;
 }
 
-export function SetlistHistoryBrowser({ setlistId, canEdit, initialVersions }: Props) {
+export function SetlistHistoryBrowser({ setlistId, canEdit, initialVersions, currentVersion }: Props) {
+  const router = useRouter();
   const [versions, setVersions] = useState<HistoryVersion[]>(initialVersions);
+  const [selected, setSelected] = useState<string>(currentVersion || (initialVersions[0]?.label ?? ""));
   const [status, setStatus] = useState<string | null>(null);
 
   async function refresh() {
@@ -42,7 +46,7 @@ export function SetlistHistoryBrowser({ setlistId, canEdit, initialVersions }: P
     });
     if (res.ok) {
       setStatus(`Restored version ${label}`);
-      window.location.reload();
+      router.push(`/setlists/${setlistId}`);
     } else {
       setStatus("Restore failed");
     }
@@ -71,32 +75,40 @@ export function SetlistHistoryBrowser({ setlistId, canEdit, initialVersions }: P
         <h2 className="text-lg font-semibold">Version history</h2>
         {canEdit && (
           <div className="flex gap-2">
+            <button type="button" onClick={() => selected && restore(selected)} className="rounded-md border px-3 py-1.5 text-sm hover:bg-neutral-100 dark:hover:bg-neutral-800">Restore selected</button>
             <button type="button" onClick={() => saveNewDate(true)} className="rounded-md bg-blue-600 px-3 py-1.5 text-sm text-white hover:bg-blue-700">New date (copy)</button>
             <button type="button" onClick={() => saveNewDate(false)} className="rounded-md border px-3 py-1.5 text-sm hover:bg-neutral-100 dark:hover:bg-neutral-800">New date (empty)</button>
           </div>
         )}
       </div>
-      {versions.length === 0 ? (
-        <p className="text-sm text-neutral-500">No archived versions yet.</p>
-      ) : (
-        <ul className="space-y-2">
+      <div className="flex items-center gap-3">
+        <select
+          className="rounded-md border border-neutral-300 bg-white px-3 py-1.5 text-sm dark:border-neutral-700 dark:bg-neutral-900"
+          value={selected}
+          onChange={(e) => {
+            const label = e.target.value;
+            setSelected(label);
+            if (label) router.push(`/setlists/${setlistId}?version=${encodeURIComponent(label)}`);
+          }}
+        >
+          <option value="">Select version…</option>
           {versions.map((v) => (
-            <li key={v.label} className="flex items-center justify-between gap-3 rounded border border-neutral-200 px-3 py-2 text-sm dark:border-neutral-800">
-              <div>
-                <div className="font-medium">{v.title || v.label}</div>
-                <div className="text-xs text-neutral-500">{v.label}{v.date ? ` • ${v.date}` : ""}</div>
-                {v.description && <div className="text-xs text-neutral-400">{v.description}</div>}
-              </div>
-              {canEdit && (
-                <button
-                  type="button"
-                  onClick={() => restore(v.label)}
-                  className="rounded border px-2 py-1 text-xs hover:bg-neutral-100 dark:hover:bg-neutral-800"
-                >
-                  Restore
-                </button>
-              )}
-            </li>
+            <option key={v.label} value={v.label}>
+              {v.title || v.label}{v.date ? ` • ${v.date}` : ""}
+            </option>
+          ))}
+        </select>
+        {canEdit && (
+          <div className="flex gap-2">
+            <button type="button" onClick={() => saveNewDate(true)} className="rounded-md bg-blue-600 px-3 py-1.5 text-sm text-white hover:bg-blue-700">New date (copy)</button>
+            <button type="button" onClick={() => saveNewDate(false)} className="rounded-md border px-3 py-1.5 text-sm hover:bg-neutral-100 dark:hover:bg-neutral-800">New date (empty)</button>
+          </div>
+        )}
+      </div>
+      {versions.some((v) => v.description) && (
+        <ul className="mt-3 space-y-1">
+          {versions.filter((v) => v.description).map((v) => (
+            <li key={v.label} className="text-xs text-neutral-400">{v.label}{v.description ? ` — ${v.description}` : ""}</li>
           ))}
         </ul>
       )}
