@@ -31,7 +31,7 @@
     "chordsheetjs": "^15.5.2",
     "gray-matter": "^4.0.3",
     "jose": "^6.2.3",
-    "js-yaml": "^5.2.1",
+    "js-yaml": "^5.5.0",
     "mammoth": "^1.13.0",
     "music-metadata": "^11.13.0",
     "next": "16.2.10",
