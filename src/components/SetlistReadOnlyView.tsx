@@ -164,6 +164,10 @@ export function SetlistReadOnlyView({
     let cancelled = false;
 
     const fetchVoiceData = async () => {
+      if (safeMode !== "rehersal") {
+        if (!cancelled) { setVoiceLoading(false); setVoiceInitialized(false); }
+        return;
+      }
       if (visible.length === 0) {
         setVoiceLoading(false);
         setVoiceInitialized(true);
@@ -391,7 +395,7 @@ export function SetlistReadOnlyView({
                   </a>
                 )}
               </>
-            ) : (
+            ) : (safeMode === "rehersal" ? (
               <button
                 onClick={() => {
                   const groups = voiceData.get(song.songId);
@@ -418,7 +422,7 @@ export function SetlistReadOnlyView({
               >
                 🎤
               </button>
-            )}
+            ) : null)}
           </div>
         </button>
 
