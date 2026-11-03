@@ -61,6 +61,7 @@ interface SetlistReadOnlyViewProps {
   preferredVoice?: VoiceSection;
   voiceShares: { section: VoiceSection; tracks: { title: string; streamUrl: string; coverArtUrl?: string }[]; count: number; embeddable: boolean; url: string }[];
   canGenerate: boolean;
+  mode?: string;
 }
 
 const CHORD_NOTATION_OPTIONS = [
@@ -129,18 +130,23 @@ export function SetlistReadOnlyView({
   preferredVoice,
   voiceShares,
   canGenerate,
+  mode,
 }: SetlistReadOnlyViewProps) {
   const { t } = useTranslation();
 
   const visible = useMemo(() => songs.filter((song) => song.published !== false), [songs]);
 
-  const [displayMode, setDisplayMode] = useState<"all" | "list">(userPreferences.setlistLyricsView);
+  const safeMode = (mode || "guitarist").trim();
+  const modeAllowsChords = safeMode === "guitarist" || safeMode === "instrumentalist";
+  const showTranspose = safeMode === "guitarist";
+  const voiceCanGenerate = canGenerate && (safeMode === "guitarist" || safeMode === "rehersal");
+  const [displayMode, setDisplayMode] = useState<"all" | "list">(safeMode === "rehersal" ? "list" : userPreferences.setlistLyricsView);
   const [expandedSongIds, setExpandedSongIds] = useState<Set<string>>(new Set());
   const [transposeMap, setTransposeMap] = useState<Map<string, number>>(
     new Map(Object.entries(userPreferences.setlistTranspose))
   );
   const [globalOptions, setGlobalOptions] = useState({
-    showChords: userPreferences.showChords,
+    showChords: userPreferences.showChords && modeAllowsChords,
     showRepeats: userPreferences.showRepeats,
     chordNotation: userPreferences.chordNotation,
     inlineChords: userPreferences.inlineChords,
@@ -554,7 +560,7 @@ export function SetlistReadOnlyView({
       <SetlistVoicePlaylists
         setlistId={sourceSetlistId}
         shares={voiceShares}
-        canGenerate={canGenerate}
+        canGenerate={voiceCanGenerate}
         songs={visible.map((s) => ({
           songId: s.songId,
           lang: s.lang,
@@ -621,6 +627,7 @@ export function SetlistReadOnlyView({
         {showGlobalOptions ? (
           <div className="px-4 py-3 bg-neutral-100 dark:bg-neutral-800 border-b border-neutral-200 dark:border-neutral-800">
             <div className="flex flex-wrap items-center gap-4">
+              {modeAllowsChords && (
               <label className="flex items-center gap-2 text-sm">
                 <input
                   type="checkbox"
@@ -630,6 +637,7 @@ export function SetlistReadOnlyView({
                 />
                 <span>{t("setlist.showChords")}</span>
               </label>
+              )}
               <label className="flex items-center gap-2 text-sm">
                 <input
                   type="checkbox"

@@ -4,7 +4,7 @@ import { getSetlistLinkAllowedHosts, getSetlistLinkAllowHttp, getSetlistDefaultM
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 import Link from "next/link";
-import { getSetlist, getSong, getSongTranslation, getSongTranslations, getSongTitle, listSetlistVersions } from "@/lib/content";
+import { getSetlist, getSong, getSongTranslation, getSongTranslations, getSongTitle, listSetlistVersions, getSetlistVersion } from "@/lib/content";
 import { getSession, getCurrentUser, canEdit, canAdmin, canViewSetlist, canCreateSetlist } from "@/lib/auth";
 import { isSongItem, isNoteItem, isLinkItem, isRecurrentNoteItem } from "@/lib/content/schemas";
 import { renderNoteRefText } from "@/lib/note-render";
@@ -30,15 +30,19 @@ export default async function SetlistPage({
   searchParams,
 }: {
   params: Promise<{ setlistId: string }>;
-  searchParams: Promise<{ share?: string; mode?: string }>;
+  searchParams: Promise<{ share?: string; mode?: string; version?: string }>;
 }) {
   const { setlistId } = await params;
-  const { share, mode } = await searchParams;
+  const { share, mode, version: versionParam } = await searchParams;
   const shareParam = typeof share === "string" ? share : undefined;
 
   let setlist;
   try {
-    setlist = await getSetlist(setlistId);
+    if (versionParam) {
+      setlist = await getSetlistVersion(setlistId, versionParam);
+    } else {
+      setlist = await getSetlist(setlistId);
+    }
   } catch {
     notFound();
   }
@@ -71,6 +75,7 @@ export default async function SetlistPage({
 
   const voiceShares = await getSetlistVoiceShares(sourceSetlist, session?.role ?? 'public');
   const historyVersions = await listSetlistVersions(setlistId);
+  const currentVersion = versionParam || null;
   const presentHref = `/setlists/${setlistId}/present${
     shareParam ? `?share=${shareParam}` : ""
   }`;
@@ -172,7 +177,7 @@ export default async function SetlistPage({
         &larr; All Setlists
       </Link>
 
-      <SetlistHistoryBrowser setlistId={setlistId} canEdit={showEditActions} initialVersions={historyVersions} />
+      <SetlistHistoryBrowser setlistId={setlistId} canEdit={showEditActions} initialVersions={historyVersions} currentVersion={currentVersion} />
 
       <div className="flex items-center justify-between mb-6">
         <div>
@@ -237,6 +242,7 @@ export default async function SetlistPage({
         preferredVoice={currentUser?.voice}
         voiceShares={voiceShares}
         canGenerate={showVoiceShares}
+        mode={currentMode}
       />
 
     </div>
