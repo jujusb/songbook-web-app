@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { MarkdownView } from "@/components/MarkdownView";
+import { useTranslation } from "@/lib/i18n";
 import { AutoScrollControl } from "@/components/AutoScrollControl";
 import {
   notesApi,
@@ -15,11 +16,18 @@ import {
 
 interface NoteViewProps {
   noteId: string;
+  autoScrollSpeed?: number;
 }
 
-export function NoteView({ noteId }: NoteViewProps) {
+export function NoteView({ noteId, autoScrollSpeed }: NoteViewProps) {
   const router = useRouter();
+  const { locale } = useTranslation();
   const [note, setNote] = useState<NoteMetadata | null>(null);
+  const effectiveLanguage = note
+    ? (((note.sections || note.content || []).find((s) => s.type === "api") as { languages?: string[] } | undefined)?.languages?.includes(locale)
+        ? locale
+        : note.language)
+    : undefined;
   const [loading, setLoading] = useState(true);
   const [selectedDate, setSelectedDate] = useState(
     new Date().toISOString().slice(0, 10)
@@ -61,7 +69,7 @@ export function NoteView({ noteId }: NoteViewProps) {
       if (!section.api_url) continue;
       try {
         const url = interpolateApiUrl(section.api_url, {
-          lang: note.language,
+          lang: effectiveLanguage || note.language,
           date: selectedDate,
         });
         const res = await fetch("/api/notes/preview", {
@@ -118,7 +126,7 @@ export function NoteView({ noteId }: NoteViewProps) {
     return () => {
       cancelled = true;
     };
-  }, [note, selectedDate]);
+  }, [note, selectedDate, effectiveLanguage]);
 
   useEffect(() => {
     if (!note) return;
@@ -161,7 +169,7 @@ export function NoteView({ noteId }: NoteViewProps) {
         </div>
       </div>
       <p className="text-sm text-neutral-500">
-        {note.language} • {note.recurrent_type} • {note.periodic_behavior}
+        {(effectiveLanguage || note.language)} • {note.recurrent_type} • {note.periodic_behavior}
         {note.published ? " • published" : " • private"}
         {note.publishedDates && note.publishedDates.length ? ` (dates: ${note.publishedDates.join(", ")})` : ""}
       </p>
@@ -226,7 +234,7 @@ export function NoteView({ noteId }: NoteViewProps) {
       ) : (
         <MarkdownView text={previewText} />
       )}
-      <AutoScrollControl />
+      <AutoScrollControl initialSpeed={autoScrollSpeed} />
     </div>
   );
 }

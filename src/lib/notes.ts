@@ -37,7 +37,7 @@ export interface NoteSection {
   api_url?: string;
   resultSection?: string;
   authorization?: string;
-  languages?: string;
+  languages?: string[];
   periodic_behavior?: NotePeriodicBehavior;
 }
 
@@ -49,7 +49,7 @@ export interface NoteApiSource {
   api_url: string;
   resultSection?: string;
   authorization?: string;
-  languages?: string;
+  languages?: string[];
 }
 
 export interface NoteMetadata {

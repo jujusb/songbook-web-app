@@ -3,14 +3,9 @@
 import { useState, useCallback, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { notFound } from "next/navigation";
+import { languageLabelFor } from "@/lib/i18n/labels";
 import { notesApi, NoteMetadata, NoteSection, interpolateApiUrl, extractApiSectionText, getApiResultKeys, getNestedValue } from "@/lib/notes";
 
-const LANGUAGES = [
-  { value: "en-US", label: "English" },
-  { value: "es-ES", label: "Spanish" },
-  { value: "fr-FR", label: "French" },
-  { value: "de", label: "German" },
-];
 const RECURRENT_TYPES = [
   { value: "weekly", label: "Weekly" },
   { value: "monthly", label: "Monthly" },
@@ -45,6 +40,8 @@ interface NoteFormProps {
   initialNote?: NoteMetadata;
   isNew?: boolean;
   noteId?: string;
+  languages?: string[];
+  defaultLanguage?: string;
 }
 
 function normalizeTypeValue(value: unknown): string {
@@ -105,7 +102,8 @@ function emptySection(type: "manual" | "api"): NoteSection {
   return { type: "api", name: "custom-api", api_url: "", resultSection: "", authorization: "", typeStyles: undefined };
 }
 
-export function NoteForm({ initialNote, isNew = true, noteId }: NoteFormProps) {
+export function NoteForm({ initialNote, isNew = true, noteId, languages: languagesProp, defaultLanguage }: NoteFormProps) {
+  const LANGUAGES = (languagesProp && languagesProp.length ? languagesProp : ['en-US', 'es-ES', 'fr-FR']).map((code) => ({ value: code, label: languageLabelFor(code) }));
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(!isNew && !!noteId && !initialNote);
   const [saving, setSaving] = useState(false);
@@ -113,7 +111,7 @@ export function NoteForm({ initialNote, isNew = true, noteId }: NoteFormProps) {
   const [notFoundFlag, setNotFoundFlag] = useState(false);
 
   const [title, setTitle] = useState(initialNote?.title ?? "");
-  const [language, setLanguage] = useState(initialNote?.language ?? "en-US");
+  const [language, setLanguage] = useState(initialNote?.language ?? defaultLanguage ?? "en-US");
   const [recurrentType, setRecurrentType] = useState(initialNote?.recurrent_type ?? "weekly");
   const [recurrentSchedule, setRecurrentSchedule] = useState(initialNote?.recurrent_schedule ?? "sunday");
   const [periodicBehavior, setPeriodicBehavior] = useState(initialNote?.periodic_behavior ?? "same");
@@ -335,16 +333,31 @@ export function NoteForm({ initialNote, isNew = true, noteId }: NoteFormProps) {
       {error && <div className="mb-4 px-4 py-2 bg-red-50 dark:bg-red-950 border border-red-200 dark:border-red-800 rounded-md text-red-700 dark:text-red-300 text-sm">{error}</div>}
       <div className="space-y-4 mb-8">
         <div>
+          <label className="block text-sm font-medium mb-1">API applicable languages (multi-select; empty = all)</label>
+          <div className="flex items-center gap-2 mb-1">
+            <button type="button" onClick={() => setSections((prev) => prev.map((s) => s.type === "api" ? { ...s, languages: LANGUAGES.map((l) => l.value) } : s))} className="text-xs px-2 py-1 border rounded hover:bg-neutral-100 dark:hover:bg-neutral-800">All</button>
+            <button type="button" onClick={() => setSections((prev) => prev.map((s) => s.type === "api" ? { ...s, languages: [] } : s))} className="text-xs px-2 py-1 border rounded hover:bg-neutral-100 dark:hover:bg-neutral-800">Clear</button>
+          </div>
+          <select
+            multiple
+            value={(sections.find((s) => s.type === "api")?.languages) || []}
+            onChange={(e) => {
+              const opts = Array.from(e.target.selectedOptions).map((o) => o.value);
+              setSections((prev) => prev.map((s) => s.type === "api" ? { ...s, languages: opts } : s));
+            }}
+            className="w-full px-3 py-2 border rounded-md text-sm"
+            size={Math.min(LANGUAGES.length, 6)}
+          >
+            {LANGUAGES.map((l) => <option key={l.value} value={l.value}>{l.label}</option>)}
+          </select>
+        </div>
+      </div>
+      <div className="space-y-4 mb-8">
+        <div>
           <label className="block text-sm font-medium mb-1">Title *</label>
           <input type="text" value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Note title" className="w-full px-3 py-2 border rounded-md text-sm" />
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <div>
-            <label className="block text-sm font-medium mb-1">Language</label>
-            <select value={language} onChange={(e) => setLanguage(e.target.value)} className="w-full px-3 py-2 border rounded-md text-sm">
-              {LANGUAGES.map((l) => <option key={l.value} value={l.value}>{l.label}</option>)}
-            </select>
-          </div>
           <div>
             <label className="block text-sm font-medium mb-1">Recurrent type</label>
             <select value={recurrentType} onChange={(e) => setRecurrentType(e.target.value as "weekly" | "monthly" | "specific-dates" | "daily")} className="w-full px-3 py-2 border rounded-md text-sm">
