@@ -5,7 +5,7 @@ import { I18nProvider } from '@/lib/i18n';
 
 export function RootClientLayout({
   children,
-  initialLocale = 'en',
+  initialLocale = 'en-US',
   songLanguages,
 }: {
   children: ReactNode;

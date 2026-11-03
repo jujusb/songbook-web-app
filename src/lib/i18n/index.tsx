@@ -13,12 +13,13 @@ import en from './locales/en';
 import es from './locales/es';
 import fr from './locales/fr';
 import { languageLabelFor } from './labels';
+import { normalizeLanguageCode } from '@/lib/language-codes';
 import type { Translations } from './locales/en';
 
 const LOCALE_STORAGE_KEY = 'songbook-ui-locale';
 const LOCALE_MAX_AGE = 31536000;
 
-const locales: Record<string, Translations> = { en, es, fr };
+const locales: Record<string, Translations> = { 'en-US': en, 'es-ES': es, 'fr-FR': fr };
 
 /**
  * Persist the locale in both localStorage (client preference) and a cookie
@@ -46,7 +47,7 @@ interface I18nContextValue {
 }
 
 const I18nContext = createContext<I18nContextValue>({
-  locale: 'en',
+  locale: 'en-US',
   t: (key: string) => key,
   languageLabel: (code: string) => code.toUpperCase(),
   setLocale: () => {},
@@ -72,7 +73,7 @@ function interpolate(template: string, params?: Record<string, string | number>)
 
 export function I18nProvider({
   children,
-  initialLocale = 'en',
+  initialLocale = 'en-US',
   songLanguages,
 }: {
   children: ReactNode;
@@ -93,7 +94,8 @@ export function I18nProvider({
     // and the client agree on the language.
     let next: string | null = null;
     try {
-      const fromUrl = new URLSearchParams(window.location.search).get('lang');
+      const fromUrlRaw = new URLSearchParams(window.location.search).get('lang');
+      const fromUrl = fromUrlRaw ? normalizeLanguageCode(fromUrlRaw) : null;
       if (fromUrl && songbookCodes.includes(fromUrl)) next = fromUrl;
     } catch {
       // URL not available
@@ -119,13 +121,13 @@ export function I18nProvider({
     }
   }, [songbookCodes]);
 
-  const translations = locales[locale] || locales['en'];
+  const translations = locales[locale] || locales['en-US'];
 
   const t = useCallback(
     (key: string, params?: Record<string, string | number>): string => {
       const value = resolve(translations, key);
       if (value === undefined) {
-        const fallback = resolve(locales['en'], key);
+        const fallback = resolve(locales['en-US'], key);
         if (fallback === undefined) return key;
         return interpolate(fallback, params);
       }

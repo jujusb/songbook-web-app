@@ -1,3 +1,4 @@
+import { toFileCode, toAppCode } from '@/lib/language-codes';
 import { readdir, readFile, writeFile, mkdir, rm, rename } from 'fs/promises';
 import { existsSync } from 'fs';
 import path from 'path';
@@ -89,7 +90,7 @@ export async function listSongs(options: ListSongsOptions = {}): Promise<SongLis
   const libDir = getLibraryDir();
   const songs: SongListItem[] = [];
   const langConfig = await getLanguagesConfig().catch(() => null);
-  const defaultLang = langConfig?.default ?? 'en';
+  const defaultLang = langConfig?.default ?? 'en-US';
 
   try {
     const albumDirs = await readdir(libDir, { withFileTypes: true });
@@ -112,7 +113,7 @@ export async function listSongs(options: ListSongsOptions = {}): Promise<SongLis
             const files = await readdir(songPath);
             translations = files
               .filter((f) => f.endsWith('.cho'))
-              .map((f) => path.basename(f, '.cho'));
+              .map((f) => toAppCode(path.basename(f, '.cho')));
             // Read published status from each translation
             for (const lang of translations) {
               publishedMap[lang] = await isPublishedTranslation(songPath, lang);
@@ -131,9 +132,9 @@ export async function listSongs(options: ListSongsOptions = {}): Promise<SongLis
           const choTitles: Record<string, string> = {};
           for (const lang of translations) {
             if (lang === defaultLang) continue;
-            if (meta.titles?.[lang]) continue;
+            if (meta.titles?.[lang] || meta.titles?.[toFileCode(lang)]) continue;
             try {
-              const choRaw = await readFile(path.join(songPath, `${lang}.cho`), 'utf-8');
+              const choRaw = await readFile(path.join(songPath, `${toFileCode(lang)}.cho`), 'utf-8');
               const { data, content } = matter(choRaw);
               const fmTitle =
                 typeof data.title === 'string' ? data.title.trim() : '';
@@ -185,7 +186,8 @@ export async function getSongIdsByLanguage(lang: string): Promise<string[]> {
  * Falls back to the song's default title when no language-specific title exists.
  */
 export function resolveLocalizedTitle(meta: SongMeta, lang: string): string {
-  return meta.titles?.[lang] || meta.title;
+  const titleKey = (meta.titles?.[lang] ?? meta.titles?.[toFileCode(lang)]);
+  return (typeof titleKey === 'string' ? titleKey : meta.title);
 }
 
 /**
@@ -235,7 +237,8 @@ export function extractBodyKey(body: string): string | null {
 export async function getSongTitle(songId: string, lang: string): Promise<string> {
   try {
     const meta = await getSong(songId);
-    if (meta.titles?.[lang]) return meta.titles[lang];
+    const resolved = meta.titles?.[lang] ?? meta.titles?.[toFileCode(lang)];
+    if (resolved) return resolved;
     try {
       const { meta: transMeta, body } = await getSongTranslation(songId, lang);
       if (transMeta.title) return transMeta.title;
@@ -257,7 +260,8 @@ export async function getSongTitle(songId: string, lang: string): Promise<string
 export async function getAlbumTitle(albumId: string, lang: string): Promise<string> {
   try {
     const album = await getAlbum(albumId);
-    return album.titles?.[lang] || album.title;
+    const albumTitle = album.titles?.[lang] ?? album.titles?.[toFileCode(lang)];
+  return (typeof albumTitle === 'string' ? albumTitle : album.title);
   } catch {
     return albumId;
   }
@@ -417,7 +421,7 @@ export async function getSongTranslation(
 ): Promise<{ meta: SongTranslationFrontmatter; body: string; capo: number | null; key: string | null }> {
   const songPath = await findSongPath(id);
   if (!songPath) throw new Error(`Song not found: ${id}`);
-  const filePath = path.join(songPath, `${lang}.cho`);
+  const filePath = path.join(songPath, `${toFileCode(lang)}.cho`);
   const raw = await readFile(filePath, 'utf-8');
   const { data, content } = matter(raw);
   const meta = SongTranslationFrontmatterSchema.parse(data);
@@ -466,7 +470,7 @@ export async function getSongBody(
  */
 async function isPublishedTranslation(songPath: string, lang: string): Promise<boolean> {
   try {
-    const raw = await readFile(path.join(songPath, `${lang}.cho`), 'utf-8');
+    const raw = await readFile(path.join(songPath, `${toFileCode(lang)}.cho`), 'utf-8');
     const { data } = matter(raw);
     return data?.published === true;
   } catch {
@@ -488,7 +492,7 @@ export async function getSongTranslations(id: string): Promise<string[]> {
   const entries = await readdir(songPath);
   const translations = entries
     .filter((f) => f.endsWith('.cho'))
-    .map((f) => path.basename(f, '.cho'));
+    .map((f) => toAppCode(path.basename(f, '.cho')));
   if (!isReadOnly()) return translations;
 
   const published: string[] = [];
@@ -516,7 +520,7 @@ export async function saveSongTranslation(
   if (!songPath) throw new Error(`Song not found: ${id}`);
 
   // Save revision of current version before overwriting
-  const filePath = path.join(songPath, `${lang}.cho`);
+  const filePath = path.join(songPath, `${toFileCode(lang)}.cho`);
   if (existsSync(filePath)) {
     await saveRevision(id, lang, filePath);
   }
@@ -545,12 +549,12 @@ export async function addSongTranslation(
   }
   if (!songPath) throw new Error(`Song not found: ${id}`);
 
-  if (existsSync(path.join(songPath, `${lang}.cho`))) {
+  if (existsSync(path.join(songPath, `${toFileCode(lang)}.cho`))) {
     throw new Error('TRANSLATION_EXISTS');
   }
 
   const meta = await getSong(id);
-  const title = meta.titles?.[lang] || meta.title;
+  const title = (meta.titles?.[lang] ?? meta.titles?.[toFileCode(lang)] ?? meta.title);
   const frontmatter: SongTranslationFrontmatter = {
     language: lang,
     translator: null,
@@ -574,7 +578,7 @@ export async function deleteSongTranslation(id: string, lang: string): Promise<s
     return remaining;
   }
 
-  const filePath = path.join(songPath, `${lang}.cho`);
+  const filePath = path.join(songPath, `${toFileCode(lang)}.cho`);
   await saveRevision(id, lang, filePath);
   await rm(filePath);
   return remaining;
@@ -642,7 +646,7 @@ export async function getLanguagesConfig(): Promise<LanguagesConfig> {
     : [...FALLBACK_LANGUAGES];
   return LanguagesConfigSchema.parse({
     languages,
-    default: process.env.LANGUAGES_DEFAULT || languages[0] || 'en',
+    default: process.env.LANGUAGES_DEFAULT || languages[0] || 'en-US',
   });
 }
 
@@ -655,7 +659,7 @@ export async function getSiteConfig(): Promise<SiteConfig> {
     if ((err as NodeJS.ErrnoException).code !== 'ENOENT') throw err;
     const defaults: Record<string, unknown> = {
       title: 'Songbook',
-      defaultLanguage: 'en',
+      defaultLanguage: 'en-US',
       pdfPageSize: 'A4',
       enableArtistPages: true,
     };

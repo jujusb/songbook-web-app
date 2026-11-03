@@ -60,7 +60,7 @@ export type { VisualRenderOptions };
  */
 export function renderReferencesHtml(
   references: { type: string; label: string; target: string; text?: string; texts?: Record<string, string>; highlight?: string; highlights?: Record<string, string> }[],
-  lang = 'en'
+  lang = 'en-US'
 ): string {
   if (references.length === 0) return '';
   const items = references

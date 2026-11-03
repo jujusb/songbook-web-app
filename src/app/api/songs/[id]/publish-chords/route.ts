@@ -1,3 +1,4 @@
+import { toFileCode } from '@/lib/language-codes';
 import { NextResponse } from "next/server";
 import { getSession, canEdit, canEditSong, getCurrentUser } from "@/lib/auth";
 import { isReadOnlyFor } from "@/lib/readonly";
@@ -13,7 +14,7 @@ export async function POST(
 
   const { id } = await params;
   const { searchParams } = new URL(request.url);
-  const lang = searchParams.get("lang") || "en";
+  const lang = searchParams.get("lang") || "en-US";
 
   const session = await getSession();
   const user = await getCurrentUser();
@@ -40,7 +41,7 @@ export async function POST(
     };
 
     // Save revision before updating
-    await saveRevision(id, lang, songPath + `/${lang}.cho`);
+    await saveRevision(id, lang, songPath + `/${toFileCode(lang)}.cho`);
 
     // Save updated translation
     await saveSongTranslation(id, lang, updatedMeta, body);
@@ -68,7 +69,7 @@ export async function DELETE(
 
   const { id } = await params;
   const { searchParams } = new URL(request.url);
-  const lang = searchParams.get("lang") || "en";
+  const lang = searchParams.get("lang") || "en-US";
 
   const session = await getSession();
   const user = await getCurrentUser();
@@ -95,7 +96,7 @@ export async function DELETE(
     };
 
     // Save revision before updating
-    await saveRevision(id, lang, songPath + `/${lang}.cho`);
+    await saveRevision(id, lang, songPath + `/${toFileCode(lang)}.cho`);
 
     // Save updated translation
     await saveSongTranslation(id, lang, updatedMeta, body);

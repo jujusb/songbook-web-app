@@ -1,3 +1,4 @@
+import { toFileCode } from '@/lib/language-codes';
 import { readdir, readFile, mkdir, cp, rename, rm, copyFile } from 'fs/promises';
 import { existsSync } from 'fs';
 import { getDataDir } from './paths';
@@ -80,7 +81,7 @@ export function getRevisionsDir(songId: string, lang: string): string {
   return path.join(
     getRevisionsRoot(),
     assertSafeSegment(songId, 'song id'),
-    assertSafeSegment(lang, 'language')
+    assertSafeSegment(toFileCode(lang), 'language')
   );
 }
 

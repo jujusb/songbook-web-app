@@ -119,7 +119,7 @@ export function UserManagement() {
   };
 
   const addPermission = () => {
-    setSelectedPermissions([...selectedPermissions, { type: 'song', id: '', lang: languages[0] || 'en' }]);
+    setSelectedPermissions([...selectedPermissions, { type: 'song', id: '', lang: languages[0] || 'en-US' }]);
   };
 
   const removePermission = (index: number) => {

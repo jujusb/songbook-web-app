@@ -6,9 +6,9 @@ import { notFound } from "next/navigation";
 import { notesApi, NoteMetadata, NoteSection, interpolateApiUrl, extractApiSectionText, getApiResultKeys, getNestedValue } from "@/lib/notes";
 
 const LANGUAGES = [
-  { value: "en", label: "English" },
-  { value: "es", label: "Spanish" },
-  { value: "fr", label: "French" },
+  { value: "en-US", label: "English" },
+  { value: "es-ES", label: "Spanish" },
+  { value: "fr-FR", label: "French" },
   { value: "de", label: "German" },
 ];
 const RECURRENT_TYPES = [
@@ -113,7 +113,7 @@ export function NoteForm({ initialNote, isNew = true, noteId }: NoteFormProps) {
   const [notFoundFlag, setNotFoundFlag] = useState(false);
 
   const [title, setTitle] = useState(initialNote?.title ?? "");
-  const [language, setLanguage] = useState(initialNote?.language ?? "en");
+  const [language, setLanguage] = useState(initialNote?.language ?? "en-US");
   const [recurrentType, setRecurrentType] = useState(initialNote?.recurrent_type ?? "weekly");
   const [recurrentSchedule, setRecurrentSchedule] = useState(initialNote?.recurrent_schedule ?? "sunday");
   const [periodicBehavior, setPeriodicBehavior] = useState(initialNote?.periodic_behavior ?? "same");

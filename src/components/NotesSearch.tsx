@@ -14,7 +14,7 @@ export const NotesSearch: React.FC<NotesSearchProps> = ({
   const [results, setResults] = useState<NoteSearchResult[]>([]);
   const [loading, setLoading] = useState(false);
   const [recurrentType, setRecurrentType] = useState<string | undefined>(undefined);
-  const [language, setLanguage] = useState<string>('en');
+  const [language, setLanguage] = useState<string>('en-US');
   
   const handleSearch = async () => {
     const filters: { recurrentType?: string; language: string } = {
@@ -69,11 +69,11 @@ export const NotesSearch: React.FC<NotesSearchProps> = ({
         <select
           className="w-full p-2 border rounded focus:ring-2 focus-blue-500"
           value={language}
-          onChange={(e) => setLanguage(e.target.value || 'en')}
+          onChange={(e) => setLanguage(e.target.value || 'en-US')}
         >
-          <option value="en">English</option>
-          <option value="es">Spanish</option>
-          <option value="fr">French</option>
+          <option value="en-US">English</option>
+          <option value="es-ES">Spanish</option>
+          <option value="fr-FR">French</option>
           <option value="de">German</option>
         </select>
         

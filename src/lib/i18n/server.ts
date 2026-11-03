@@ -3,7 +3,7 @@ import es from './locales/es';
 import fr from './locales/fr';
 import type { Translations } from './locales/en';
 
-const locales: Record<string, Translations> = { en, es, fr };
+const locales: Record<string, Translations> = { 'en-US': en, 'es-ES': es, 'fr-FR': fr };
 const LOCALE_STORAGE_KEY = 'songbook-ui-locale';
 
 function resolve(obj: unknown, path: string): string | undefined {
@@ -24,11 +24,11 @@ function interpolate(template: string, params?: Record<string, string | number>)
 }
 
 export function createT(uiLocale: string) {
-  const translations = locales[uiLocale] || locales['en'];
+  const translations = locales[uiLocale] || locales['en-US'];
   return (key: string, params?: Record<string, string | number>): string => {
     const value = resolve(translations, key);
     if (value === undefined) {
-      const fallback = resolve(locales['en'], key);
+      const fallback = resolve(locales['en-US'], key);
       if (fallback === undefined) return key;
       return interpolate(fallback, params);
     }
@@ -46,7 +46,7 @@ const LANGUAGE_TAG = /^[a-zA-Z]{2,8}([_-][a-zA-Z0-9]{1,8})*$/;
 
 export function getLocale(cookieStore?: {
   get: (name: string) => { value: string } | undefined;
-}, fallback = 'en'): string {
+}, fallback = 'en-US'): string {
   if (cookieStore) {
     const cookie = cookieStore.get(LOCALE_STORAGE_KEY);
     if (cookie && LANGUAGE_TAG.test(cookie.value)) return cookie.value;

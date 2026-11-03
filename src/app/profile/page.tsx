@@ -15,7 +15,7 @@ export default async function ProfilePage() {
   if (!user) redirect("/login");
 
   const cookieStore = await cookies();
-  const uiLocale = getLocale(cookieStore, 'en');
+  const uiLocale = getLocale(cookieStore, 'en-US');
   const t = createT(uiLocale);
 
   return (

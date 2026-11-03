@@ -4,6 +4,7 @@ import path from 'path';
 import * as yaml from 'js-yaml';
 import { getContentDir } from './paths';
 import { normalizeNote, type NoteMetadata } from '@/lib/notes';
+import { toFileCode, toAppCode } from '@/lib/language-codes';
 
 export function getNotesDir(): string {
   return path.join(getContentDir(), 'notes');
@@ -50,11 +51,12 @@ export async function getNote(noteId: string): Promise<NoteMetadata | null> {
   if (!existsSync(p)) return null;
   const raw = await readFile(p, 'utf-8');
   const parsed = yaml.load(raw) as unknown;
-  return normalizeNote(parsed as Partial<NoteMetadata>);
+  return normalizeNote({ ...(parsed as object), ...(parsed as any)?.language != null ? { language: toAppCode((parsed as any).language) } : {} });
 }
 
 export async function saveNote(note: Partial<NoteMetadata>): Promise<NoteMetadata> {
   const normalized = normalizeNote({ ...note, created: note.created || new Date().toISOString() });
+  normalized.language = toFileCode(normalized.language);
   const id = sanitizeId(normalized.id) || `note-${Date.now()}`;
   normalized.id = id;
   const noteDir = getNoteDir(id);

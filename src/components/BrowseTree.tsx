@@ -111,7 +111,7 @@ function SongNode({
   canEdit: boolean;
 }) {
   const { t, locale, languageLabel } = useTranslation();
-  const displayLang = song.translations.includes(locale) ? locale : (song.translations[0] || "en");
+  const displayLang = song.translations.includes(locale) ? locale : (song.translations[0] || "en-US");
   const displayTitle =
     song.titles?.[displayLang] ||
     song.choTitles?.[displayLang] ||

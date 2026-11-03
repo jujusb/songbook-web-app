@@ -44,7 +44,7 @@ export async function POST(request: Request) {
       );
     }
 
-    const language = lang || "en";
+    const language = lang || "en-US";
     // Songs default to "No Album" unless the user explicitly picked an album
     const targetAlbum = albumId || NO_ALBUM_ID;
 

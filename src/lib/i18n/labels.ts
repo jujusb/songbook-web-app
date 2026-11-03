@@ -1,7 +1,7 @@
 const displayNamesCache = new Map<string, Intl.DisplayNames>();
 
 export const FALLBACK_LANGUAGES = [
-  'en',
+  'en-US',
 ] as const;
 
 function capitalizeFirst(s: string): string {
@@ -10,7 +10,7 @@ function capitalizeFirst(s: string): string {
 
 /**
  * Resolve a language's native label via Intl.DisplayNames
- * (e.g. `en` → "English", `es` → "Español", `ja` → "日本語").
+ * (e.g. `en-US` → "English", `es-ES` → "Español", `ja` → "日本語").
  * Unknown codes fall back to the uppercased code (previous behavior).
  */
 export function languageLabelFor(code: string): string {

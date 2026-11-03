@@ -1,3 +1,4 @@
+import { toFileCode } from '@/lib/language-codes';
 import { readFile } from 'fs/promises';
 import path from 'path';
 import { getSongTitle, getContentDir } from '@/lib/content';
@@ -234,8 +235,10 @@ function getVoiceLanguageParams(
   lang: string,
   config: Record<string, Partial<VoiceLanguageParams>>,
 ): VoiceLanguageParams {
-  const configured = config[lang];
-  const builtin = LANG_PARAMS[lang] ?? LANG_PARAMS['es'];
+  // Matching keys use the file code (`es`, `en`), so `es-ES` resolves to `es`.
+  const key = toFileCode(lang);
+  const configured = config[key];
+  const builtin = LANG_PARAMS[key] ?? LANG_PARAMS['es'];
   return {
     specificLabels: configured?.specificLabels ?? builtin.specificLabels ?? [],
     Boy: [...ALL_BOYS, ...(configured?.Boy ?? builtin.Boy ?? [])],

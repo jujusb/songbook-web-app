@@ -17,7 +17,7 @@ export const NotesEditor: React.FC<NotesEditorProps> = ({
   const [note, setNote] = useState<NoteMetadata>({
     id: noteId || `note-${Date.now()}`,
     title: '',
-    language: 'en',
+    language: 'en-US',
     recurrent_type: 'weekly',
     recurrent_schedule: 'sunday',
     periodic_behavior: 'same',
@@ -66,11 +66,11 @@ export const NotesEditor: React.FC<NotesEditorProps> = ({
               <select
                 className="w-full p-2 border rounded focus:ring-2 focus:ring-blue-500"
                 value={note.language}
-                onChange={(e) => setNote({ ...note, language: e.target.value as 'en' | 'es' | 'fr' | 'de' })}
+                onChange={(e) => setNote({ ...note, language: e.target.value as 'en-US' | 'es-ES' | 'fr-FR' | 'de' })}
               >
-                <option value="en">English</option>
-                <option value="es">Spanish</option>
-                <option value="fr">French</option>
+                <option value="en-US">English</option>
+                <option value="es-ES">Spanish</option>
+                <option value="fr-FR">French</option>
                 <option value="de">German</option>
               </select>
             </div>

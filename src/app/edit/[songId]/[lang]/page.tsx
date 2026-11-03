@@ -2,6 +2,7 @@ import { notFound, redirect } from "next/navigation";
 import { getSong, getSongTitle, getSongTranslation, getSongTranslations, getLanguagesConfig, getSongIdsByLanguage } from "@/lib/content";
 import { getSession, canEdit, canEditSong, getCurrentUser } from "@/lib/auth";
 import { isReadOnly } from "@/lib/readonly";
+import { normalizeLanguageCode } from "@/lib/language-codes";
 import { EditPageClient } from "@/components/EditPageClient";
 
 export default async function EditPage({
@@ -14,7 +15,8 @@ export default async function EditPage({
   if (isReadOnly()) notFound();
   const session = await getSession();
   const user = await getCurrentUser();
-  const { songId, lang } = await params;
+  const { songId, lang: rawLang } = await params;
+  const lang = normalizeLanguageCode(rawLang);
   if (!canEdit(session?.role ?? null) && !canEditSong(user, songId, lang)) redirect("/login");
   const { references: showRefs } = await searchParams;
 

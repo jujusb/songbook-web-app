@@ -32,7 +32,7 @@ export default async function LoginPage({
   const canRegister = !isReadOnlyFor('register');
   
   const cookieStore = await cookies();
-  const uiLocale = getLocale(cookieStore, 'en');
+  const uiLocale = getLocale(cookieStore, 'en-US');
   const t = createT(uiLocale);
 
   return (

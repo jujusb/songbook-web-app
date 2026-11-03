@@ -94,7 +94,7 @@ export function SetlistEditor({
       }
       const song = songMap.get(songId);
       if (!song) return;
-      const lang = song.translations[0] || "en";
+      const lang = song.translations[0] || "en-US";
       setSongs((prev) => [...prev, { type: "song", songId, lang }]);
       setSearch("");
     },

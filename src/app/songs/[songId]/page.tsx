@@ -28,6 +28,7 @@ import { NavidromeShareButton } from "@/components/NavidromeShareButton";
 import { ActionMenu } from "@/components/ActionMenu";
 import { CollapsibleSection } from "@/components/CollapsibleSection";
 import { T } from "@/components/Translate";
+import { normalizeLanguageCode } from "@/lib/language-codes";
 import { getNavidromeConfig } from "@/lib/navidrome/config";
 import { SpotifyPlayer } from "@/components/SpotifyPlayer";
 import { YouTubePlayer } from "@/components/YouTubePlayer";
@@ -71,7 +72,8 @@ export default async function SongPage({
   searchParams: Promise<{ lang?: string; parts?: string }>;
 }) {
   const { songId } = await params;
-  const { lang: langParam, parts } = await searchParams;
+  const { lang: langParamRaw, parts } = await searchParams;
+  const langParam = langParamRaw ? normalizeLanguageCode(langParamRaw) : langParamRaw;
 
   let meta;
   try {

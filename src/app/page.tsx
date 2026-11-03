@@ -23,7 +23,7 @@ const FEATURES = [
 
 export default async function HomePage() {
   const cookieStore = await cookies();
-  const langConfig = await getLanguagesConfig().catch(() => ({ default: 'en', languages: ['en'] }));
+  const langConfig = await getLanguagesConfig().catch(() => ({ default: 'en-US', languages: ['en-US'] }));
   const uiLocale = getLocale(cookieStore, langConfig.default);
   const t = createT(uiLocale);
   const session = await getSession();

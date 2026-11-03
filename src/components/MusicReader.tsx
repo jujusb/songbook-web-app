@@ -283,7 +283,7 @@ export function MusicReader({
                   }`}
                 >
                   {languageLabel(l)}
-                  {l === "es" && (
+                  {l === "es-ES" && (
                     <span className="ml-0.5 opacity-60">*</span>
                   )}
                 </button>

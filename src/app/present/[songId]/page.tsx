@@ -1,4 +1,5 @@
 import { notFound } from "next/navigation";
+import { normalizeLanguageCode } from "@/lib/language-codes";
 import { getSong, getSongTranslation, getSongTranslations, getSongTitle } from "@/lib/content";
 import { getCurrentUser } from "@/lib/auth";
 import { PresentationView } from "@/components/PresentationView";
@@ -11,7 +12,8 @@ export default async function PresentPage({
   searchParams: Promise<{ lang?: string; display?: string }>;
 }) {
   const { songId } = await params;
-  const { lang: langParam, display } = await searchParams;
+  const { lang: langParamRaw, display } = await searchParams;
+  const langParam = langParamRaw ? normalizeLanguageCode(langParamRaw) : langParamRaw;
 
   let meta;
   try {

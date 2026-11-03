@@ -331,7 +331,7 @@ export function ChordSheet({
   songCapo,
   references = [],
   idPrefix = "",
-  lang = "en",
+  lang = "en-US",
   inlineChords = false,
   showRepeats = true,
   showChords = true,

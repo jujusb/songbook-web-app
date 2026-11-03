@@ -4,6 +4,7 @@
  */
  
 // Note structure and types
+import { toAppCode, toFileCode } from './language-codes';
 export type NotePeriodicBehavior = 'same' | 'different_per_period';
 
 export interface NoteOrderedField {
@@ -211,7 +212,7 @@ export function normalizeNote(note: Partial<NoteMetadata>): NoteMetadata {
   return {
     id: (note.id as string) || `note-${Date.now()}`,
     title: (note.title as string) || '',
-    language: (note.language as string) || 'en',
+    language: toAppCode((note.language as string) || 'en-US'),
     recurrent_type: (note.recurrent_type as NoteMetadata['recurrent_type']) || 'weekly',
     recurrent_schedule: (note.recurrent_schedule as string) || 'sunday',
     periodic_behavior: (note.periodic_behavior as NoteMetadata['periodic_behavior']) || 'same',
@@ -343,6 +344,7 @@ export function interpolateApiUrl(template: string, context: NoteApiContext = {}
 
   // Plain date token
   result = result.replace(/\$\{DATE\}|\$DATE/g, () => formatDate(date, defaultFormat));
+  result = result.replace(/\$\{LANG_SHORT\}|\$LANG_SHORT/g, () => (lang ? toFileCode(lang) : ''));
   result = result.replace(/\$\{LANG\}|\$LANG/g, () => lang);
 
   return result;

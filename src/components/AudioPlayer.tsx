@@ -72,7 +72,7 @@ export function AudioPlayer({
         <div key={l}>
           <div className="text-xs font-medium text-neutral-500 mb-1 uppercase tracking-wider">
             {l}
-            {l === "es" && (
+            {l === "es-ES" && (
               <span className="text-amber-500 ml-1 text-[10px]">
                 ({t("audio.original")})
               </span>

@@ -101,7 +101,7 @@ function HighlightedText({ text, highlight }: { text: string; highlight?: string
 function ReferenceText({
   reference: r,
   highlight: highlightOverride,
-  lang = "en",
+  lang = "en-US",
 }: {
   reference: Reference;
   highlight?: string;
@@ -126,7 +126,7 @@ interface ReferencePanelProps {
 
 export function ReferencePanel({
   references,
-  lang = "en",
+  lang = "en-US",
   variant = "sidebar",
   defaultOpen = false,
 }: ReferencePanelProps) {

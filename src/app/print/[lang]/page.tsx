@@ -7,6 +7,7 @@ import { resolveScopeSongs } from "@/lib/export/song-scope";
 import { loadPrintSongs } from "@/lib/print/load";
 import { PrintPageClient } from "@/components/PrintPageClient";
 import { languageLabelFor } from "@/lib/i18n/labels";
+import { normalizeLanguageCode } from '@/lib/language-codes';
 
 export default async function PrintPage({
   params,
@@ -28,7 +29,8 @@ export default async function PrintPage({
     tocColumns?: string;
   }>;
 }) {
-  const { lang: primaryLang } = await params;
+  const { lang: primaryRaw } = await params;
+  const primaryLang = normalizeLanguageCode(primaryRaw);
   const {
     song: songId,
     album: albumId,

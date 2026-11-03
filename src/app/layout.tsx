@@ -59,7 +59,7 @@ export default async function RootLayout({
   let showAdminActions = false;
   let showCreateSetlist = false;
   const cookieStore = await cookies();
-  let fallbackLocale = 'en';
+  let fallbackLocale = 'en-US';
   let songLanguages: string[] | undefined;
   try {
     const langConfig = await getLanguagesConfig();

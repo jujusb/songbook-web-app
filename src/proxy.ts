@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 import { SESSION_COOKIE_NAME, verifySessionToken } from '@/lib/auth/session';
 import { evaluateAccess } from '@/lib/auth/route-guard';
+import { normalizeLanguageCode } from '@/lib/language-codes';
 
 import { getSetlistLinkAllowedHosts, getSetlistLinkAllowHttp, getNavidromeFrameOrigins } from '@/lib/config';
 
@@ -24,10 +25,11 @@ export async function proxy(request: NextRequest) {
   const { pathname, searchParams } = request.nextUrl;
 
   const lang = searchParams.get('lang');
+  const normalizedLang = lang ? normalizeLanguageCode(lang) : null;
   const shouldSetLocale =
-    !!lang &&
-    LOCALE_PATTERN.test(lang) &&
-    request.cookies.get(LOCALE_COOKIE)?.value !== lang;
+    !!normalizedLang &&
+    LOCALE_PATTERN.test(normalizedLang) &&
+    request.cookies.get(LOCALE_COOKIE)?.value !== normalizedLang;
 
   const token = request.cookies.get(SESSION_COOKIE_NAME)?.value;
   const session = token ? await verifySessionToken(token) : null;
@@ -47,8 +49,8 @@ export async function proxy(request: NextRequest) {
   const response = NextResponse.next();
   response.headers.set('Content-Security-Policy', buildCsp());
   response.headers.set('X-Content-Type-Options', 'nosniff');
-  if (shouldSetLocale && lang) {
-    response.cookies.set(LOCALE_COOKIE, lang, {
+  if (shouldSetLocale && normalizedLang) {
+    response.cookies.set(LOCALE_COOKIE, normalizedLang, {
       path: '/',
       maxAge: 31536000,
       sameSite: 'lax',

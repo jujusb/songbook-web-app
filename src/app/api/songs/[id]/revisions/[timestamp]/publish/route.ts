@@ -14,7 +14,7 @@ export async function POST(
   
   const { id, timestamp } = await params;
   const { searchParams } = new URL(request.url);
-  const lang = searchParams.get("lang") || "en";
+  const lang = searchParams.get("lang") || "en-US";
 
   const session = await getSession();
   const user = await getCurrentUser();

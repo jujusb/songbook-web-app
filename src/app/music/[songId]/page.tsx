@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { normalizeLanguageCode } from "@/lib/language-codes";
 import { getSong, getSongTitle, getSongTranslation, getSongTranslations } from "@/lib/content";
 import { getSession, canEdit } from "@/lib/auth";
 import { MusicReader } from "@/components/MusicReader";
@@ -15,7 +16,8 @@ export default async function MusicReaderPage({
   searchParams: Promise<{ lang?: string }>;
 }) {
   const { songId } = await params;
-  const { lang: langParam } = await searchParams;
+  const { lang: langParamRaw } = await searchParams;
+  const langParam = langParamRaw ? normalizeLanguageCode(langParamRaw) : langParamRaw;
   const locale = await getLocale();
   const t = createT(locale);
 
@@ -28,7 +30,7 @@ export default async function MusicReaderPage({
 
   const translations = await getSongTranslations(songId);
   const lang =
-    langParam && translations.includes(langParam) ? langParam : translations[0] || "en";
+    langParam && translations.includes(langParam) ? langParam : translations[0] || "en-US";
 
   let chordBody = "";
   try {
