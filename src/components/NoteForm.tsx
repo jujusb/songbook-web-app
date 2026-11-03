@@ -396,7 +396,7 @@ export function NoteForm({ initialNote, isNew = true, noteId }: NoteFormProps) {
         </div>
         <p className="text-xs text-neutral-500 mb-4">
           A note is an ordered list of parts. Each part is either manual text or a call to an external API.
-          Use {"${LANG}"}/$LANG for the language and $DATE/$DATE(format) for the date in API URLs.
+          Use {"${LANG}"}/$LANG (app language, e.g. fr-FR), {"${LANG_SHORT}"}/$LANG_SHORT (short code, e.g. fr) for the language and $DATE/$DATE(format) for the date in API URLs.
         </p>
 
         <div className="space-y-4">
