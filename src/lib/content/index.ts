@@ -377,10 +377,10 @@ export async function deleteSetlist(id: string): Promise<void> {
   await rm(filePath);
 }
 
-export async function listSetlistVersions(baseId: string): Promise<Array<{ label: string; path: string; title: string; date?: string }>> {
+export async function listSetlistVersions(baseId: string): Promise<Array<{ label: string; path: string; title: string; date?: string; description?: string }>> {
   const versionsDir = path.join(getSetlistsDir(), baseId);
   if (!existsSync(versionsDir)) return [];
-  const result: Array<{ label: string; path: string; title: string; date?: string }> = [];
+  const result: Array<{ label: string; path: string; title: string; date?: string; description?: string }> = [];
   try {
     const entries = await readdir(versionsDir, { withFileTypes: true });
     for (const entry of entries) {
@@ -389,8 +389,8 @@ export async function listSetlistVersions(baseId: string): Promise<Array<{ label
       if (!existsSync(fp)) continue;
       try {
         const raw = await readFile(fp, 'utf-8');
-        const parsed = yaml.load(raw) as { title?: string; date?: string };
-        result.push({ label: entry.name, path: `${entry.name}`, title: parsed.title || baseId, date: parsed.date as string | undefined });
+        const parsed = yaml.load(raw) as { title?: string; date?: string; description?: string };
+        result.push({ label: entry.name, path: `${entry.name}`, title: parsed.title || baseId, date: parsed.date as string | undefined, description: parsed.description as string | undefined });
       } catch {}
     }
   } catch {}

@@ -174,6 +174,10 @@ export default async function SetlistPage({
 
       <div className="flex items-center justify-between mb-6">
         <div>
+          {setlist.image && (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={setlist.image} alt={setlist.title} className="mb-3 max-h-48 rounded-md" />
+          )}
           <h1 className="text-2xl font-bold">{setlist.title}</h1>
           <div className="flex items-center gap-3 mt-1 text-sm text-neutral-500">
             {setlist.date && <span>{setlist.date}</span>}

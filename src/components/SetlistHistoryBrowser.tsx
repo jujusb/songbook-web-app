@@ -7,6 +7,7 @@ interface HistoryVersion {
   path: string;
   title: string;
   date?: string;
+  description?: string;
 }
 
 interface Props {
@@ -84,6 +85,7 @@ export function SetlistHistoryBrowser({ setlistId, canEdit, initialVersions }: P
               <div>
                 <div className="font-medium">{v.title || v.label}</div>
                 <div className="text-xs text-neutral-500">{v.label}{v.date ? ` • ${v.date}` : ""}</div>
+                {v.description && <div className="text-xs text-neutral-400">{v.description}</div>}
               </div>
               {canEdit && (
                 <button
