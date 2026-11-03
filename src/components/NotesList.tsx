@@ -19,7 +19,7 @@ interface Note {
   content?: Array<{ type: string; md?: string }>;
 }
 
-export const NotesList: React.FC = () => {
+export const NotesList: React.FC<{ readOnly?: boolean }> = ({ readOnly = false }) => {
   const [notes, setNotes] = useState<Note[]>([]);
   const [loading, setLoading] = useState(false);
 
@@ -45,12 +45,14 @@ export const NotesList: React.FC = () => {
     <div className="p-6 max-w-2xl">
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-3xl font-bold">Recurrent Notes</h1>
-        <button
-          className="bg-blue-600 text-white px-4 py-2 rounded-md font-medium text-sm hover:bg-blue-700 transition-colors"
-          onClick={() => window.location.href = `/notes/new`}
-        >
-          New Note
-        </button>
+        {!readOnly && (
+          <button
+            className="bg-blue-600 text-white px-4 py-2 rounded-md font-medium text-sm hover:bg-blue-700 transition-colors"
+            onClick={() => window.location.href = `/notes/new`}
+          >
+            New Note
+          </button>
+        )}
       </div>
 
       {loading ? (
@@ -69,22 +71,24 @@ export const NotesList: React.FC = () => {
               <p className="text-sm text-neutral-500 dark:text-neutral-400">
                 {note.language || 'N/A'} • {note.recurrent_type || 'manual'} • {note.periodic_behavior}
               </p>
-              <div className="mt-2 flex gap-2">
-                <button
-                  type="button"
-                  onClick={(e) => { e.stopPropagation(); window.location.href = `/notes/${note.id}/edit`; }}
-                  className="text-xs px-2 py-1 border rounded hover:bg-neutral-100 dark:hover:bg-neutral-800"
-                >
-                  Edit
-                </button>
-                <button
-                  type="button"
-                  onClick={(e) => handleDelete(note.id, e)}
-                  className="text-xs px-2 py-1 border rounded text-red-600 hover:bg-red-50 dark:hover:bg-red-950"
-                >
-                  Delete
-                </button>
-              </div>
+              {!readOnly && (
+                <div className="mt-2 flex gap-2">
+                  <button
+                    type="button"
+                    onClick={(e) => { e.stopPropagation(); window.location.href = `/notes/${note.id}/edit`; }}
+                    className="text-xs px-2 py-1 border rounded hover:bg-neutral-100 dark:hover:bg-neutral-800"
+                  >
+                    Edit
+                  </button>
+                  <button
+                    type="button"
+                    onClick={(e) => handleDelete(note.id, e)}
+                    className="text-xs px-2 py-1 border rounded text-red-600 hover:bg-red-50 dark:hover:bg-red-950"
+                  >
+                    Delete
+                  </button>
+                </div>
+              )}
             </div>
           ))}
         </div>
