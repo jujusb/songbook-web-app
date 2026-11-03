@@ -32,6 +32,7 @@ export interface NoteSection {
   rawDiscriminatorValues?: string[];
   showDiscriminator?: boolean;
   md?: string;
+  mdByLanguage?: Record<string, string>;
   fields?: NoteOrderedField[];
   name?: string;
   api_url?: string;

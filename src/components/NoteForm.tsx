@@ -452,13 +452,23 @@ export function NoteForm({ initialNote, isNew = true, noteId, languages: languag
                       <option value="different_per_period">Different text per period</option>
                     </select>
                   </div>
-                  <textarea
-                    value={section.md || ""}
-                    onChange={(e) => updateSection(index, { md: e.target.value })}
-                    rows={6}
-                    placeholder="Text in Markdown..."
-                    className="w-full px-3 py-2 border rounded-md text-sm resize-y"
-                  />
+                  {LANGUAGES.map((langOpt) => (
+                    <div key={langOpt.value} className="space-y-1">
+                      <label className="block text-sm font-medium mb-1">Text — {langOpt.label}</label>
+                      <textarea
+                        value={(section.mdByLanguage && section.mdByLanguage[langOpt.value]) ?? (langOpt.value === LANGUAGES[0]?.value ? (section.md || "") : "")}
+                        onChange={(e) => {
+                          const next = { ...(section.mdByLanguage || {}) };
+                          next[langOpt.value] = e.target.value;
+                          const primary = next[LANGUAGES[0]?.value || langOpt.value] || e.target.value;
+                          updateSection(index, { mdByLanguage: next, md: primary });
+                        }}
+                        rows={6}
+                        placeholder="Text in Markdown..."
+                        className="w-full px-3 py-2 border rounded-md text-sm resize-y"
+                      />
+                    </div>
+                  ))}
                 </div>
               ) : (
                 <div className="space-y-3">

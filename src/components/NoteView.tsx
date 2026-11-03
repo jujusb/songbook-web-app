@@ -63,7 +63,8 @@ export function NoteView({ noteId, autoScrollSpeed }: NoteViewProps) {
     let tabsCandidate: Array<{ title: string; text: string }> | null = null;
     for (const section of note.sections || note.content || []) {
       if (section.type === "manual") {
-        chunks.push(section.md || "");
+        const manualMd = (effectiveLanguage && section.mdByLanguage?.[effectiveLanguage]) || section.md;
+        chunks.push(manualMd || "");
         continue;
       }
       if (!section.api_url) continue;
