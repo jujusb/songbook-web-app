@@ -139,7 +139,7 @@ export function SetlistReadOnlyView({
   const safeMode = (mode || "guitarist").trim();
   const modeAllowsChords = safeMode === "guitarist" || safeMode === "instrumentalist";
   const showTranspose = safeMode === "guitarist";
-  const voiceCanGenerate = canGenerate && (safeMode === "guitarist" || safeMode === "rehersal");
+  const voiceCanGenerate = canGenerate && safeMode === "rehersal";
   const [displayMode, setDisplayMode] = useState<"all" | "list">(safeMode === "rehersal" ? "list" : userPreferences.setlistLyricsView);
   const [expandedSongIds, setExpandedSongIds] = useState<Set<string>>(new Set());
   const [transposeMap, setTransposeMap] = useState<Map<string, number>>(
