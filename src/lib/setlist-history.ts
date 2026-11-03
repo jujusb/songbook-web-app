@@ -1,1 +1,1 @@
-export { listSetlistVersions, restoreSetlistVersion, saveSetlist } from '@/lib/content';
+export { listSetlistVersions, restoreSetlistVersion, saveSetlist, createSetlistDateVersion } from '@/lib/content';

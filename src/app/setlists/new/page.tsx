@@ -27,6 +27,7 @@ export default async function NewSetlistPage() {
         allowHttpLinks={getSetlistLinkAllowHttp()}
         availableSongs={songsWithLangs}
         isNew={true}
+        linkOnly={true}
       />
     </div>
   );

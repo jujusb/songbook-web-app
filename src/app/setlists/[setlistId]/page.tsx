@@ -4,11 +4,12 @@ import { getSetlistLinkAllowedHosts, getSetlistLinkAllowHttp, getSetlistDefaultM
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 import Link from "next/link";
-import { getSetlist, getSong, getSongTranslation, getSongTranslations, getSongTitle } from "@/lib/content";
+import { getSetlist, getSong, getSongTranslation, getSongTranslations, getSongTitle, listSetlistVersions } from "@/lib/content";
 import { getSession, getCurrentUser, canEdit, canAdmin, canViewSetlist, canCreateSetlist } from "@/lib/auth";
 import { isSongItem, isNoteItem, isLinkItem, isRecurrentNoteItem } from "@/lib/content/schemas";
 import { renderNoteRefText } from "@/lib/note-render";
 import { SetlistReadOnlyView, type SetlistReadOnlyEntry } from "@/components/SetlistReadOnlyView";
+import { SetlistHistoryBrowser } from "@/components/SetlistHistoryBrowser";
 import { SetlistPdfButton } from "@/components/SetlistPdfButton";
 import SetlistModeSelector from "@/components/SetlistModeSelector";
 import { DeleteButton } from "@/components/DeleteButton";
@@ -69,6 +70,7 @@ export default async function SetlistPage({
   const sourceSetlist = isReference ? await getSetlist(sourceSetlistId) : setlist;
 
   const voiceShares = await getSetlistVoiceShares(sourceSetlist, session?.role ?? 'public');
+  const historyVersions = await listSetlistVersions(setlistId);
   const presentHref = `/setlists/${setlistId}/present${
     shareParam ? `?share=${shareParam}` : ""
   }`;
@@ -230,6 +232,8 @@ export default async function SetlistPage({
         voiceShares={voiceShares}
         canGenerate={showVoiceShares}
       />
+
+      <SetlistHistoryBrowser setlistId={setlistId} canEdit={showEditActions} initialVersions={historyVersions} />
     </div>
   );
 }

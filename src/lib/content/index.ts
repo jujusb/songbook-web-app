@@ -406,6 +406,23 @@ export async function restoreSetlistVersion(baseId: string, versionLabel: string
   await writeFile(filePath, raw, 'utf-8');
 }
 
+export async function createSetlistDateVersion(baseId: string, date: string, copyCurrent = true): Promise<void> {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) throw new Error('Invalid date');
+  const filePath = path.join(getSetlistsDir(), `${baseId}.yaml`);
+  if (!existsSync(filePath)) throw new Error('Setlist not found');
+  const versionDir = path.join(getSetlistsDir(), baseId, date);
+  await mkdir(versionDir, { recursive: true });
+  if (copyCurrent) {
+    const raw = await readFile(filePath, 'utf-8');
+    await writeFile(path.join(versionDir, 'setlist.yaml'), raw, 'utf-8');
+  } else {
+    const raw = await readFile(filePath, 'utf-8');
+    const parsed = yaml.load(raw) as Record<string, unknown>;
+    const empty = { ...parsed, songs: [], date, modified: new Date().toISOString() };
+    await writeFile(path.join(versionDir, 'setlist.yaml'), yaml.dump(empty, { lineWidth: -1 }), 'utf-8');
+  }
+}
+
 export async function getSong(id: string): Promise<SongMeta> {
   const songPath = await findSongPath(id);
   if (!songPath) throw new Error(`Song not found: ${id}`);

@@ -46,6 +46,7 @@ export function SetlistEditor({
   availableSongs,
   initialSetlist,
   isNew,
+  linkOnly = false,
   allowedLinkHosts = [],
   allowHttpLinks = false,
 }: {
@@ -54,6 +55,7 @@ export function SetlistEditor({
   availableSongs: AvailableSong[];
   initialSetlist?: SetlistData;
   isNew: boolean;
+  linkOnly?: boolean;
 }) {
   const router = useRouter();
   const { languageLabel, t } = useTranslation();
@@ -267,15 +269,17 @@ export function SetlistEditor({
             required
           />
         </div>
-        <div>
-          <label className="block text-sm font-medium mb-1">Date</label>
-          <input
-            type="date"
-            value={date}
-            onChange={(e) => setDate(e.target.value)}
-            className="w-full px-3 py-2 border border-neutral-300 dark:border-neutral-700 rounded-md bg-white dark:bg-neutral-900 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-          />
-        </div>
+        {!linkOnly && (
+          <div>
+            <label className="block text-sm font-medium mb-1">Date</label>
+            <input
+              type="date"
+              value={date}
+              onChange={(e) => setDate(e.target.value)}
+              className="w-full px-3 py-2 border border-neutral-300 dark:border-neutral-700 rounded-md bg-white dark:bg-neutral-900 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+          </div>
+        )}
         <div className="sm:col-span-2">
           <label className="block text-sm font-medium mb-1">Description</label>
           <input
@@ -286,8 +290,9 @@ export function SetlistEditor({
             className="w-full px-3 py-2 border border-neutral-300 dark:border-neutral-700 rounded-md bg-white dark:bg-neutral-900 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
           />
         </div>
-        <div className="sm:col-span-2">
-          <label className="block text-sm font-medium mb-1">Image URL (optional)</label>
+        {!linkOnly && (
+          <div className="sm:col-span-2">
+            <label className="block text-sm font-medium mb-1">Image URL (optional)</label>
           <input
             type="url"
             value={image}
@@ -323,10 +328,12 @@ export function SetlistEditor({
             <img src={image} alt="Setlist image" className="mt-2 max-h-40 rounded" />
           )}
         </div>
+        )}
       </div>
 
-      {/* Song list */}
-      <div>
+      {!linkOnly && (
+        <div>
+          {/* Song list */}
         <h2 className="font-semibold mb-3 flex items-center gap-2">
           Songs ({songCount} / {MAX_SONGS})
         </h2>
@@ -584,6 +591,7 @@ export function SetlistEditor({
         </div>
       </div>
 
+      )}
       {/* Save */}
       <div className="flex gap-3">
         <button
