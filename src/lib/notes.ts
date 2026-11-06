@@ -510,6 +510,11 @@ function stripHtmlTags(value: string): string {
   return value.replace(/<\/?[^>]+>/g, "").replace(/&nbsp;/g, " ").replace(/&amp;/g, "&");
 }
 
+/** French liturgical texts use blank lines between verses; keep that spacing everywhere. */
+function normalizeLineSpacing(value: string, lang?: string): string {
+  return value.replace(/\r\n/g, '\n').replace(/\n+/g, '\n');
+}
+
 
 export function getApiResultKeys(data: unknown, resultSection?: string, lang?: string): string[] {
   const target = getNestedValue(data, resultSection, lang);
@@ -674,10 +679,11 @@ export function extractApiSectionText(rawSection0: Partial<NoteSection>, data: u
       const style = String(ts?.[nt] ?? ts?.[String((item as Record<string, unknown>)[discriminator])] ?? '').toLowerCase();
       return style !== 'none';
     });
-    return workingTarget
+    const joined = workingTarget
       .map((item) => extractApiSectionText(rest as Partial<NoteSection>, item, lang))
       .filter(Boolean)
       .join('\n');
+    return normalizeLineSpacing(joined, lang);
   }
 
   // Determine field list
@@ -784,7 +790,7 @@ export function extractApiSectionText(rawSection0: Partial<NoteSection>, data: u
     if (text) lines.push(text);
   }
 
-  return stripHtmlTags(lines.filter(Boolean).join('\n'));
+  return stripHtmlTags(normalizeLineSpacing(lines.filter(Boolean).join('\n'), lang));
 }
 
 export const extractSectionText = extractApiSectionText;

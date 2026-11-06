@@ -232,6 +232,57 @@ describe('language placeholders in mapping paths', () => {
     expect(out).toContain('_Jn 3, 16_');
   });
 
+  it('adds a blank line between every line for French output', () => {
+    const frSection = {
+      type: 'api',
+      resultSection: 'liturgical_day',
+      discriminator: 'none',
+      fields: [
+        { name: 'names.$LANG', style: 'h2' },
+        { name: 'rank_names.$LANG', style: 'plain' },
+        { name: 'color_names.$LANG', style: 'plain' },
+      ],
+    };
+    const frData = {
+      liturgical_day: {
+        names: { 'fr-FR': 'Férie' },
+        rank_names: { 'fr-FR': 'Vert' },
+        color_names: { 'fr-FR': 'Vert' },
+      },
+    };
+
+    const out = extractApiSectionText(frSection as never, frData, 'fr-FR');
+
+    expect(out).toBe('## Férie\n\nVert\n\nVert');
+  });
+
+  it('separates French array items with a blank line', () => {
+    const frSection = {
+      type: 'api',
+      resultSection: 'items[]',
+      discriminator: 'none',
+      fields: [{ name: 'text', style: 'plain' }],
+    };
+    const frData = { items: [{ text: 'un\ndeux' }, { text: 'trois' }] };
+
+    const out = extractApiSectionText(frSection as never, frData, 'fr-FR');
+
+    expect(out).toBe('un\n\ndeux\n\ntrois');
+  });
+
+  it('normalizes single newlines inside French text', () => {
+    const frSection = {
+      type: 'api',
+      resultSection: '',
+      discriminator: 'none',
+      fields: [{ name: 'text', style: 'plain' }],
+    };
+
+    const out = extractApiSectionText(frSection as never, { text: 'ligne 1\nligne 2\n\nligne 3' }, 'fr-FR');
+
+    expect(out).toBe('ligne 1\n\nligne 2\n\nligne 3');
+  });
+
   it('formats previews using $LANG mappings', () => {
     const langSection = {
       type: 'api',
