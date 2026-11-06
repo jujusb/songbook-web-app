@@ -2,12 +2,12 @@ import { readFile, writeFile, mkdir, readdir, rm } from 'fs/promises';
 import { existsSync } from 'fs';
 import path from 'path';
 import * as yaml from 'js-yaml';
-import { getContentDir } from './paths';
+import { getDataDir } from './paths';
 import { normalizeNote, type NoteMetadata } from '@/lib/notes';
 import { toFileCode, toAppCode } from '@/lib/language-codes';
 
 export function getNotesDir(): string {
-  return path.join(getContentDir(), 'notes');
+  return path.join(getDataDir(), 'notes');
 }
 
 export function getNoteDir(noteId: string): string {
