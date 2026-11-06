@@ -245,6 +245,7 @@ export function NoteForm({ initialNote, isNew = true, noteId, languages: languag
                 name: k,
                 style: s.fieldStyles?.[k] || existing?.style || "plain",
                 ...(existing?.label ? { label: existing.label } : {}),
+                ...(existing?.fallback ? { fallback: existing.fallback } : {}),
               };
             }),
           };
@@ -256,16 +257,24 @@ export function NoteForm({ initialNote, isNew = true, noteId, languages: languag
         const discriminatorValues = baseValues.map((base) => {
           const cfg = s.typeConfigs?.[base] || {};
           const cfgKeys = Array.isArray(cfg.fieldOrder) && cfg.fieldOrder.length ? cfg.fieldOrder : keys;
+          const persistedFields = (s.discriminatorValues || []).find((dv) => normalizeTypeValue(dv.name) === base)?.fieldsOrdered || [];
           const savedKeys = previewObjs
-            ? cfgKeys.filter((k) => previewObjs.some((o) => normalizeTypeValue(o?.[disc]) === base && hasFieldValue(getNestedValue(o, k))))
+            ? cfgKeys.filter((k) => {
+                if (persistedFields.find((f) => f.name === k)?.fallback) return true;
+                return previewObjs.some((o) => normalizeTypeValue(o?.[disc]) === base && hasFieldValue(getNestedValue(o, k)));
+              })
             : cfgKeys;
           return {
             name: base,
             style: s.typeStyles?.[base] || "plain",
-            fieldsOrdered: savedKeys.map((k) => ({
-              name: k,
-              style: cfg.fieldStyles?.[k] || s.fieldStyles?.[k] || "plain",
-            })),
+            fieldsOrdered: savedKeys.map((k) => {
+              const existing = persistedFields.find((f) => f.name === k);
+              return {
+                name: k,
+                style: cfg.fieldStyles?.[k] || s.fieldStyles?.[k] || "plain",
+                ...(existing?.fallback ? { fallback: existing.fallback } : {}),
+              };
+            }),
           };
         });
         return {

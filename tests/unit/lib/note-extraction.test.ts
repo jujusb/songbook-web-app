@@ -85,6 +85,52 @@ describe('extractApiSectionText nested mapping', () => {
     expect(out).not.toContain('"variants"');
   });
 
+  it('uses fallback when a mapped field is empty', () => {
+    const dataWithoutRefrain = {
+      celebrations: [
+        {
+          readings: [
+            {
+              type: 'PSALM',
+              labels: { 'es-ES': 'Salmo responsorial' },
+              variants: [
+                {
+                  texts: {
+                    'es-ES': {
+                      citation_raw: 'Sal 104, 2-7',
+                      title: null,
+                      refrain: null,
+                      text: 'Cantadle al son de instrumentos.',
+                    },
+                  },
+                },
+              ],
+            },
+          ],
+        },
+      ],
+    };
+    const sectionWithFallback = {
+      ...section,
+      discriminatorValues: section.discriminatorValues.map((dv) =>
+        dv.name === 'PSALM'
+          ? {
+              ...dv,
+              fieldsOrdered: dv.fieldsOrdered.map((f) =>
+                f.name.endsWith('.refrain') ? { ...f, fallback: 'R.' } : f,
+              ),
+            }
+          : dv,
+      ),
+    };
+
+    const out = extractApiSectionText(sectionWithFallback as never, dataWithoutRefrain);
+
+    expect(out).toContain('## Salmo responsorial');
+    expect(out).toContain('**R.**');
+    expect(out).toContain('Cantadle al son de instrumentos.');
+  });
+
   it('renders liturgical day header fields with labels', () => {
     const headerSection = {
       type: 'api',

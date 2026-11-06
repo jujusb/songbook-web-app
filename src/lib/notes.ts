@@ -11,6 +11,7 @@ export interface NoteOrderedField {
   name: string;
   style?: string;
   label?: string;
+  fallback?: string;
 }
 
 export interface NoteDiscriminatorValue {
@@ -303,7 +304,7 @@ export type NoteApiContext = {
   dateFormat?: string;
 };
 
-export type NoteApiField = string | { key?: string; path?: string; field?: string; name?: string; label?: string; style?: string };
+export type NoteApiField = string | { key?: string; path?: string; field?: string; name?: string; label?: string; style?: string; fallback?: string };
 
 function toDate(value: Date | string | undefined): Date {
   if (value instanceof Date) return value;
@@ -643,7 +644,7 @@ export function extractApiSectionText(rawSection0: Partial<NoteSection>, data: u
   }
 
   // Determine field list
-  let fieldList: Array<{ key: string; style?: string; label?: string }>;
+  let fieldList: Array<{ key: string; style?: string; label?: string; fallback?: string }>;
   if (Array.isArray(fields) && fields.length > 0) {
     fieldList = (fields as NoteApiField[]).map((f) => {
       const elementType = target && typeof target === 'object' && !Array.isArray(target) ? (target as Record<string, unknown>)[discriminator] : undefined;
@@ -656,7 +657,7 @@ export function extractApiSectionText(rawSection0: Partial<NoteSection>, data: u
         return { key: f, style: (typeof styles === 'object' ? (styles as Record<string, string>)[f] : undefined) || typeStyle };
       }
       const key = fieldKey(f);
-      return { key, style: f.style || (typeof styles === 'object' ? (styles as Record<string, string>)[key] : undefined) || typeStyle, label: f.label };
+      return { key, style: f.style || (typeof styles === 'object' ? (styles as Record<string, string>)[key] : undefined) || typeStyle, label: f.label, fallback: f.fallback };
     });
   } else if (target && typeof target === 'object' && !Array.isArray(target)) {
     const elementType = (target as Record<string, unknown>)[discriminator];
@@ -688,16 +689,17 @@ export function extractApiSectionText(rawSection0: Partial<NoteSection>, data: u
       ordered = (fieldOrder as string[]).filter((k) => keys.includes(k)).concat(keys.filter((k) => !(fieldOrder as string[]).includes(k)));
     }
     fieldList = ordered.map((k) => {
-      const reqStyle =
+      const reqField =
         normalizedDisc === 'none'
-          ? ((section as Record<string, unknown>).fields as any[] | undefined)?.find((f) => f.name === k)?.style
-          : dv?.fieldsOrdered?.find((f: any) => f.name === k)?.style;
+          ? ((section as Record<string, unknown>).fields as any[] | undefined)?.find((f) => f.name === k)
+          : dv?.fieldsOrdered?.find((f: any) => f.name === k);
+      const reqStyle = reqField?.style;
       const style =
         reqStyle ||
         (typeof fieldStyles === 'object' && (fieldStyles as Record<string, unknown>)[k] ? String((fieldStyles as Record<string, unknown>)[k]) : undefined) ||
         (typeof styles === 'object' && (styles as Record<string, unknown>)[k] ? String((styles as Record<string, unknown>)[k]) : undefined) ||
         typeStyle;
-      return { key: k, style };
+      return { key: k, style, fallback: reqField?.fallback };
     });
   } else {
     fieldList = [];
@@ -722,7 +724,8 @@ export function extractApiSectionText(rawSection0: Partial<NoteSection>, data: u
     for (const f of fieldList) {
       if (!f.key) continue;
       const val = getNestedValue(target, f.key);
-      const text = applyStyle(stringifyValue(val), f.style);
+      const raw = stringifyValue(val);
+      const text = applyStyle(raw.trim() ? raw : (f.fallback || ''), f.style);
       rendered = rendered.replace(new RegExp(`\\{${f.key}\\}`, 'g'), text);
     }
     // also allow {value}
@@ -732,7 +735,8 @@ export function extractApiSectionText(rawSection0: Partial<NoteSection>, data: u
     for (const f of fieldList) {
       if (!f.key) continue;
       const val = getNestedValue(target, f.key);
-      const text = applyStyle(stringifyValue(val), f.style);
+      const raw = stringifyValue(val);
+      const text = applyStyle(raw.trim() ? raw : (f.fallback || ''), f.style);
       if (text) {
         if (f.label) lines.push(`${f.label}: ${text}`);
         else lines.push(text);
