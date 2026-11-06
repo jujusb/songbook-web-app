@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { MarkdownView } from "@/components/MarkdownView";
 import { useTranslation } from "@/lib/i18n";
 import { AutoScrollControl } from "@/components/AutoScrollControl";
-import { notesApi, NoteMetadata } from "@/lib/notes";
+import { notesApi, NoteMetadata, resolveNoteLanguage } from "@/lib/notes";
 
 interface NoteViewProps {
   noteId: string;
@@ -16,10 +16,13 @@ export function NoteView({ noteId, autoScrollSpeed }: NoteViewProps) {
   const router = useRouter();
   const { locale } = useTranslation();
   const [note, setNote] = useState<NoteMetadata | null>(null);
+  const noteApiSections = note ? (note.sections || note.content || []).filter((s) => s.type === "api") : [];
+  const noteApplicableLanguages =
+    noteApiSections.length > 0 && noteApiSections.every((s) => (s.languages?.length ?? 0) > 0)
+      ? Array.from(new Set(noteApiSections.flatMap((s) => s.languages || [])))
+      : [];
   const effectiveLanguage = note
-    ? (((note.sections || note.content || []).find((s) => s.type === "api") as { languages?: string[] } | undefined)?.languages?.includes(locale)
-        ? locale
-        : note.language)
+    ? resolveNoteLanguage(note.language, noteApplicableLanguages, locale)
     : undefined;
   const [loading, setLoading] = useState(true);
   const [selectedDate, setSelectedDate] = useState(
@@ -61,12 +64,14 @@ export function NoteView({ noteId, autoScrollSpeed }: NoteViewProps) {
         continue;
       }
       if (!section.api_url) continue;
+      const sectionLanguage =
+        resolveNoteLanguage(note.language, section.languages, locale) || note.language;
       try {
         const res = await fetch(`/api/notes/${noteId}/preview/${sectionIndex}`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            lang: effectiveLanguage || note.language,
+            lang: sectionLanguage,
             date: selectedDate,
           }),
         });
@@ -97,7 +102,7 @@ export function NoteView({ noteId, autoScrollSpeed }: NoteViewProps) {
     return () => {
       cancelled = true;
     };
-  }, [note, selectedDate, effectiveLanguage]);
+  }, [note, selectedDate, effectiveLanguage, locale, noteId]);
 
   useEffect(() => {
     if (!note) return;

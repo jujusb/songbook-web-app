@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { extractApiSectionText, formatApiSectionPreview } from '@/lib/notes';
+import { extractApiSectionText, formatApiSectionPreview, resolveNoteLanguage } from '@/lib/notes';
 
 const data = {
   celebrations: [
@@ -202,5 +202,21 @@ describe('formatApiSectionPreview', () => {
     expect(result.tabs?.[0].text).toContain('Dieu a tant aimé le monde.');
     expect(result.tabs?.[1].title).toBe('Messe de la veille');
     expect(result.tabs?.[1].text).toContain('Commencement de l’Évangile.');
+  });
+});
+
+describe('resolveNoteLanguage', () => {
+  it('uses the preferred language when all languages apply', () => {
+    expect(resolveNoteLanguage('es-ES', [], 'fr-FR')).toBe('fr-FR');
+    expect(resolveNoteLanguage('es-ES', undefined, 'en-US')).toBe('en-US');
+  });
+
+  it('uses the preferred language when it is applicable', () => {
+    expect(resolveNoteLanguage('es-ES', ['en-US', 'fr-FR'], 'fr-FR')).toBe('fr-FR');
+  });
+
+  it('falls back to the note language and then the first applicable language', () => {
+    expect(resolveNoteLanguage('es-ES', ['es-ES', 'en-US'], 'fr-FR')).toBe('es-ES');
+    expect(resolveNoteLanguage('es-ES', ['en-US', 'fr-FR'], 'it-IT')).toBe('en-US');
   });
 });

@@ -4,7 +4,8 @@ import { useState, useCallback, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { notFound } from "next/navigation";
 import { languageLabelFor } from "@/lib/i18n/labels";
-import { notesApi, NoteMetadata, NoteSection, extractApiSectionText, getApiResultKeys, getNestedValue } from "@/lib/notes";
+import { useTranslation } from "@/lib/i18n";
+import { notesApi, NoteMetadata, NoteSection, extractApiSectionText, getApiResultKeys, getNestedValue, resolveNoteLanguage } from "@/lib/notes";
 
 const RECURRENT_TYPES = [
   { value: "weekly", label: "Weekly" },
@@ -108,6 +109,7 @@ function emptySection(type: "manual" | "api"): NoteSection {
 
 export function NoteForm({ initialNote, isNew = true, noteId, languages: languagesProp, defaultLanguage }: NoteFormProps) {
   const LANGUAGES = (languagesProp && languagesProp.length ? languagesProp : ['en-US', 'es-ES', 'fr-FR']).map((code) => ({ value: code, label: languageLabelFor(code) }));
+  const { locale } = useTranslation();
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(!isNew && !!noteId && !initialNote);
   const [saving, setSaving] = useState(false);
@@ -184,10 +186,12 @@ export function NoteForm({ initialNote, isNew = true, noteId, languages: languag
     }
     setPreviews((p) => ({ ...p, [index]: { loading: true, error: null } }));
     try {
+      const previewLanguage =
+        resolveNoteLanguage(language, section.languages, locale) || language;
       const res = await fetch("/api/notes/preview", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ section, lang: language, date: exampleDate }),
+        body: JSON.stringify({ section, lang: previewLanguage, date: exampleDate }),
       });
       if (!res.ok) {
         const err = await res.json().catch(() => ({}));
@@ -212,7 +216,7 @@ export function NoteForm({ initialNote, isNew = true, noteId, languages: languag
     } catch (err) {
       setPreviews((p) => ({ ...p, [index]: { loading: false, error: err instanceof Error ? err.message : "Preview failed" } }));
     }
-  }, [sections, language, exampleDate]);
+  }, [sections, language, exampleDate, locale]);
 
   const handleSave = useCallback(async () => {
     if (!title.trim()) {

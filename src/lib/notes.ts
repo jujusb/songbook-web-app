@@ -230,6 +230,32 @@ export function normalizeNote(note: Partial<NoteMetadata>): NoteMetadata {
     publishedDates: (note.publishedDates as string[]) || [],
   };
 }
+
+/**
+ * Pick the language to use for a note part.
+ * Empty/undefined applicable languages mean "all languages", so the preferred
+ * language (usually the UI locale) wins. Otherwise the preferred language is
+ * used when applicable, then the note language when applicable, and finally
+ * the first configured language.
+ */
+export function resolveNoteLanguage(
+  noteLanguage: string | undefined,
+  applicableLanguages: string[] | undefined,
+  preferredLanguage: string | undefined,
+): string | undefined {
+  const applicable = (applicableLanguages || []).filter(Boolean);
+  if (applicable.length === 0) {
+    return preferredLanguage || noteLanguage;
+  }
+  if (preferredLanguage && applicable.includes(preferredLanguage)) {
+    return preferredLanguage;
+  }
+  if (noteLanguage && applicable.includes(noteLanguage)) {
+    return noteLanguage;
+  }
+  return applicable[0];
+}
+
 // Initialize storage
 const storage = getStorageFromLocal();
 export const notesStorage = storage;
