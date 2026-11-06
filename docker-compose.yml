@@ -1,6 +1,9 @@
 networks:
   songbook_net:
     driver: bridge
+  external_net:
+    driver: bridge
+    external: true
 
 services:
   songbook:
@@ -8,7 +11,7 @@ services:
     image: songbook-web-app:latest
     container_name: songbook
     ports:
-      - "3000:3000"
+      - "${SONGBOOK_ADMIN_PORT:-3000}:3000"
     volumes:
       # For development, mount the current directory to the app directory
       - ./package.json:/app/package.json
@@ -66,6 +69,7 @@ services:
     restart: unless-stopped
     networks:
       - songbook_net
+      - external_net
 
   # Read-only public instance (no login, no admin, no writes).
   # Serves the same content/music, mounted read-only, with SONGBOOK_READONLY=1.
@@ -109,3 +113,4 @@ services:
     restart: unless-stopped
     networks:
       - songbook_net
+      - external_net

@@ -10,6 +10,7 @@ export type NotePeriodicBehavior = 'same' | 'different_per_period';
 export interface NoteOrderedField {
   name: string;
   style?: string;
+  label?: string;
 }
 
 export interface NoteDiscriminatorValue {
@@ -302,7 +303,7 @@ export type NoteApiContext = {
   dateFormat?: string;
 };
 
-export type NoteApiField = string | { key?: string; path?: string; field?: string; label?: string; style?: string };
+export type NoteApiField = string | { key?: string; path?: string; field?: string; name?: string; label?: string; style?: string };
 
 function toDate(value: Date | string | undefined): Date {
   if (value instanceof Date) return value;
@@ -450,6 +451,7 @@ export const STYLE_MAP: Record<string, (text: string) => string> = {
 };
 
 function applyStyle(text: string, style?: string): string {
+  if (!text || !text.trim()) return '';
   if (!style) return text;
   if (style.toLowerCase() === 'none' || style.toLowerCase() === 'hidden' || style.toLowerCase() === 'skip') return '';
   const fn = STYLE_MAP[style.toLowerCase()];
@@ -458,7 +460,7 @@ function applyStyle(text: string, style?: string): string {
 
 function fieldKey(field: NoteApiField): string {
   if (typeof field === 'string') return field;
-  return field.key || field.path || field.field || '';
+  return field.key || field.path || field.field || field.name || '';
 }
 
 export const TYPE_STYLE_MAP: Record<string, string> = {
@@ -679,7 +681,9 @@ export function extractApiSectionText(rawSection0: Partial<NoteSection>, data: u
         ordered = reqFields.map((f) => f.name).filter((k) => keys.includes(k)).concat(keys.filter((k) => !reqFields.map((f: any) => f.name).includes(k)));
       }
     } else if (dv && Array.isArray(dv.fieldsOrdered) && dv.fieldsOrdered.length) {
-      ordered = dv.fieldsOrdered.map((f: any) => f.name).filter((k: string) => keys.includes(k)).concat(keys.filter((k: string) => !dv.fieldsOrdered.map((f: any) => f.name).includes(k)));
+      ordered = dv.fieldsOrdered
+        .map((f: { name?: string }) => f.name)
+        .filter((k: string | undefined): k is string => Boolean(k));
     } else if (Array.isArray(fieldOrder) && (fieldOrder as unknown[]).length > 0) {
       ordered = (fieldOrder as string[]).filter((k) => keys.includes(k)).concat(keys.filter((k) => !(fieldOrder as string[]).includes(k)));
     }

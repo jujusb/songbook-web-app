@@ -53,12 +53,16 @@ function hasFieldValue(value: unknown): boolean {
 }
 
 /** Flatten a preview payload the same way the discriminator preview does. */
-function collectDiscriminatedObjects(data: unknown, resultSection?: string): any[] {
+function collectDiscriminatedObjects(data: unknown, resultSection?: string, discriminator?: string): any[] {
   const source = getNestedValue(data, resultSection);
   const top = Array.isArray(source) ? source : source ? [source] : [];
   const objs: any[] = [];
   for (const item of top) {
     if (!item || typeof item !== "object") continue;
+    if (discriminator && (item as Record<string, unknown>)[discriminator] !== undefined) {
+      objs.push(item);
+      continue;
+    }
     const listProp = Object.keys(item).find((k) => Array.isArray((item as any)[k]) && (item as any)[k].some((x: any) => x && typeof x === "object"));
     if (listProp) {
       for (const child of (item as any)[listProp]) if (child && typeof child === "object") objs.push(child);
@@ -194,19 +198,8 @@ export function NoteForm({ initialNote, isNew = true, noteId, languages: languag
       const data = payload.data;
       const extracted = extractApiSectionText(section, data);
       // Persist result keys and discriminator values so mapping survives re-edit.
-      const source = getNestedValue(data, section.resultSection);
-      const top = Array.isArray(source) ? source : source ? [source] : [];
-      const objs: any[] = [];
-      for (const item of top) {
-        if (!item || typeof item !== "object") continue;
-        const listProp = Object.keys(item).find((k) => Array.isArray((item as any)[k]) && (item as any)[k].some((x: any) => x && typeof x === "object"));
-        if (listProp) {
-          for (const child of (item as any)[listProp]) if (child && typeof child === "object") objs.push(child);
-        } else {
-          objs.push(item);
-        }
-      }
       const discField = section.discriminator || (Array.isArray(section.allFields) && section.allFields.includes("type") ? "type" : (section.allFields?.[0] || "type"));
+      const objs = collectDiscriminatedObjects(data, section.resultSection, discField);
       const rawVals = [...new Set(objs.map((o) => String(o?.[discField] ?? "")).filter((v) => v !== ""))] ;
       const vals = [...new Set(rawVals.map((v) => v.replace(/_\d+$/, "")))];
       const allFields = getApiResultKeys(data, section.resultSection);
@@ -246,18 +239,25 @@ export function NoteForm({ initialNote, isNew = true, noteId, languages: languag
             languages: s.languages,
             discriminator: "none",
             showDiscriminator: s.showDiscriminator,
-            fields: keys.map((k) => ({ name: k, style: s.fieldStyles?.[k] || "plain" })),
+            fields: keys.map((k) => {
+              const existing = (s.fields || []).find((f) => f.name === k);
+              return {
+                name: k,
+                style: s.fieldStyles?.[k] || existing?.style || "plain",
+                ...(existing?.label ? { label: existing.label } : {}),
+              };
+            }),
           };
         }
         const baseValues = Array.from(new Set(Object.keys(s.typeStyles || {})));
         // Only keep fields that have a value in the previewed API data for this type.
         // Without a preview there is no data to check, so all configured fields are kept.
-        const previewObjs = previews[i]?.data !== undefined ? collectDiscriminatedObjects(previews[i]?.data, s.resultSection) : null;
+        const previewObjs = previews[i]?.data !== undefined ? collectDiscriminatedObjects(previews[i]?.data, s.resultSection, disc) : null;
         const discriminatorValues = baseValues.map((base) => {
           const cfg = s.typeConfigs?.[base] || {};
           const cfgKeys = Array.isArray(cfg.fieldOrder) && cfg.fieldOrder.length ? cfg.fieldOrder : keys;
           const savedKeys = previewObjs
-            ? cfgKeys.filter((k) => previewObjs.some((o) => normalizeTypeValue(o?.[disc]) === base && hasFieldValue(o?.[k])))
+            ? cfgKeys.filter((k) => previewObjs.some((o) => normalizeTypeValue(o?.[disc]) === base && hasFieldValue(getNestedValue(o, k))))
             : cfgKeys;
           return {
             name: base,
@@ -598,18 +598,7 @@ export function NoteForm({ initialNote, isNew = true, noteId, languages: languag
                           const disc = section.discriminator || (keys.includes("type") ? "type" : keys[0]);
                           if (disc === "none") return null;
                           const preview = previews[index]?.data;
-                          const source = preview ? getNestedValue(preview, section.resultSection) : null;
-                          const top = Array.isArray(source) ? source : source ? [source] : [];
-                          let previewObjs: any[] = [];
-                          for (const item of top) {
-                            if (!item || typeof item !== "object") continue;
-                            const listProp = Object.keys(item).find((k) => Array.isArray((item as any)[k]) && (item as any)[k].some((x: any) => x && typeof x === "object"));
-                            if (listProp) {
-                              for (const child of (item as any)[listProp]) if (child && typeof child === "object") previewObjs.push(child);
-                            } else {
-                              previewObjs.push(item);
-                            }
-                          }
+                          let previewObjs: any[] = preview !== undefined ? collectDiscriminatedObjects(preview, section.resultSection, disc) : [];
                           const previewValues = preview ? [...new Set(previewObjs.map((o) => String(o?.[disc] ?? "").replace(/_\d+$/, "")).filter((v) => v !== ""))] : [];
                           const values = previewValues.length
                             ? previewValues
@@ -683,18 +672,7 @@ export function NoteForm({ initialNote, isNew = true, noteId, languages: languag
                                 const activeVal = activeTypeTab[index] || sortedValues[0];
                                 const cfg = section.typeConfigs?.[activeVal] || {};
                                 const previewData = previews[index]?.data;
-                                const previewSource = getNestedValue(previewData, section.resultSection);
-                                const previewTop = Array.isArray(previewSource) ? previewSource : previewSource ? [previewSource] : [];
-                                const previewObjs: any[] = [];
-                                for (const item of previewTop) {
-                                  if (!item || typeof item !== 'object') continue;
-                                  const listProp = Object.keys(item).find((k) => Array.isArray((item as any)[k]) && (item as any)[k].some((x: any) => x && typeof x === 'object'));
-                                  if (listProp) {
-                                    for (const child of (item as any)[listProp]) if (child && typeof child === 'object') previewObjs.push(child);
-                                  } else {
-                                    previewObjs.push(item);
-                                  }
-                                }
+                                const previewObjs: any[] = previewData !== undefined ? collectDiscriminatedObjects(previewData, section.resultSection, disc) : [];
                                 const valueObjs = previewObjs.filter((o) => String(o?.[disc]) === String(activeVal));
                                 let valueKeys = [...new Set((valueObjs.length ? valueObjs : previewObjs).flatMap((o) => Object.keys(o || {})))]
                                   .filter((k) => (valueObjs.length ? valueObjs : previewObjs).some((o) => o?.[k] !== null && o?.[k] !== undefined && o?.[k] !== ""))

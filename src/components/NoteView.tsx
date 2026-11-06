@@ -87,6 +87,11 @@ export function NoteView({ noteId, autoScrollSpeed }: NoteViewProps) {
             ? payload.data
             : null;
         const candidate = items && items.length > 1 && items.every((m: unknown) => m && typeof m === "object")
+          && !(
+            section.discriminator &&
+            section.discriminator !== "none" &&
+            items.every((m: unknown) => m && typeof m === "object" && (m as Record<string, unknown>)[section.discriminator as string] !== undefined)
+          )
           ? (() => {
               const first = items[0] as Record<string, unknown>;
               const listProp = Object.keys(first).find((k: string) => {
