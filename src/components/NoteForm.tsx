@@ -4,7 +4,7 @@ import { useState, useCallback, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { notFound } from "next/navigation";
 import { languageLabelFor } from "@/lib/i18n/labels";
-import { notesApi, NoteMetadata, NoteSection, interpolateApiUrl, extractApiSectionText, getApiResultKeys, getNestedValue } from "@/lib/notes";
+import { notesApi, NoteMetadata, NoteSection, extractApiSectionText, getApiResultKeys, getNestedValue } from "@/lib/notes";
 
 const RECURRENT_TYPES = [
   { value: "weekly", label: "Weekly" },
@@ -184,11 +184,10 @@ export function NoteForm({ initialNote, isNew = true, noteId, languages: languag
     }
     setPreviews((p) => ({ ...p, [index]: { loading: true, error: null } }));
     try {
-      const url = interpolateApiUrl(section.api_url.trim(), { lang: language, date: exampleDate });
       const res = await fetch("/api/notes/preview", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ url, authorization: section.authorization }),
+        body: JSON.stringify({ section, lang: language, date: exampleDate }),
       });
       if (!res.ok) {
         const err = await res.json().catch(() => ({}));

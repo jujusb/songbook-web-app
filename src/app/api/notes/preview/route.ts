@@ -1,49 +1,23 @@
 import { NextRequest, NextResponse } from 'next/server';
-
-export async function GET(request: NextRequest) {
-  const url = request.nextUrl.searchParams.get('url');
-  if (!url) {
-    return NextResponse.json({ error: 'Missing url' }, { status: 400 });
-  }
-  return handleFetch(url, request.nextUrl.searchParams.get('authorization') || undefined);
-}
+import { getSession, canEdit } from '@/lib/auth';
+import { previewApiSection } from '@/lib/note-preview';
+import type { NoteSection } from '@/lib/notes';
 
 export async function POST(request: NextRequest) {
-  const body = await request.json().catch(() => ({}));
-  const url = body?.url;
-  if (!url || typeof url !== 'string') {
-    return NextResponse.json({ error: 'Missing url' }, { status: 400 });
-  }
-  return handleFetch(url, body?.authorization);
-}
-
-async function handleFetch(url: string, authorization?: string) {
-  try {
-    const parsed = new URL(url);
-    if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') {
-      return NextResponse.json({ error: 'Invalid protocol' }, { status: 400 });
-    }
-  } catch {
-    return NextResponse.json({ error: 'Invalid url' }, { status: 400 });
+  const session = await getSession();
+  if (!canEdit(session?.role ?? null)) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
-  const res = await fetch(url, {
-    headers: {
-      Accept: 'application/json, text/plain, */*',
-      ...(authorization ? { Authorization: authorization } : {}),
-    },
-  });
-
-  const text = await res.text();
-  if (!res.ok) {
-    return NextResponse.json({ error: text || `HTTP ${res.status}`, status: res.status }, { status: res.status });
+  const body = (await request.json().catch(() => ({}))) as Record<string, unknown>;
+  const section = body.section as NoteSection | undefined;
+  if (!section || section.type !== 'api') {
+    return NextResponse.json({ error: 'Invalid section' }, { status: 400 });
   }
 
-  let data: unknown = text;
-  try {
-    data = JSON.parse(text);
-  } catch {
-    // keep text
-  }
-  return NextResponse.json({ data });
+  return previewApiSection(
+    section,
+    typeof body.lang === 'string' ? body.lang : undefined,
+    typeof body.date === 'string' ? body.date : undefined,
+  );
 }

@@ -754,6 +754,68 @@ export const extractSectionText = extractApiSectionText;
 export const renderApiSection = extractApiSectionText;
 export const extractNoteSection = extractApiSectionText;
 
+export interface NotePreviewTab {
+  title: string;
+  text: string;
+}
+
+export interface NotePreviewContent {
+  text: string;
+  tabs?: NotePreviewTab[];
+}
+
+export function formatApiSectionPreview(
+  rawSection: Partial<NoteSection>,
+  data: unknown,
+): NotePreviewContent {
+  const section = rawSection as Record<string, unknown>;
+  const resultSection = section.resultSection as string | undefined;
+  const resolved = getNestedValue(data, resultSection);
+  const items = Array.isArray(resolved)
+    ? resolved
+    : Array.isArray(data)
+      ? data
+      : null;
+  const discriminator = section.discriminator as string | undefined;
+  const hasDiscriminator = Boolean(discriminator && discriminator !== 'none');
+
+  const candidate = items && items.length > 1 && items.every((m) => m && typeof m === 'object')
+    && !(
+      hasDiscriminator &&
+      items.every((m) => m && typeof m === 'object' && (m as Record<string, unknown>)[discriminator as string] !== undefined)
+    )
+    ? (() => {
+        const first = items[0] as Record<string, unknown>;
+        const listProp = Object.keys(first).find((k) => {
+          const val = first[k];
+          return Array.isArray(val) && val.length > 0 && val.every((x) => x && typeof x === 'object');
+        });
+        return listProp ? { listProp, items } : null;
+      })()
+    : null;
+
+  if (candidate) {
+    const tabs = candidate.items.map((group, idx) => {
+      const m = group as Record<string, unknown>;
+      const titleProp =
+        (['titre', 'title', 'name', 'label', 'heading'] as string[]).find((k) => typeof m[k] === 'string') ||
+        Object.keys(m).find((k) => typeof m[k] === 'string' && !Array.isArray(m[k]));
+      const title = String(titleProp ? m[titleProp] : `Tab ${idx + 1}`);
+      const lectures = (m[candidate.listProp] as unknown[]) || [];
+      const text = lectures
+        .map((lec) => extractApiSectionText({ ...rawSection, resultSection: undefined }, lec))
+        .filter(Boolean)
+        .join('\n\n');
+      return { title, text };
+    });
+    if (tabs.length > 1) {
+      return { text: '', tabs };
+    }
+  }
+
+  return { text: extractApiSectionText(rawSection, data) };
+}
+
 // Plural aliases for fetch-like helpers
 export function fetchNoteApiContent(section: Partial<NoteSection>, data: unknown): string {
   return extractApiSectionText(section, data);

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { extractApiSectionText } from '@/lib/notes';
+import { extractApiSectionText, formatApiSectionPreview } from '@/lib/notes';
 
 const data = {
   celebrations: [
@@ -158,5 +158,49 @@ describe('extractApiSectionText nested mapping', () => {
     expect(out).toContain('Nombre: peter_poveda_and_companions_martyrs');
     expect(out).toContain('Temporada: Desconocido');
     expect(out).toContain('Color: Desconocido');
+  });
+});
+
+describe('formatApiSectionPreview', () => {
+  it('returns formatted text for a mapped part', () => {
+    const result = formatApiSectionPreview(section as never, data);
+
+    expect(result.tabs).toBeUndefined();
+    expect(result.text).toContain('## Primera lectura');
+    expect(result.text).toContain('**R. Aleluya.**');
+  });
+
+  it('returns tabs with their formatted text inside', () => {
+    const tabsSection = {
+      type: 'api',
+      resultSection: 'messes[]',
+      discriminator: 'none',
+      fields: [
+        { name: 'ref', style: 'italic' },
+        { name: 'contenu', style: 'plain' },
+      ],
+    };
+    const tabsData = {
+      messes: [
+        {
+          titre: 'Messe du jour',
+          lectures: [{ ref: 'Jn 3, 16', contenu: 'Dieu a tant aimé le monde.' }],
+        },
+        {
+          titre: 'Messe de la veille',
+          lectures: [{ ref: 'Mc 1, 1', contenu: 'Commencement de l’Évangile.' }],
+        },
+      ],
+    };
+
+    const result = formatApiSectionPreview(tabsSection as never, tabsData);
+
+    expect(result.text).toBe('');
+    expect(result.tabs).toHaveLength(2);
+    expect(result.tabs?.[0].title).toBe('Messe du jour');
+    expect(result.tabs?.[0].text).toContain('_Jn 3, 16_');
+    expect(result.tabs?.[0].text).toContain('Dieu a tant aimé le monde.');
+    expect(result.tabs?.[1].title).toBe('Messe de la veille');
+    expect(result.tabs?.[1].text).toContain('Commencement de l’Évangile.');
   });
 });

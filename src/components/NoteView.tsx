@@ -5,14 +5,7 @@ import { useRouter } from "next/navigation";
 import { MarkdownView } from "@/components/MarkdownView";
 import { useTranslation } from "@/lib/i18n";
 import { AutoScrollControl } from "@/components/AutoScrollControl";
-import {
-  notesApi,
-  NoteMetadata,
-  NoteSection,
-  interpolateApiUrl,
-  extractApiSectionText,
-  getNestedValue,
-} from "@/lib/notes";
+import { notesApi, NoteMetadata } from "@/lib/notes";
 
 interface NoteViewProps {
   noteId: string;
@@ -61,7 +54,7 @@ export function NoteView({ noteId, autoScrollSpeed }: NoteViewProps) {
     setPreviewError(null);
     const chunks: string[] = [];
     let tabsCandidate: Array<{ title: string; text: string }> | null = null;
-    for (const section of note.sections || note.content || []) {
+    for (const [sectionIndex, section] of (note.sections || note.content || []).entries()) {
       if (section.type === "manual") {
         const manualMd = (effectiveLanguage && section.mdByLanguage?.[effectiveLanguage]) || section.md;
         chunks.push(manualMd || "");
@@ -69,52 +62,24 @@ export function NoteView({ noteId, autoScrollSpeed }: NoteViewProps) {
       }
       if (!section.api_url) continue;
       try {
-        const url = interpolateApiUrl(section.api_url, {
-          lang: effectiveLanguage || note.language,
-          date: selectedDate,
-        });
-        const res = await fetch("/api/notes/preview", {
+        const res = await fetch(`/api/notes/${noteId}/preview/${sectionIndex}`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ url, authorization: section.authorization }),
+          body: JSON.stringify({
+            lang: effectiveLanguage || note.language,
+            date: selectedDate,
+          }),
         });
-        const payload = await res.json();
+        const payload = (await res.json()) as {
+          text?: string;
+          tabs?: Array<{ title: string; text: string }>;
+          error?: string;
+        };
         if (!res.ok) throw new Error(payload?.error || `HTTP ${res.status}`);
-        const resolved = getNestedValue(payload.data, section.resultSection);
-        const items = Array.isArray(resolved)
-          ? resolved
-          : Array.isArray(payload.data)
-            ? payload.data
-            : null;
-        const candidate = items && items.length > 1 && items.every((m: unknown) => m && typeof m === "object")
-          && !(
-            section.discriminator &&
-            section.discriminator !== "none" &&
-            items.every((m: unknown) => m && typeof m === "object" && (m as Record<string, unknown>)[section.discriminator as string] !== undefined)
-          )
-          ? (() => {
-              const first = items[0] as Record<string, unknown>;
-              const listProp = Object.keys(first).find((k: string) => {
-                const val = first[k];
-                return Array.isArray(val) && (val as unknown[]).length > 0 && (val as unknown[]).every((x: unknown) => x && typeof x === "object");
-              });
-              return listProp ? { listProp, items } : null;
-            })()
-          : null;
-        if (candidate) {
-          tabsCandidate = candidate.items.map((group: unknown, idx: number) => {
-            const m = group as Record<string, unknown>;
-            const titleProp = (["titre", "title", "name", "label", "heading"] as string[]).find((k: string) => typeof m[k] === "string") ||
-              Object.keys(m).find((k: string) => typeof m[k] === "string" && !Array.isArray(m[k]));
-            const title = String(titleProp ? m[titleProp] : `Tab ${idx + 1}`);
-            const lectures = (m[candidate.listProp] as unknown[]) || [];
-            const texts = lectures
-              .map((lec: unknown) => extractApiSectionText({ ...section, resultSection: undefined }, lec))
-              .filter(Boolean);
-            return { title, text: texts.join("\n\n") };
-          });
-        } else {
-          chunks.push(extractApiSectionText(section, payload.data));
+        if (payload.tabs?.length) {
+          tabsCandidate = payload.tabs;
+        } else if (payload.text) {
+          chunks.push(payload.text);
         }
       } catch (err) {
         chunks.push(
