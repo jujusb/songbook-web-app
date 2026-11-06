@@ -384,9 +384,17 @@ export function interpolateApiUrl(template: string, context: NoteApiContext = {}
 export const buildNoteApiUrl = interpolateApiUrl;
 export const interpolateNoteUrl = interpolateApiUrl;
 
-export function getNestedValue(data: unknown, path?: string): unknown {
+/** Replace language placeholders in a JSON path or result section. */
+export function interpolateLanguagePath(path: string, lang?: string): string {
+  if (!path || !lang) return path;
+  return path
+    .replace(/\$\{LANG_SHORT\}|\$LANG_SHORT/g, () => toFileCode(lang))
+    .replace(/\$\{LANG\}|\$LANG/g, () => lang);
+}
+
+export function getNestedValue(data: unknown, path?: string, lang?: string): unknown {
   if (!path || path.trim() === '') return data;
-  const cleaned = path.trim().replace(/\[\]/g, '[]'); // normalize
+  const cleaned = interpolateLanguagePath(path.trim(), lang).replace(/\[\]/g, '[]'); // normalize
   // Tokenize, preserving [] and [..] blocks.
   const tokens = cleaned.match(/\[\]|\[[^\]]*\]|[^.\[\]]+/g) || [];
   function walk(current: unknown, rest: string[]): unknown[] {
@@ -503,8 +511,8 @@ function stripHtmlTags(value: string): string {
 }
 
 
-export function getApiResultKeys(data: unknown, resultSection?: string): string[] {
-  const target = getNestedValue(data, resultSection);
+export function getApiResultKeys(data: unknown, resultSection?: string, lang?: string): string[] {
+  const target = getNestedValue(data, resultSection, lang);
   const collect = (obj: unknown): string[] => {
     if (obj && typeof obj === 'object' && !Array.isArray(obj)) {
       return Object.keys(obj as Record<string, unknown>).filter((k) => {
@@ -530,7 +538,7 @@ function normalizeDiscriminatorValue(value: unknown): string {
   return raw.replace(/_\d+$/, '');
 }
 
-export function extractApiSectionText(rawSection0: Partial<NoteSection>, data: unknown): string {
+export function extractApiSectionText(rawSection0: Partial<NoteSection>, data: unknown, lang?: string): string {
   // Use the saved shape directly (fields / discriminatorValues) while keeping
   // backward compatibility with legacy structures.
   const working: Record<string, unknown> = { ...rawSection0 };
@@ -559,7 +567,10 @@ export function extractApiSectionText(rawSection0: Partial<NoteSection>, data: u
   const rawSection2: Partial<NoteSection> = working as Partial<NoteSection>;  
 
   // use rawSection2 from here
-  const discKey = String((rawSection2 as Record<string, unknown>).discriminator || (rawSection2 as Record<string, unknown>).typeField || 'type');
+  const discKey = interpolateLanguagePath(
+    String((rawSection2 as Record<string, unknown>).discriminator || (rawSection2 as Record<string, unknown>).typeField || 'type'),
+    lang,
+  );
   const rawSection = rawSection2;
   const rawSectionTmp = rawSection;
 
@@ -591,7 +602,7 @@ export function extractApiSectionText(rawSection0: Partial<NoteSection>, data: u
   };
   const resultSection =
     (section as Record<string, unknown>).resultSection || (section as Record<string, unknown>).resultPath || (section as Record<string, unknown>).result_path;
-  const source = getNestedValue(data, resultSection as string | undefined);
+  const source = getNestedValue(data, resultSection as string | undefined, lang);
 
   const fields =
     (section as Record<string, unknown>).fields ||
@@ -664,7 +675,7 @@ export function extractApiSectionText(rawSection0: Partial<NoteSection>, data: u
       return style !== 'none';
     });
     return workingTarget
-      .map((item) => extractApiSectionText(rest as Partial<NoteSection>, item))
+      .map((item) => extractApiSectionText(rest as Partial<NoteSection>, item, lang))
       .filter(Boolean)
       .join('\n');
   }
@@ -749,7 +760,7 @@ export function extractApiSectionText(rawSection0: Partial<NoteSection>, data: u
     let rendered = template;
     for (const f of fieldList) {
       if (!f.key) continue;
-      const val = getNestedValue(target, f.key);
+      const val = getNestedValue(target, f.key, lang);
       const raw = stringifyValue(val);
       const text = applyStyle(raw.trim() ? raw : (f.fallback || ''), f.style);
       rendered = rendered.replace(new RegExp(`\\{${f.key}\\}`, 'g'), text);
@@ -760,7 +771,7 @@ export function extractApiSectionText(rawSection0: Partial<NoteSection>, data: u
   } else if (fieldList.length > 0) {
     for (const f of fieldList) {
       if (!f.key) continue;
-      const val = getNestedValue(target, f.key);
+      const val = getNestedValue(target, f.key, lang);
       const raw = stringifyValue(val);
       const text = applyStyle(raw.trim() ? raw : (f.fallback || ''), f.style);
       if (text) {
@@ -793,10 +804,11 @@ export interface NotePreviewContent {
 export function formatApiSectionPreview(
   rawSection: Partial<NoteSection>,
   data: unknown,
+  lang?: string,
 ): NotePreviewContent {
   const section = rawSection as Record<string, unknown>;
   const resultSection = section.resultSection as string | undefined;
-  const resolved = getNestedValue(data, resultSection);
+  const resolved = getNestedValue(data, resultSection, lang);
   const items = Array.isArray(resolved)
     ? resolved
     : Array.isArray(data)
@@ -829,7 +841,7 @@ export function formatApiSectionPreview(
       const title = String(titleProp ? m[titleProp] : `Tab ${idx + 1}`);
       const lectures = (m[candidate.listProp] as unknown[]) || [];
       const text = lectures
-        .map((lec) => extractApiSectionText({ ...rawSection, resultSection: undefined }, lec))
+        .map((lec) => extractApiSectionText({ ...rawSection, resultSection: undefined }, lec, lang))
         .filter(Boolean)
         .join('\n\n');
       return { title, text };
@@ -839,12 +851,12 @@ export function formatApiSectionPreview(
     }
   }
 
-  return { text: extractApiSectionText(rawSection, data) };
+  return { text: extractApiSectionText(rawSection, data, lang) };
 }
 
 // Plural aliases for fetch-like helpers
-export function fetchNoteApiContent(section: Partial<NoteSection>, data: unknown): string {
-  return extractApiSectionText(section, data);
+export function fetchNoteApiContent(section: Partial<NoteSection>, data: unknown, lang?: string): string {
+  return extractApiSectionText(section, data, lang);
 }
 
 export const assembleNoteSectionText = extractApiSectionText;

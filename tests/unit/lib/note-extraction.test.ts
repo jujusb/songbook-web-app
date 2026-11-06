@@ -205,6 +205,71 @@ describe('formatApiSectionPreview', () => {
   });
 });
 
+describe('language placeholders in mapping paths', () => {
+  it('interpolates $LANG in result section and field paths', () => {
+    const langSection = {
+      type: 'api',
+      resultSection: 'liturgical_day',
+      discriminator: 'none',
+      fields: [
+        { name: 'rank_names.$LANG', style: 'h2' },
+        { name: 'names.$LANG', label: 'Nombre' },
+        { name: 'variants[0].texts.$LANG.citation_raw', style: 'italic' },
+      ],
+    };
+    const langData = {
+      liturgical_day: {
+        rank_names: { 'fr-FR': 'Férie' },
+        names: { 'fr-FR': 'Pierre' },
+        variants: [{ texts: { 'fr-FR': { citation_raw: 'Jn 3, 16' } } }],
+      },
+    };
+
+    const out = extractApiSectionText(langSection as never, langData, 'fr-FR');
+
+    expect(out).toContain('## Férie');
+    expect(out).toContain('Nombre: Pierre');
+    expect(out).toContain('_Jn 3, 16_');
+  });
+
+  it('formats previews using $LANG mappings', () => {
+    const langSection = {
+      type: 'api',
+      resultSection: 'celebrations[].readings[]',
+      discriminator: 'type',
+      discriminatorValues: [
+        {
+          name: 'GOSPEL',
+          style: 'plain',
+          fieldsOrdered: [
+            { name: 'labels.$LANG', style: 'h2' },
+            { name: 'variants[0].texts.$LANG.text', style: 'plain' },
+          ],
+        },
+      ],
+    };
+    const langData = {
+      celebrations: [
+        {
+          readings: [
+            {
+              type: 'GOSPEL',
+              labels: { 'fr-FR': 'Évangile' },
+              variants: [{ texts: { 'fr-FR': { text: 'Au commencement était le Verbe.' } } }],
+            },
+          ],
+        },
+      ],
+    };
+
+    const result = formatApiSectionPreview(langSection as never, langData, 'fr-FR');
+
+    expect(result.tabs).toBeUndefined();
+    expect(result.text).toContain('## Évangile');
+    expect(result.text).toContain('Au commencement était le Verbe.');
+  });
+});
+
 describe('resolveNoteLanguage', () => {
   it('uses the preferred language when all languages apply', () => {
     expect(resolveNoteLanguage('es-ES', [], 'fr-FR')).toBe('fr-FR');

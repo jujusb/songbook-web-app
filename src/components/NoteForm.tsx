@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { notFound } from "next/navigation";
 import { languageLabelFor } from "@/lib/i18n/labels";
 import { useTranslation } from "@/lib/i18n";
-import { notesApi, NoteMetadata, NoteSection, extractApiSectionText, getApiResultKeys, getNestedValue, resolveNoteLanguage } from "@/lib/notes";
+import { notesApi, NoteMetadata, NoteSection, NoteOrderedField, extractApiSectionText, getApiResultKeys, getNestedValue, resolveNoteLanguage } from "@/lib/notes";
 
 const RECURRENT_TYPES = [
   { value: "weekly", label: "Weekly" },
@@ -53,9 +53,102 @@ function hasFieldValue(value: unknown): boolean {
   return value !== null && value !== undefined && value !== "";
 }
 
+/** Replace a concrete language code in a mapping path with the `$LANG` token. */
+function replaceLanguageInPath(path: string, lang: string): string {
+  if (!path || !lang) return path;
+  return path.split(lang).join("$LANG");
+}
+
+function replaceLanguageInFields(fields: NoteOrderedField[] | undefined, lang: string) {
+  return fields?.map((f) => ({ ...f, name: replaceLanguageInPath(f.name, lang) }));
+}
+
+function replaceLanguageInStyles(styles: Record<string, string> | undefined, lang: string) {
+  if (!styles) return styles;
+  return Object.fromEntries(Object.entries(styles).map(([key, value]) => [replaceLanguageInPath(key, lang), value]));
+}
+
+/** Rewrite the language part of every saved mapping path to `$LANG`. */
+function replaceLanguageInSection(sec: NoteSection, lang: string): NoteSection {
+  if (sec.type !== "api" || !lang) return sec;
+  return {
+    ...sec,
+    fieldOrder: sec.fieldOrder?.map((k) => replaceLanguageInPath(k, lang)),
+    allFields: sec.allFields?.map((k) => replaceLanguageInPath(k, lang)),
+    fieldStyles: replaceLanguageInStyles(sec.fieldStyles, lang),
+    fields: replaceLanguageInFields(sec.fields, lang),
+    typeConfigs: sec.typeConfigs
+      ? Object.fromEntries(
+          Object.entries(sec.typeConfigs).map(([type, cfg]) => [
+            type,
+            {
+              ...cfg,
+              fieldOrder: cfg.fieldOrder?.map((k) => replaceLanguageInPath(k, lang)),
+              fieldStyles: replaceLanguageInStyles(cfg.fieldStyles, lang),
+            },
+          ]),
+        )
+      : sec.typeConfigs,
+    discriminatorValues: sec.discriminatorValues?.map((dv) => ({
+      ...dv,
+      fieldsOrdered: replaceLanguageInFields(dv.fieldsOrdered, lang),
+      fields: replaceLanguageInFields(dv.fields, lang),
+    })),
+  };
+}
+
+function renameKey<T>(record: Record<string, T> | undefined, oldKey: string, newKey: string) {
+  if (!record || oldKey === newKey || !(oldKey in record)) return record;
+  const { [oldKey]: value, ...rest } = record;
+  return { ...rest, [newKey]: value };
+}
+
+function renameGlobalField(sec: NoteSection, oldKey: string, newKey: string, displayedOrder: string[]): NoteSection {
+  const baseOrder = sec.fieldOrder?.length ? sec.fieldOrder : displayedOrder;
+  return {
+    ...sec,
+    fieldOrder: baseOrder.map((k) => (k === oldKey ? newKey : k)),
+    allFields: sec.allFields?.map((k) => (k === oldKey ? newKey : k)),
+    fieldStyles: renameKey(sec.fieldStyles, oldKey, newKey),
+    fields: sec.fields?.map((f) => (f.name === oldKey ? { ...f, name: newKey } : f)),
+  };
+}
+
+function renameTypeField(
+  sec: NoteSection,
+  typeName: string,
+  oldKey: string,
+  newKey: string,
+  displayedOrder: string[],
+): NoteSection {
+  const nextConfigs = { ...(sec.typeConfigs || {}) };
+  const current = (nextConfigs[typeName] as Record<string, unknown> | undefined) || {};
+  const currentOrder = Array.isArray(current.fieldOrder) && (current.fieldOrder as string[]).length
+    ? (current.fieldOrder as string[])
+    : displayedOrder;
+  nextConfigs[typeName] = {
+    ...current,
+    fieldOrder: currentOrder.map((k) => (k === oldKey ? newKey : k)),
+    fieldStyles: renameKey(current.fieldStyles as Record<string, string> | undefined, oldKey, newKey),
+  };
+  return {
+    ...sec,
+    typeConfigs: nextConfigs,
+    discriminatorValues: sec.discriminatorValues?.map((dv) =>
+      dv.name === typeName
+        ? {
+            ...dv,
+            fieldsOrdered: dv.fieldsOrdered?.map((f) => (f.name === oldKey ? { ...f, name: newKey } : f)),
+            fields: dv.fields?.map((f) => (f.name === oldKey ? { ...f, name: newKey } : f)),
+          }
+        : dv,
+    ),
+  };
+}
+
 /** Flatten a preview payload the same way the discriminator preview does. */
-function collectDiscriminatedObjects(data: unknown, resultSection?: string, discriminator?: string): any[] {
-  const source = getNestedValue(data, resultSection);
+function collectDiscriminatedObjects(data: unknown, resultSection?: string, discriminator?: string, lang?: string): any[] {
+  const source = getNestedValue(data, resultSection, lang);
   const top = Array.isArray(source) ? source : source ? [source] : [];
   const objs: any[] = [];
   for (const item of top) {
@@ -199,13 +292,13 @@ export function NoteForm({ initialNote, isNew = true, noteId, languages: languag
       }
       const payload = await res.json();
       const data = payload.data;
-      const extracted = extractApiSectionText(section, data);
+      const extracted = extractApiSectionText(section, data, previewLanguage);
       // Persist result keys and discriminator values so mapping survives re-edit.
       const discField = section.discriminator || (Array.isArray(section.allFields) && section.allFields.includes("type") ? "type" : (section.allFields?.[0] || "type"));
-      const objs = collectDiscriminatedObjects(data, section.resultSection, discField);
+      const objs = collectDiscriminatedObjects(data, section.resultSection, discField, previewLanguage);
       const rawVals = [...new Set(objs.map((o) => String(o?.[discField] ?? "")).filter((v) => v !== ""))] ;
       const vals = [...new Set(rawVals.map((v) => v.replace(/_\d+$/, "")))];
-      const allFields = getApiResultKeys(data, section.resultSection);
+      const allFields = getApiResultKeys(data, section.resultSection, previewLanguage);
       updateSection(index, {
         allFields,
         rawDiscriminatorValues: rawVals,
@@ -228,6 +321,7 @@ export function NoteForm({ initialNote, isNew = true, noteId, languages: languag
     try {
       const builtSections: NoteSection[] = sections.map((s, i) => {
         if (s.type === "manual") return { type: "manual", md: s.md || "", periodic_behavior: s.periodic_behavior || "same" };
+        const sectionLang = resolveNoteLanguage(language, s.languages, locale) || language;
         const disc = s.discriminator || (Array.isArray(s.allFields) && s.allFields.includes("type") ? "type" : (s.allFields?.[0] || "type"));
         const keys = Array.isArray(s.fieldOrder) && s.fieldOrder.length
           ? s.fieldOrder
@@ -256,7 +350,7 @@ export function NoteForm({ initialNote, isNew = true, noteId, languages: languag
         const baseValues = Array.from(new Set(Object.keys(s.typeStyles || {})));
         // Only keep fields that have a value in the previewed API data for this type.
         // Without a preview there is no data to check, so all configured fields are kept.
-        const previewObjs = previews[i]?.data !== undefined ? collectDiscriminatedObjects(previews[i]?.data, s.resultSection, disc) : null;
+        const previewObjs = previews[i]?.data !== undefined ? collectDiscriminatedObjects(previews[i]?.data, s.resultSection, disc, sectionLang) : null;
         const discriminatorValues = baseValues.map((base) => {
           const cfg = s.typeConfigs?.[base] || {};
           const cfgKeys = Array.isArray(cfg.fieldOrder) && cfg.fieldOrder.length ? cfg.fieldOrder : keys;
@@ -264,7 +358,7 @@ export function NoteForm({ initialNote, isNew = true, noteId, languages: languag
           const savedKeys = previewObjs
             ? cfgKeys.filter((k) => {
                 if (persistedFields.find((f) => f.name === k)?.fallback) return true;
-                return previewObjs.some((o) => normalizeTypeValue(o?.[disc]) === base && hasFieldValue(getNestedValue(o, k)));
+                return previewObjs.some((o) => normalizeTypeValue(o?.[disc]) === base && hasFieldValue(getNestedValue(o, k, sectionLang)));
               })
             : cfgKeys;
           return {
@@ -334,7 +428,7 @@ export function NoteForm({ initialNote, isNew = true, noteId, languages: languag
     } finally {
       setSaving(false);
     }
-  }, [title, language, recurrentType, recurrentSchedule, periodicBehavior, tags, publishMode, publishedDates, sections, previews, isEdit, noteId, router]);
+  }, [title, language, locale, recurrentType, recurrentSchedule, periodicBehavior, tags, publishMode, publishedDates, sections, previews, isEdit, noteId, router]);
 
   if (notFoundFlag) notFound();
   if (isLoading) return <div className="p-6 max-w-2xl"><p className="text-sm text-neutral-500">Loading note…</p></div>;
@@ -422,6 +516,7 @@ export function NoteForm({ initialNote, isNew = true, noteId, languages: languag
         <p className="text-xs text-neutral-500 mb-4">
           A note is an ordered list of parts. Each part is either manual text or a call to an external API.
           Use {"${LANG}"}/$LANG (app language, e.g. fr-FR), {"${LANG_SHORT}"}/$LANG_SHORT (short code, e.g. fr) for the language and $DATE/$DATE(format) for the date in API URLs.
+          The same language placeholders work in the Result section and in field mapping paths, e.g. variants[0].texts.$LANG.text.
         </p>
 
         <div className="space-y-4">
@@ -538,7 +633,8 @@ export function NoteForm({ initialNote, isNew = true, noteId, languages: languag
                     </details>
                   )}
                   {(() => {
-                    const previewKeys = getApiResultKeys(previews[index]?.data, section.resultSection);
+                    const sectionLang = resolveNoteLanguage(language, section.languages, locale) || language;
+                    const previewKeys = getApiResultKeys(previews[index]?.data, section.resultSection, sectionLang);
                     const keys = previewKeys.length
                       ? previewKeys
                       : (Array.isArray(section.allFields) && section.allFields.length
@@ -549,7 +645,31 @@ export function NoteForm({ initialNote, isNew = true, noteId, languages: languag
                     const disc = section.discriminator || (keys.includes("type") ? "type" : keys[0]);
                     return (
                       <div className="mt-3 space-y-2">
-                        <label className="block text-sm font-medium">Field mapping (order, discriminator, style)</label>
+                        <div className="flex flex-wrap items-center gap-2">
+                          <label className="block text-sm font-medium">Field mapping (order, discriminator, style)</label>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const codes = Array.from(new Set([
+                                ...LANGUAGES.map((l) => l.value),
+                                language,
+                                sectionLang,
+                                ...(section.languages || []),
+                              ])).filter(Boolean);
+                              updateSection(
+                                index,
+                                codes.reduce((next, code) => replaceLanguageInSection(next, code), section),
+                              );
+                            }}
+                            className="text-xs px-2 py-1 border rounded hover:bg-neutral-100 dark:hover:bg-neutral-800"
+                            title="Replace language codes with $LANG in mapping paths"
+                          >
+                            Use $LANG for language keys
+                          </button>
+                        </div>
+                        <p className="text-xs text-neutral-500">
+                          Mapping paths support $LANG / $LANG_SHORT and can be edited directly, e.g. variants[0].texts.$LANG.text.
+                        </p>
                         <div className="flex items-center gap-2 mb-2">
                           <label className="text-sm">Discriminator field</label>
                           <select
@@ -565,7 +685,23 @@ export function NoteForm({ initialNote, isNew = true, noteId, languages: languag
                         <div className="space-y-2">
                           {order.filter((k) => keys.includes(k)).concat(keys.filter((k) => !order.includes(k))).map((key, pos, arr) => (
                             <div key={key} className="flex items-center gap-2 text-xs border rounded p-2">
-                              <span className="font-mono min-w-24">{key}</span>
+                              <input
+                                type="text"
+                                defaultValue={key}
+                                aria-label="Field path"
+                                onKeyDown={(e) => {
+                                  if (e.key === "Enter") e.currentTarget.blur();
+                                }}
+                                onBlur={(e) => {
+                                  const nextKey = e.currentTarget.value.trim();
+                                  if (!nextKey || nextKey === key) {
+                                    e.currentTarget.value = key;
+                                    return;
+                                  }
+                                  updateSection(index, renameGlobalField(section, key, nextKey, arr));
+                                }}
+                                className="font-mono min-w-24 flex-1 px-1 py-0.5 border border-neutral-300 dark:border-neutral-700 rounded bg-white dark:bg-neutral-900"
+                              />
                               <select
                                 value={section.fieldStyles?.[key] || "plain"}
                                 onChange={(e) => updateSection(index, { fieldStyles: { ...(section.fieldStyles || {}), [key]: e.target.value } })}
@@ -610,7 +746,7 @@ export function NoteForm({ initialNote, isNew = true, noteId, languages: languag
                           const disc = section.discriminator || (keys.includes("type") ? "type" : keys[0]);
                           if (disc === "none") return null;
                           const preview = previews[index]?.data;
-                          let previewObjs: any[] = preview !== undefined ? collectDiscriminatedObjects(preview, section.resultSection, disc) : [];
+                          let previewObjs: any[] = preview !== undefined ? collectDiscriminatedObjects(preview, section.resultSection, disc, sectionLang) : [];
                           const previewValues = preview ? [...new Set(previewObjs.map((o) => String(o?.[disc] ?? "").replace(/_\d+$/, "")).filter((v) => v !== ""))] : [];
                           const values = previewValues.length
                             ? previewValues
@@ -684,7 +820,7 @@ export function NoteForm({ initialNote, isNew = true, noteId, languages: languag
                                 const activeVal = activeTypeTab[index] || sortedValues[0];
                                 const cfg = section.typeConfigs?.[activeVal] || {};
                                 const previewData = previews[index]?.data;
-                                const previewObjs: any[] = previewData !== undefined ? collectDiscriminatedObjects(previewData, section.resultSection, disc) : [];
+                                const previewObjs: any[] = previewData !== undefined ? collectDiscriminatedObjects(previewData, section.resultSection, disc, sectionLang) : [];
                                 const valueObjs = previewObjs.filter((o) => String(o?.[disc]) === String(activeVal));
                                 let valueKeys = [...new Set((valueObjs.length ? valueObjs : previewObjs).flatMap((o) => Object.keys(o || {})))]
                                   .filter((k) => (valueObjs.length ? valueObjs : previewObjs).some((o) => o?.[k] !== null && o?.[k] !== undefined && o?.[k] !== ""))
@@ -723,7 +859,23 @@ export function NoteForm({ initialNote, isNew = true, noteId, languages: languag
                                         const fieldStyle = (cfg.fieldStyles as Record<string, string> | undefined)?.[key] || (section.fieldStyles || {})[key] || "plain";
                                         return (
                                           <div key={key} className="flex items-center gap-2 text-xs border rounded p-2">
-                                            <span className="font-mono min-w-24">{key}</span>
+                                            <input
+                                              type="text"
+                                              defaultValue={key}
+                                              aria-label="Field path"
+                                              onKeyDown={(e) => {
+                                                if (e.key === "Enter") e.currentTarget.blur();
+                                              }}
+                                              onBlur={(e) => {
+                                                const nextKey = e.currentTarget.value.trim();
+                                                if (!nextKey || nextKey === key) {
+                                                  e.currentTarget.value = key;
+                                                  return;
+                                                }
+                                                updateSection(index, renameTypeField(section, activeVal, key, nextKey, arr));
+                                              }}
+                                              className="font-mono min-w-24 flex-1 px-1 py-0.5 border border-neutral-300 dark:border-neutral-700 rounded bg-white dark:bg-neutral-900"
+                                            />
                                             <select
                                               value={fieldStyle}
                                               onChange={(e) => {

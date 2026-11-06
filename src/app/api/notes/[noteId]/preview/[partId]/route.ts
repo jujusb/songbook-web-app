@@ -31,10 +31,11 @@ export async function POST(
   }
 
   const body = (await request.json().catch(() => ({}))) as Record<string, unknown>;
+  const lang = typeof body.lang === 'string' ? body.lang : undefined;
   return previewApiSection(
     section,
-    typeof body.lang === 'string' ? body.lang : undefined,
+    lang,
     typeof body.date === 'string' ? body.date : undefined,
-    (data) => formatApiSectionPreview(section, data),
+    (data) => formatApiSectionPreview(section, data, lang),
   );
 }

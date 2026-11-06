@@ -20,6 +20,7 @@ export async function renderRecurrentNoteForDate(note: NoteMetadata, date: strin
   }
 
   const chunks: string[] = [];
+  const lang = note.language;
   for (const section of note.sections || note.content || []) {
     if (section.type === "manual") {
       chunks.push(section.md || "");
@@ -27,7 +28,7 @@ export async function renderRecurrentNoteForDate(note: NoteMetadata, date: strin
     }
     if (!section.api_url) continue;
     try {
-      const url = interpolateApiUrl(section.api_url.trim(), { lang: note.language, date: localDate(date) });
+      const url = interpolateApiUrl(section.api_url.trim(), { lang, date: localDate(date) });
       const parsed = new URL(url);
       if (parsed.protocol !== "http:" && parsed.protocol !== "https:") throw new Error("Invalid protocol");
       const res = await fetch(url, {
@@ -45,7 +46,7 @@ export async function renderRecurrentNoteForDate(note: NoteMetadata, date: strin
       } catch {
         // keep plain text
       }
-      chunks.push(extractApiSectionText(section, data));
+      chunks.push(extractApiSectionText(section, data, lang));
     } catch (err) {
       chunks.push(`[${section.name || "api"}] ${err instanceof Error ? err.message : "error"}`);
     }
