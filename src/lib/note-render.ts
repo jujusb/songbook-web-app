@@ -2,8 +2,8 @@
  * Server-side rendering of a recurrent note for a given date.
  * Used by setlists to show a note's text for the date chosen in the setlist.
  */
-import { getNote } from "@/lib/content/notes";
-import { extractApiSectionText, interpolateApiUrl, type NoteMetadata } from "@/lib/notes";
+import { getNote, getNoteManualPeriod } from "@/lib/content/notes";
+import { extractApiSectionText, interpolateApiUrl, noteManualSectionKey, type NoteMetadata } from "@/lib/notes";
 
 const FETCH_TIMEOUT_MS = 10_000;
 
@@ -14,16 +14,26 @@ function localDate(ymd: string): Date {
 }
 
 export async function renderRecurrentNoteForDate(note: NoteMetadata, date: string): Promise<string> {
-  if (note.periodic_behavior === "different_per_period") {
-    const override = note.periodOverrides?.[date];
-    if (override) return override;
-  }
+  const manualPeriod = await getNoteManualPeriod(note.id, date).catch(() => null);
+  const legacyOverride = note.periodOverrides?.[date];
+  let legacyOverrideUsed = false;
 
   const chunks: string[] = [];
   const lang = note.language;
-  for (const section of note.sections || note.content || []) {
+  const sections = note.sections || note.content || [];
+  for (const [index, section] of sections.entries()) {
     if (section.type === "manual") {
-      chunks.push(section.md || "");
+      const periodSection = manualPeriod?.sections[noteManualSectionKey(section, index)];
+      if (periodSection) {
+        chunks.push(periodSection.mdByLanguage?.[lang] ?? periodSection.md ?? "");
+      } else if (legacyOverride && !manualPeriod) {
+        if (!legacyOverrideUsed) {
+          chunks.push(legacyOverride);
+          legacyOverrideUsed = true;
+        }
+      } else {
+        chunks.push(section.mdByLanguage?.[lang] ?? section.md ?? "");
+      }
       continue;
     }
     if (!section.api_url) continue;

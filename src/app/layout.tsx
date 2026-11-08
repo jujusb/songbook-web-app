@@ -4,7 +4,7 @@ import { cookies } from "next/headers";
 import Link from "next/link";
 import { getSiteConfig, getLanguagesConfig } from "@/lib/content";
 import { getLocale } from "@/lib/i18n/server";
-import { getSession, canEdit, canAdmin, canCreateSetlist } from "@/lib/auth";
+import { getSession, canEdit, canAdmin, canCreateSetlist, canViewSetlistStats } from "@/lib/auth";
 import { isReadOnly } from "@/lib/readonly";
 import { UserMenu } from "@/components/UserMenu";
 import { LocaleSwitcher } from "@/components/LocaleSwitcher";
@@ -58,6 +58,7 @@ export default async function RootLayout({
   let showEditActions = false;
   let showAdminActions = false;
   let showCreateSetlist = false;
+  let showSetlistStats = false;
   const cookieStore = await cookies();
   let fallbackLocale = 'en-US';
   let songLanguages: string[] | undefined;
@@ -80,6 +81,7 @@ export default async function RootLayout({
     showEditActions = canEdit(session?.role ?? null);
     showAdminActions = canAdmin(session?.role ?? null);
     showCreateSetlist = canCreateSetlist(session?.role ?? null);
+    showSetlistStats = canViewSetlistStats(session?.role ?? null);
   } catch {}
 
   return (
@@ -125,6 +127,11 @@ export default async function RootLayout({
               <Link href="/setlists" className={NAV_LINK_CLASS}>
                 <T k="nav.setlists" />
               </Link>
+              {showSetlistStats && (
+                <Link href="/setlists/stats" className={NAV_LINK_CLASS}>
+                  <T k="nav.statistics" />
+                </Link>
+              )}
               {enableArtistPages && (
                 <Link href="/artists" className={NAV_LINK_CLASS}>
                   <T k="nav.artists" />

@@ -1,29 +1,35 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getSession, canEdit } from '@/lib/auth';
+import { getSession, canEdit, canViewSetlist } from '@/lib/auth';
 import { getSetlist } from '@/lib/content';
-import { listSetlistVersions, restoreSetlistVersion } from '@/lib/setlist-history';
+import { listSetlistVersions } from '@/lib/setlist-history';
 
-export async function GET(_request: NextRequest, { params }: { params: Promise<{ setlistId: string }> }) {
+async function resolveSetlist(setlistId: string) {
+  const setlist = await getSetlist(setlistId);
+  const historyId = setlist.sharedFrom?.setlistId ?? setlistId;
+  const source = setlist.sharedFrom ? await getSetlist(historyId) : setlist;
+  return { setlist, source, historyId };
+}
+
+export async function GET(request: NextRequest, { params }: { params: Promise<{ setlistId: string }> }) {
   const { setlistId } = await params;
+  let resolved;
   try {
-    await getSetlist(setlistId);
+    resolved = await resolveSetlist(setlistId);
   } catch {
     return NextResponse.json({ error: 'Not found' }, { status: 404 });
   }
-  const versions = await listSetlistVersions(setlistId);
-  return NextResponse.json(versions);
-}
 
-export async function POST(request: NextRequest, { params }: { params: Promise<{ setlistId: string }> }) {
   const session = await getSession();
-  if (!canEdit(session?.role ?? null)) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  const userId = session?.userId;
+  const role = session?.role ?? null;
+  const isEditor = canEdit(role);
+  const isOwner = !!userId && (resolved.setlist.ownerId === userId || resolved.source.ownerId === userId);
+  const isSubscriber = !!userId && (resolved.setlist.subscribers ?? []).includes(userId);
+  const share = request.nextUrl.searchParams.get('share') ?? undefined;
+  if (!isOwner && !canViewSetlist(resolved.setlist, share, isEditor, isSubscriber) && !canViewSetlist(resolved.source, share, isEditor, isSubscriber)) {
+    return NextResponse.json({ error: 'Not found' }, { status: 404 });
   }
-  const { setlistId } = await params;
-  const body = await request.json().catch(() => ({}));
-  if (!body?.version) {
-    return NextResponse.json({ error: 'Missing version' }, { status: 400 });
-  }
-  await restoreSetlistVersion(setlistId, body.version);
-  return NextResponse.json({ success: true });
+
+  const versions = await listSetlistVersions(resolved.historyId);
+  return NextResponse.json(versions);
 }

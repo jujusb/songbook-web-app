@@ -23,6 +23,8 @@ export interface NoteDiscriminatorValue {
 
 export interface NoteSection {
   type: 'manual' | 'api';
+  /** Stable key for per-date manual content (manual sections only). */
+  id?: string;
   typeStyles?: Record<string, string>;
   typeVisibility?: Record<string, boolean>;
   typeConfigs?: Record<string, { fieldOrder?: string[]; fieldStyles?: Record<string, string>; showDiscriminator?: boolean; typeStyles?: Record<string, string> }>;
@@ -53,6 +55,30 @@ export interface NoteApiSource {
   resultSection?: string;
   authorization?: string;
   languages?: string[];
+}
+
+/** Manual text for one section on one date. */
+export interface NoteManualSectionContent {
+  md?: string;
+  mdByLanguage?: Record<string, string>;
+}
+
+/** Current manual content for one occurrence date. */
+export interface NoteManualPeriod {
+  date: string;
+  sections: Record<string, NoteManualSectionContent>;
+  modified?: string;
+}
+
+export interface NoteManualVersionInfo {
+  label: string;
+  date: string;
+  modified?: string;
+}
+
+/** Stable key used to store per-date content for a manual section. */
+export function noteManualSectionKey(section: NoteSection, index: number): string {
+  return section.id || `section-${index}`;
 }
 
 export interface NoteMetadata {
@@ -228,6 +254,7 @@ export function normalizeNote(note: Partial<NoteMetadata>): NoteMetadata {
     tags: (note.tags as string[]) || [],
     published: (note.published as boolean) || false,
     publishedDates: (note.publishedDates as string[]) || [],
+    periodOverrides: note.periodOverrides as Record<string, string> | undefined,
   };
 }
 

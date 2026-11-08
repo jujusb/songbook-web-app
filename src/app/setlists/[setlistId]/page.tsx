@@ -5,7 +5,7 @@ import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { getSetlist, getSong, getSongTranslation, getSongTranslations, getSongTitle, listSetlistVersions, getSetlistVersion } from "@/lib/content";
-import { getSession, getCurrentUser, canEdit, canAdmin, canViewSetlist, canCreateSetlist } from "@/lib/auth";
+import { getSession, getCurrentUser, canEdit, canAdmin, canViewSetlist, canCreateSetlist, canManageSetlistHistory } from "@/lib/auth";
 import { isSongItem, isNoteItem, isLinkItem, isRecurrentNoteItem } from "@/lib/content/schemas";
 import { renderNoteRefText } from "@/lib/note-render";
 import { SetlistReadOnlyView, type SetlistReadOnlyEntry } from "@/components/SetlistReadOnlyView";
@@ -36,13 +36,23 @@ export default async function SetlistPage({
   const { share, mode, version: versionParam } = await searchParams;
   const shareParam = typeof share === "string" ? share : undefined;
 
+  let baseSetlist;
+  try {
+    baseSetlist = await getSetlist(setlistId);
+  } catch {
+    notFound();
+  }
+
+  // Saved/shared setlists keep their own id, but their history lives on the
+  // original setlist. Resolve it before loading a selected version.
+  const isReference = !!baseSetlist.sharedFrom;
+  const sourceSetlistId = isReference ? baseSetlist.sharedFrom!.setlistId : setlistId;
+
   let setlist;
   try {
-    if (versionParam) {
-      setlist = await getSetlistVersion(setlistId, versionParam);
-    } else {
-      setlist = await getSetlist(setlistId);
-    }
+    setlist = versionParam
+      ? await getSetlistVersion(sourceSetlistId, versionParam)
+      : baseSetlist;
   } catch {
     notFound();
   }
@@ -56,26 +66,28 @@ export default async function SetlistPage({
   const showEditActions = canEdit(role);
   const showDeleteActions = canAdmin(role);
   const canCreate = canCreateSetlist(role);
-  const isOwner = setlist.ownerId === userId;
-  const isSubscriber = userId ? (setlist.subscribers ?? []).includes(userId) : false;
+  const isOwner = baseSetlist.ownerId === userId;
+  const isSubscriber = userId ? (baseSetlist.subscribers ?? []).includes(userId) : false;
   const showVoiceShares = showEditActions || (canCreate && isOwner);
   // Show editor for admins/reviewers
   const showEditor = showEditActions;
   // Owners (and editors) get an Edit button; references are read-only for subscribers
-  const canEditSetlist = !setlist.sharedFrom && (showEditActions || (canCreate && isOwner));
+  const canEditSetlist = !isReference && (showEditActions || (canCreate && isOwner));
 
-  if (!canViewSetlist(setlist, shareParam, showEditor, isSubscriber)) {
+  if (!canViewSetlist(baseSetlist, shareParam, showEditor, isSubscriber)) {
     notFound();
   }
 
-  // Determine source setlist (original for references)
-  const isReference = !!setlist.sharedFrom;
-  const sourceSetlistId = isReference ? setlist.sharedFrom!.setlistId : setlistId;
-  const sourceSetlist = isReference ? await getSetlist(sourceSetlistId) : setlist;
+  const sourceSetlist = versionParam
+    ? setlist
+    : isReference
+      ? await getSetlist(sourceSetlistId)
+      : setlist;
 
   const voiceShares = await getSetlistVoiceShares(sourceSetlist, session?.role ?? 'public');
-  const historyVersions = await listSetlistVersions(setlistId);
+  const historyVersions = await listSetlistVersions(sourceSetlistId);
   const currentVersion = versionParam || null;
+  const canManageHistory = canManageSetlistHistory(role, sourceSetlist, userId);
   const presentHref = `/setlists/${setlistId}/present${
     shareParam ? `?share=${shareParam}` : ""
   }`;
@@ -177,7 +189,15 @@ export default async function SetlistPage({
         &larr; All Setlists
       </Link>
 
-      <SetlistHistoryBrowser setlistId={setlistId} canEdit={showEditActions} initialVersions={historyVersions} currentVersion={currentVersion} />
+      <SetlistHistoryBrowser
+        setlistId={setlistId}
+        historySetlistId={sourceSetlistId}
+        canEdit={showEditActions}
+        canManage={canManageHistory}
+        initialVersions={historyVersions}
+        currentVersion={currentVersion}
+        versionHrefBase={`/setlists/${setlistId}`}
+      />
 
       <div className="flex items-center justify-between mb-6">
         <div>

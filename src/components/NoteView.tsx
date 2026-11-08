@@ -2,10 +2,11 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { MarkdownView } from "@/components/MarkdownView";
 import { useTranslation } from "@/lib/i18n";
 import { AutoScrollControl } from "@/components/AutoScrollControl";
-import { notesApi, NoteMetadata, resolveNoteLanguage } from "@/lib/notes";
+import { notesApi, NoteMetadata, noteManualSectionKey, resolveNoteLanguage, type NoteManualPeriod } from "@/lib/notes";
 
 interface NoteViewProps {
   noteId: string;
@@ -28,9 +29,12 @@ export function NoteView({ noteId, autoScrollSpeed }: NoteViewProps) {
   const [selectedDate, setSelectedDate] = useState(
     new Date().toISOString().slice(0, 10)
   );
-  const [editing, setEditing] = useState(false);
-  const [overrideText, setOverrideText] = useState("");
-  const [saving, setSaving] = useState(false);
+  const [manualPeriodState, setManualPeriodState] = useState<{
+    date: string;
+    content: NoteManualPeriod | null;
+  } | null>(null);
+  const manualPeriod =
+    manualPeriodState?.date === selectedDate ? manualPeriodState.content : null;
   const [previewText, setPreviewText] = useState("");
   const [tabbed, setTabbed] = useState<Array<{ title: string; text: string }> | null>(null);
   const [activeTab, setActiveTab] = useState(0);
@@ -52,14 +56,46 @@ export function NoteView({ noteId, autoScrollSpeed }: NoteViewProps) {
   useEffect(() => {
     if (!note) return;
     let cancelled = false;
+    fetch(`/api/notes/${encodeURIComponent(noteId)}/manual?date=${encodeURIComponent(selectedDate)}`)
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => {
+        if (!cancelled) {
+          setManualPeriodState({ date: selectedDate, content: data?.content ?? null });
+        }
+      })
+      .catch(() => {
+        if (!cancelled) setManualPeriodState({ date: selectedDate, content: null });
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [note, noteId, selectedDate]);
+
+  useEffect(() => {
+    if (!note) return;
+    let cancelled = false;
   const load = async () => {
     setPreviewLoading(true);
     setPreviewError(null);
     const chunks: string[] = [];
     let tabsCandidate: Array<{ title: string; text: string }> | null = null;
+    let legacyOverrideUsed = false;
     for (const [sectionIndex, section] of (note.sections || note.content || []).entries()) {
       if (section.type === "manual") {
-        const manualMd = (effectiveLanguage && section.mdByLanguage?.[effectiveLanguage]) || section.md;
+        const periodSection = manualPeriod?.sections[noteManualSectionKey(section, sectionIndex)];
+        const legacyOverride = manualPeriod ? undefined : note.periodOverrides?.[selectedDate];
+        let manualMd: string | undefined;
+        if (periodSection) {
+          manualMd =
+            (effectiveLanguage && periodSection.mdByLanguage?.[effectiveLanguage]) ||
+            periodSection.md;
+        } else if (legacyOverride && !legacyOverrideUsed) {
+          legacyOverrideUsed = true;
+          manualMd = legacyOverride;
+        } else {
+          manualMd =
+            (effectiveLanguage && section.mdByLanguage?.[effectiveLanguage]) || section.md;
+        }
         chunks.push(manualMd || "");
         continue;
       }
@@ -102,25 +138,7 @@ export function NoteView({ noteId, autoScrollSpeed }: NoteViewProps) {
     return () => {
       cancelled = true;
     };
-  }, [note, selectedDate, effectiveLanguage, locale, noteId]);
-
-  useEffect(() => {
-    if (!note) return;
-    setOverrideText(note.periodOverrides?.[selectedDate] || "");
-  }, [note, selectedDate]);
-
-  const handleSaveOverride = async () => {
-    if (!note) return;
-    setSaving(true);
-    try {
-      const next = { ...(note.periodOverrides || {}), [selectedDate]: overrideText };
-      const updated = await notesApi.updateNote(noteId, { periodOverrides: next });
-      setNote(updated);
-      setEditing(false);
-    } finally {
-      setSaving(false);
-    }
-  };
+  }, [note, selectedDate, effectiveLanguage, locale, noteId, manualPeriod]);
 
   const handleDelete = async () => {
     if (!confirm("Delete this note?")) return;
@@ -140,6 +158,18 @@ export function NoteView({ noteId, autoScrollSpeed }: NoteViewProps) {
       <div className="flex items-center justify-between gap-4">
         <h1 className="text-2xl font-bold">{note.title}</h1>
         <div className="flex gap-2">
+          {note.sections.some(
+            (section) =>
+              section.type === "manual" &&
+              (section.periodic_behavior ?? note.periodic_behavior) === "different_per_period",
+          ) && (
+            <Link
+              href={`/notes/${noteId}/manual?date=${encodeURIComponent(selectedDate)}`}
+              className="px-3 py-1.5 text-sm border rounded-md hover:bg-neutral-100 dark:hover:bg-neutral-800"
+            >
+              Edit manual text
+            </Link>
+          )}
           <button type="button" onClick={() => router.push(`/notes/${noteId}/edit`)} className="px-3 py-1.5 text-sm border rounded-md hover:bg-neutral-100 dark:hover:bg-neutral-800">Edit</button>
           <button type="button" onClick={handleDelete} className="px-3 py-1.5 text-sm border rounded-md text-red-600 hover:bg-red-50 dark:hover:bg-red-950">Delete</button>
         </div>
@@ -159,33 +189,6 @@ export function NoteView({ noteId, autoScrollSpeed }: NoteViewProps) {
           className="px-3 py-2 border border-neutral-300 dark:border-neutral-700 rounded-md bg-white dark:bg-neutral-900 text-sm"
         />
       </div>
-
-      {note?.periodic_behavior === "different_per_period" && (
-        <div className="space-y-2">
-          {editing ? (
-            <>
-              <textarea
-                value={overrideText}
-                onChange={(e) => setOverrideText(e.target.value)}
-                rows={6}
-                className="w-full px-3 py-2 border rounded-md text-sm resize-y"
-              />
-              <div className="flex gap-2">
-                <button type="button" onClick={handleSaveOverride} disabled={saving} className="px-3 py-1.5 text-sm bg-blue-600 text-white rounded-md disabled:opacity-50">
-                  {saving ? "Saving..." : "Save override"}
-                </button>
-                <button type="button" onClick={() => setEditing(false)} className="px-3 py-1.5 text-sm border rounded-md">
-                  Cancel
-                </button>
-              </div>
-            </>
-          ) : (
-            <button type="button" onClick={() => setEditing(true)} className="px-3 py-1.5 text-sm border rounded-md">
-              Edit text for this date
-            </button>
-          )}
-        </div>
-      )}
 
       {previewLoading ? (
         <p className="text-sm text-neutral-500">Loading…</p>

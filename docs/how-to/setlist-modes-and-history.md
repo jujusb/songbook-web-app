@@ -4,107 +4,49 @@ Setlists can be viewed in different modes depending on the use case, and their h
 
 ## History (date-based versions)
 
-Instead of a revision tree of snapshots within the same setlist folder, each time a setlist is updated, a **new dated version** is created. The history is a collection of these dated setlist versions.
+Each setlist keeps one **permanent root file** and a set of **dated snapshots**. Reusing the same setlist link for every event is the intended workflow: the root always holds the current/next event, while previous events are archived under dated folders.
 
 ### How it works
 
-- **Current setlist**: Lives at `content/setlists/<setlist-id>.yaml` and is the active version
-- **Dated versions**: Each time the setlist is saved, a new folder is created at `content/setlists/<setlist-id>/<YYYY-MM-DD>/` containing the setlist YAML and any associated files
-- **Automatic versions**: Created on every save, automatically named by the current date (`YYYY-MM-DD`)
-- **Manual versions**: Admins can create a version with a custom label (e.g., "Christmas 2026", "Easter service") via the UI, which adds a descriptively-named folder
-- **Current vs. historical**: The root `setlists/<id>.yaml` is always the current active version. Dated folders are historical snapshots
+- **Current setlist**: `<data>/setlists/<setlist-id>.yaml` — the permanent link and the active version
+- **Dated versions**: `<data>/setlists/<setlist-id>/<label>/setlist.yaml`
+- **Automatic versions**: Before the root is overwritten, the previous root is archived if its content changed. Saving only metadata (public flag, share token/slug, subscribers, voice shares, mode, modified timestamp) does **not** create a version.
+- **Version labels**: The setlist's `date` when available (`YYYY-MM-DD`). If that folder already exists, a timestamp label is used instead (`YYYY-MM-DDTHH-MM-SS`, with `-N` on further collisions) so a version is never overwritten.
+- **Event dates**: History and statistics use the YAML `date` first, then fall back to the `YYYY-MM-DD` prefix of the folder label. Old date-only folders keep working without migration.
+- **Saved shared setlists**: A reference (a setlist saved from a share link) resolves its history to the original setlist, so all subscribers see the same event timeline. The share page exposes that history read-only.
 
-### Viewing history
+### Recurrent event workflow
 
-1. **Open the history view**: Append `/history` to the setlist URL, e.g.:
-   `http://YOUR_INSTANCE/setlists/my-setlist/history`
-2. **See the timeline**: All dated versions are shown with their dates (and labels for manual versions)
-3. **Switch to a previous version**: Click on any date to make that version the current active setlist
-   - When you switch to a previous date, the content from that dated folder becomes the new root `setlists/<id>.yaml`
-   - A new date-based version is created on the next save
-4. **Create a manual version**: In the history view, enter a label to create a snapshot that will never be automatically pruned
+1. Bookmark the permanent link, e.g. `/setlists/sunday-service`.
+2. For each event, set the setlist date to the event date and update the songs/notes.
+3. Save. The previous event is archived under its own date; the root now represents the new event.
+4. Open the history section to browse past events.
 
-### Creating a new setlist version with a specific date
-
-You can create a new dated version of the setlist by appending `?date=YYYY-MM-DD` to the setlist URL. This saves the current setlist state as a new version with the specified date.
-
-- **Example**: `http://YOUR_INSTANCE/setlists/my-setlist?date=2026-11-01`
-- **Effect**: The current setlist content is saved as `content/setlists/my-setlist/2026-11-01/` and becomes a historical version
-- **Current setlist**: The root `setlists/my-setlist.yaml` remains unchanged (the current active version)
-- **Recurrent event workflow**:
-
-  1. **Bookmark the setlist link**: `/setlists/my-recurrent-setlist` — this is the permanent link used for all events
-  2. **After each event**: Save the setlist state with the event date:
-     - `http://YOUR_INSTANCE/setlists/my-recurrent-setlist?date=2026-11-01`
-     - This saves the current content as the November 1, 2026 version under `content/setlists/my-recurrent-setlist/2026-11-01/`
-     - The root `setlists/my-recurrent-setlist.yaml` remains the current version for the next event
-  3. **View the history of all events**: Append `/history` to see the timeline:
-     - `http://YOUR_INSTANCE/setlists/my-recurrent-setlist/history`
-     - Shows all past dates with labels (e.g., "Nov 1", "Nov 8", "Christmas Service")
-  4. **Switch to a past event**: Click any date in history to make that version the current active setlist
-
-  **Example: Weekly Sunday Service**
-
-  ```
-  Setlist link (permanent):  http://YOUR_INSTANCE/setlists/sunday-service
-
-  Event 1:            Event 2:            Event 3:
-  Nov 1, 2026         Nov 8, 2026         Nov 15, 2026
-  ?date=2026-11-01    ?date=2026-11-08    ?date=2026-11-15
-
-  content/setlists/
-    sunday-service.yaml     ← current (next event)
-    sunday-service/
-      2026-11-01/           ← Nov 1 version
-        meta.yaml
-        en.cho
-        es.cho
-      2026-11-08/           ← Nov 8 version
-        meta.yaml
-        en.cho
-      2026-11-15/           ← Nov 15 version
-        meta.yaml
-        en.cho
-  ```
-
-- **Role requirement**: Requires at least `setlist_creator` role to create a new dated version. However, all readers (even without login) can view the history timeline of dated versions if the setlist is public, though creating or restoring versions requires appropriate permissions.
-
-### Combining with mode parameter
-
-You can combine the date parameter with the mode parameter:
-- `http://YOUR_INSTANCE/setlists/my-setlist?date=2026-11-01&mode=concert`
-- This saves the current setlist in concert mode as the version for that date
-
-### Restoring previous versions
-
-- To restore a previous dated version: clicking on that version in the history view makes it the current active setlist
-- The content from that dated folder replaces the root `setlists/<id>.yaml`
-- Restoring requires `admin` role or setlist ownership
-- After restoring, the next save will create a new dated version based on the restored content
-
-### Security
-
-- **Viewing history**: Requires at least `setlist_creator` role for the setlist's owner, or `public` role for public setlists
-- **Restoring versions**: Requires `admin` role or being the setlist owner
-- **Dated versions are read-only**: Direct edits to dated folder contents are prevented; edits should be made via the history view or by restoring first
-
-### Example folder structure after several months
+Example:
 
 ```
-content/setlists/
-  my-setlist.yaml              ← current active setlist
-  my-setlist/                  ← dated versions folder
-    2026-10-15/                ← October 15, 2026 version
-      meta.yaml
-      en.cho
-      es.cho
-    2026-11-01/                ← November 1, 2026 version (maybe a manual "conference" version)
-      meta.yaml
-      en.cho
-    christmas-2026/            ← manually-labeled version
-      meta.yaml
-      en.cho
+<data>/setlists/
+  sunday-service.yaml          ← current/next event
+  sunday-service/
+    2026-11-01/setlist.yaml    ← archived event
+    2026-11-08/setlist.yaml
 ```
+
+### Viewing and restoring history
+
+- The **Version history** section appears below the setlist (and on its share page). Select a version to open it in the setlist view.
+- **Save date (copy)** creates a dated snapshot from the current root without changing the root. **Save date (empty)** creates an empty snapshot for that date (useful for planning a future event).
+- Restoring and creating dated versions require `admin`/`reviewer`, or a `setlist_creator` who owns the setlist. In read-only deployments all history writes are disabled.
+
+### Statistics
+
+The **Statistics** page at `/setlists/stats` shows which songs were used across dated setlist events.
+
+- **Periods**: rolling last 30 days, rolling last 365 days, or all time.
+- **Scope**: admins and reviewers see all setlists; `setlist_creator` sees only their own (including setlists they saved from a share link).
+- **Counting**: each song counts at most once per dated event. Current setlists and dated versions are both included when they have a usable event date.
+- **References**: saved shared setlists are counted through their original setlist, so the same event is not counted twice.
+- **Undated setlists** are skipped and reported separately. Use the language chips to filter the table.
 
 ### Configuration
 

@@ -4,7 +4,7 @@ import Link from "next/link";
 import { cookies } from "next/headers";
 import { listSetlists, listSongs, getLanguagesConfig, resolveSongListTitle } from "@/lib/content";
 import { getLocale } from "@/lib/i18n/server";
-import { getSession, canEdit, canCreateSetlist, getCurrentUser } from "@/lib/auth";
+import { getSession, canEdit, canCreateSetlist, canViewSetlistStats, getCurrentUser } from "@/lib/auth";
 import { T } from "@/components/Translate";
 
 export default async function SetlistsPage() {
@@ -30,14 +30,24 @@ export default async function SetlistsPage() {
     <div className="max-w-full mx-auto px-4 sm:px-6 lg:px-8 py-8">
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-2xl font-bold"><T k="setlist.title" /></h1>
-        {canCreateSetlist(session?.role ?? null) && (
-          <Link
-            href="/setlists/new"
-            className="text-sm px-3 py-1.5 bg-neutral-900 dark:bg-white text-white dark:text-neutral-900 rounded-md font-medium hover:opacity-90 transition-opacity"
-          >
-            <T k="setlist.newSetlist" />
-          </Link>
-        )}
+        <div className="flex items-center gap-2">
+          {canViewSetlistStats(session?.role ?? null) && (
+            <Link
+              href="/setlists/stats"
+              className="text-sm px-3 py-1.5 border border-neutral-300 dark:border-neutral-700 rounded-md font-medium hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors"
+            >
+              <T k="nav.statistics" />
+            </Link>
+          )}
+          {canCreateSetlist(session?.role ?? null) && (
+            <Link
+              href="/setlists/new"
+              className="text-sm px-3 py-1.5 bg-neutral-900 dark:bg-white text-white dark:text-neutral-900 rounded-md font-medium hover:opacity-90 transition-opacity"
+            >
+              <T k="setlist.newSetlist" />
+            </Link>
+          )}
+        </div>
       </div>
 
       {visibleSetlists.length === 0 ? (

@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { cookies } from 'next/headers';
+import type { NextRequest } from 'next/server';
 import { GET as notesGET, POST as notesPOST } from '@/app/api/notes/route';
 import { GET as noteGET, PUT as notePUT } from '@/app/api/notes/[noteId]/route';
 import { createTempContentDir, mockContentDir } from '../../utils/temp-content';
@@ -11,7 +12,7 @@ function createMockRequest(method: string, body?: unknown) {
     url: 'http://localhost/api/notes',
     json: async () => body,
     headers: new Headers({ 'content-type': 'application/json' }),
-  } as unknown as Request;
+  } as unknown as NextRequest;
 }
 
 describe('API /api/notes', () => {

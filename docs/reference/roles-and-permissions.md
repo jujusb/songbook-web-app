@@ -41,11 +41,11 @@ A reviewer's `permissions` object (`PermissionSchema`, `src/lib/auth/schemas.ts:
 
 ```yaml
 permissions:
-  editLanguage: [es, pt]                 # any edit in these languages
+  editLanguage: [es-ES, pt-PT]                 # any edit in these languages
   editSong:
-    - { songId: amazing-grace, lang: es }
+    - { songId: amazing-grace, lang: es-ES }
   editAlbum:
-    - { albumId: classic-hymns, lang: en }
+    - { albumId: classic-hymns, lang: en-US }
 ```
 
 `canEditSong` and `canEditAlbum` return true for a reviewer when the language is in `editLanguage`

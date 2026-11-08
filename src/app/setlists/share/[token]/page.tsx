@@ -14,6 +14,8 @@ import {
   shouldShowSongInLanguage,
   getSongTranslation,
   getSetlist,
+  getSetlistVersion,
+  listSetlistVersions,
 } from "@/lib/content";
 import { getLocale } from "@/lib/i18n/server";
 import { getSession, getCurrentUser } from "@/lib/auth";
@@ -22,6 +24,7 @@ import { isSongItem, isNoteItem, isLinkItem, isRecurrentNoteItem } from "@/lib/c
 import { renderNoteRefText } from "@/lib/note-render";
 import { SetlistReadOnlyView, type SetlistReadOnlyEntry } from "@/components/SetlistReadOnlyView";
 import { SetlistPdfButton } from "@/components/SetlistPdfButton";
+import { SetlistHistoryBrowser } from "@/components/SetlistHistoryBrowser";
 import { saveSharedSetlistAction } from "@/app/actions";
 
 /**
@@ -56,10 +59,13 @@ export async function generateMetadata({
 
 export default async function SetlistSharePage({
   params,
+  searchParams,
 }: {
   params: Promise<{ token: string }>;
+  searchParams: Promise<{ version?: string }>;
 }) {
   const { token } = await params;
+  const { version: versionParam } = await searchParams;
   const setlist = await findSetlistByShareToken(token);
   if (!setlist) notFound();
 
@@ -75,7 +81,19 @@ export default async function SetlistSharePage({
   // Determine source setlist (original for references)
   const isReference = !!setlist.sharedFrom;
   const sourceSetlistId = isReference ? setlist.sharedFrom!.setlistId : setlist.id;
-  const sourceSetlist = isReference ? await getSetlist(sourceSetlistId) : setlist;
+
+  let sourceSetlist;
+  try {
+    sourceSetlist = versionParam
+      ? await getSetlistVersion(sourceSetlistId, versionParam)
+      : isReference
+        ? await getSetlist(sourceSetlistId)
+        : setlist;
+  } catch {
+    notFound();
+  }
+
+  const historyVersions = await listSetlistVersions(sourceSetlistId);
 
   const songDetails = await Promise.all(
     sourceSetlist.songs.filter(isSongItem).map(async (item) => {
@@ -247,6 +265,17 @@ export default async function SetlistSharePage({
         preferredVoice={currentUser?.voice}
         voiceShares={voiceShares}
         canGenerate={false}
+      />
+
+      <SetlistHistoryBrowser
+        setlistId={setlist.id}
+        historySetlistId={sourceSetlistId}
+        canEdit={false}
+        canManage={false}
+        initialVersions={historyVersions}
+        currentVersion={versionParam || null}
+        shareToken={setlist.shareToken}
+        versionHrefBase={`/setlists/share/${encodeURIComponent(token)}`}
       />
     </div>
   );

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback, useEffect, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { useTranslation } from "@/lib/i18n";
 import { getSetlistMaxSongs } from "@/lib/config";
@@ -72,6 +72,7 @@ export function SetlistEditor({
   const [recurrentNotes, setRecurrentNotes] = useState<Array<{ id: string; title: string }>>([]);
   const [pickNoteId, setPickNoteId] = useState("");
   const [pickDate, setPickDate] = useState(() => new Date().toISOString().slice(0, 10));
+  const [availableHistoryDates, setAvailableHistoryDates] = useState<string[]>([]);
 
   useEffect(() => {
     let cancelled = false;
@@ -82,11 +83,39 @@ export function SetlistEditor({
       cancelled = true;
     };
   }, []);
+
+  useEffect(() => {
+    if (!initialSetlist?.id) {
+      const timer = window.setTimeout(() => setAvailableHistoryDates([]), 0);
+      return () => window.clearTimeout(timer);
+    }
+    let cancelled = false;
+    fetch(`/api/setlists/${initialSetlist.id}/history`)
+      .then((res) => (res.ok ? res.json() : []))
+      .then((versions: Array<{ date?: string; eventDate?: string; label?: string }>) => {
+        if (cancelled) return;
+        const dates = new Set<string>();
+        if (initialSetlist.date) dates.add(initialSetlist.date);
+        for (const version of versions || []) {
+          if (version.date) dates.add(version.date);
+          if (version.eventDate) dates.add(version.eventDate);
+          if (version.label && /^\d{4}-\d{2}-\d{2}/.test(version.label)) dates.add(version.label);
+        }
+        setAvailableHistoryDates(Array.from(dates));
+      })
+      .catch(() => {
+        if (cancelled) return;
+        setAvailableHistoryDates(initialSetlist.date ? [initialSetlist.date] : []);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [initialSetlist?.id, initialSetlist?.date]);
   const noteTitle = (noteId: string) => recurrentNotes.find((n) => n.id === noteId)?.title || noteId;
 
 
   const songCount = songs.filter(isSongItem).length;
-  const songMap = new Map(availableSongs.map((s) => [s.id, s]));
+  const songMap = useMemo(() => new Map(availableSongs.map((s) => [s.id, s])), [availableSongs]);
 
   const addSong = useCallback(
     (songId: string) => {
@@ -111,12 +140,25 @@ export function SetlistEditor({
     setSongs((prev) => [...prev, { type: "link", id: newItemId(), url: "", title: "" }]);
   }, []);
 
+  const availableDates = availableHistoryDates.includes(date)
+    ? availableHistoryDates
+    : date
+      ? [...availableHistoryDates, date]
+      : availableHistoryDates;
+
   const addRecurrentNote = useCallback(() => {
     if (!pickNoteId || !pickDate) return;
+    const isAvailableDate =
+      availableHistoryDates.includes(pickDate) || date === pickDate;
+    if (!isAvailableDate) {
+      setError(t('setlist.noSetlistDate'));
+      return;
+    }
     setSongs((prev) => [...prev, { type: "recurrent-note", id: newItemId(), noteId: pickNoteId, date: pickDate }]);
     setShowRecurrent(false);
     setPickNoteId("");
-  }, [pickNoteId, pickDate]);
+    setError(null);
+  }, [pickNoteId, pickDate, availableHistoryDates, date, t]);
 
   const uploadSetlistImage = useCallback(async (file: File) => {
     const form = new FormData();
@@ -552,10 +594,16 @@ export function SetlistEditor({
             <label className="text-xs text-neutral-500">{t("setlist.noteDate")}</label>
             <input
               type="date"
+              list="setlist-dates"
               value={pickDate}
               onChange={(e) => setPickDate(e.target.value)}
               className="px-2 py-1.5 border border-neutral-300 dark:border-neutral-700 rounded bg-white dark:bg-neutral-900 text-sm"
             />
+            <datalist id="setlist-dates">
+              {availableDates.map((availableDate) => (
+                <option key={availableDate} value={availableDate} />
+              ))}
+            </datalist>
             <button
               type="button"
               onClick={addRecurrentNote}

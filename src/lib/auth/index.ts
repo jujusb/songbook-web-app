@@ -207,9 +207,28 @@ export function canCreateSetlist(role: Role | null): boolean {
   return role === 'setlist_creator' || role === 'reviewer' || role === 'admin';
 }
 
+/** Statistics are read-only, so they remain available on read-only deployments. */
+export function canViewSetlistStats(role: Role | null): boolean {
+  return role === 'setlist_creator' || role === 'reviewer' || role === 'admin';
+}
+
 export function canManageSetlistShares(role: Role | null): boolean {
   if (isReadOnlyFor('setlist_share')) return false;
   return role === 'setlist_creator' || role === 'reviewer' || role === 'admin';
+}
+
+/**
+ * Who may create/restore dated versions for a setlist. Reviewers and admins
+ * can manage any setlist; a setlist creator can only manage their own.
+ */
+export function canManageSetlistHistory(
+  role: Role | null,
+  setlist: { ownerId?: string },
+  userId: string | undefined,
+): boolean {
+  if (isReadOnlyFor('setlist_write')) return false;
+  if (role === 'reviewer' || role === 'admin') return true;
+  return role === 'setlist_creator' && !!userId && setlist.ownerId === userId;
 }
 
 /**

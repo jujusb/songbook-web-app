@@ -21,6 +21,10 @@ import {
   ArtistSchema,
   SetlistSchema,
   isReservedSetlistId,
+  isSongItem,
+  isNoteItem,
+  isLinkItem,
+  isRecurrentNoteItem,
   type SongMeta,
   type SongTranslationFrontmatter,
   type LanguagesConfig,
@@ -345,6 +349,117 @@ export async function findSetlistByShareToken(token: string): Promise<Setlist | 
   return setlists.find((s) => s.shareToken === token || s.shareSlug === token) ?? null;
 }
 
+export interface SetlistVersionInfo {
+  label: string;
+  path: string;
+  title: string;
+  /** Date stored in the version YAML. */
+  date?: string;
+  /** Date used for history/statistics: YAML date first, folder label fallback. */
+  eventDate?: string;
+  description?: string;
+}
+
+interface StoredSetlistVersion {
+  label: string;
+  raw: string;
+  setlist: Setlist;
+}
+
+const SETLIST_DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
+const VERSION_DATE_PREFIX = /^(\d{4}-\d{2}-\d{2})/;
+
+function todayDate(): string {
+  return new Date().toISOString().slice(0, 10);
+}
+
+export function isSetlistDate(value: unknown): value is string {
+  return typeof value === 'string' && SETLIST_DATE_PATTERN.test(value);
+}
+
+/** Extract the event date prefix from a version folder label (`YYYY-MM-DD…`). */
+export function parseSetlistVersionDate(label: string): string | null {
+  const match = VERSION_DATE_PREFIX.exec(label);
+  return match ? match[1] : null;
+}
+
+/**
+ * Stable fingerprint of the content that belongs in history. Share settings,
+ * mode, subscribers and generated voice shares are deliberately excluded: they
+ * must not create a new dated version.
+ */
+export function setlistContentKey(setlist: Setlist): string {
+  return JSON.stringify({
+    title: setlist.title,
+    description: setlist.description ?? '',
+    date: setlist.date ?? '',
+    image: setlist.image ?? '',
+    songs: setlist.songs.map((item) => {
+      if (isNoteItem(item)) return { type: 'note', id: item.id, text: item.text };
+      if (isLinkItem(item)) return { type: 'link', id: item.id, url: item.url, title: item.title ?? '' };
+      if (isRecurrentNoteItem(item)) {
+        return { type: 'recurrent-note', id: item.id, noteId: item.noteId, date: item.date };
+      }
+      if (isSongItem(item)) return { type: 'song', songId: item.songId, lang: item.lang };
+      return item;
+    }),
+  });
+}
+
+async function readSetlistVersions(baseId: string): Promise<StoredSetlistVersion[]> {
+  const versionsDir = path.join(getSetlistsDir(), baseId);
+  if (!existsSync(versionsDir)) return [];
+  const result: StoredSetlistVersion[] = [];
+  try {
+    const entries = await readdir(versionsDir, { withFileTypes: true });
+    for (const entry of entries) {
+      if (!entry.isDirectory()) continue;
+      const fp = path.join(versionsDir, entry.name, 'setlist.yaml');
+      if (!existsSync(fp)) continue;
+      try {
+        const raw = await readFile(fp, 'utf-8');
+        const setlist = SetlistSchema.parse(yaml.load(raw));
+        result.push({ label: entry.name, raw, setlist });
+      } catch {
+        // skip invalid version
+      }
+    }
+  } catch {
+    // versions directory is unreadable
+  }
+  return result;
+}
+
+async function findVersionWithKey(baseId: string, key: string): Promise<string | null> {
+  const versions = await readSetlistVersions(baseId);
+  return versions.find((version) => setlistContentKey(version.setlist) === key)?.label ?? null;
+}
+
+/** A date label if available, otherwise a timestamped label to avoid overwrites. */
+async function uniqueVersionLabel(baseId: string, date: string): Promise<string> {
+  const versionsDir = path.join(getSetlistsDir(), baseId);
+  if (!existsSync(path.join(versionsDir, date))) return date;
+
+  const time = new Date().toISOString().slice(11, 19).replace(/:/g, '-');
+  let label = `${date}T${time}`;
+  let counter = 2;
+  while (existsSync(path.join(versionsDir, label))) {
+    label = `${date}T${time}-${counter++}`;
+  }
+  return label;
+}
+
+async function archiveSetlistVersion(baseId: string, setlist: Setlist, raw: string): Promise<void> {
+  const key = setlistContentKey(setlist);
+  if (await findVersionWithKey(baseId, key)) return;
+
+  const date = isSetlistDate(setlist.date) ? setlist.date : todayDate();
+  const label = await uniqueVersionLabel(baseId, date);
+  const versionDir = path.join(getSetlistsDir(), baseId, label);
+  await mkdir(versionDir, { recursive: true });
+  await writeFile(path.join(versionDir, 'setlist.yaml'), raw, 'utf-8');
+}
+
 export async function saveSetlist(setlist: SetlistInput): Promise<void> {
   const validated = SetlistSchema.parse(setlist);
   if (isReservedSetlistId(validated.id)) {
@@ -353,14 +468,17 @@ export async function saveSetlist(setlist: SetlistInput): Promise<void> {
   const dir = getSetlistsDir();
   await mkdir(dir, { recursive: true });
   const filePath = path.join(dir, `${validated.id}.yaml`);
-  // Archive the previous active version into a dated folder before overwriting.
+
+  // Archive the previous active version before overwriting, but only when its
+  // content actually changed. Saving a share link, toggling visibility, or
+  // regenerating voice shares must not create or overwrite history.
   if (existsSync(filePath)) {
     try {
-      const previous = await readFile(filePath, 'utf-8');
-      const date = new Date().toISOString().slice(0, 10);
-      const versionDir = path.join(dir, validated.id, date);
-      await mkdir(versionDir, { recursive: true });
-      await writeFile(path.join(versionDir, 'setlist.yaml'), previous, 'utf-8');
+      const previousRaw = await readFile(filePath, 'utf-8');
+      const previous = SetlistSchema.parse(yaml.load(previousRaw));
+      if (setlistContentKey(previous) !== setlistContentKey(validated)) {
+        await archiveSetlistVersion(validated.id, previous, previousRaw);
+      }
     } catch {
       // best-effort history
     }
@@ -385,50 +503,54 @@ export async function getSetlistVersion(baseId: string, versionLabel: string): P
   return SetlistSchema.parse(parsed);
 }
 
-export async function listSetlistVersions(baseId: string): Promise<Array<{ label: string; path: string; title: string; date?: string; description?: string }>> {
-  const versionsDir = path.join(getSetlistsDir(), baseId);
-  if (!existsSync(versionsDir)) return [];
-  const result: Array<{ label: string; path: string; title: string; date?: string; description?: string }> = [];
-  try {
-    const entries = await readdir(versionsDir, { withFileTypes: true });
-    for (const entry of entries) {
-      if (!entry.isDirectory()) continue;
-      const fp = path.join(versionsDir, entry.name, 'setlist.yaml');
-      if (!existsSync(fp)) continue;
-      try {
-        const raw = await readFile(fp, 'utf-8');
-        const parsed = yaml.load(raw) as { title?: string; date?: string; description?: string };
-        result.push({ label: entry.name, path: `${entry.name}`, title: parsed.title || baseId, date: parsed.date as string | undefined, description: parsed.description as string | undefined });
-      } catch {}
-    }
-  } catch {}
-  result.sort((a, b) => b.label.localeCompare(a.label));
-  return result;
+export async function listSetlistVersions(baseId: string): Promise<SetlistVersionInfo[]> {
+  const versions = await readSetlistVersions(baseId);
+  return versions
+    .map(({ label, setlist }) => {
+      const date = isSetlistDate(setlist.date) ? setlist.date : undefined;
+      return {
+        label,
+        path: label,
+        title: setlist.title || baseId,
+        date,
+        eventDate: date ?? parseSetlistVersionDate(label) ?? undefined,
+        description: setlist.description,
+      };
+    })
+    .sort((a, b) => b.label.localeCompare(a.label));
 }
 
-export async function restoreSetlistVersion(baseId: string, versionLabel: string): Promise<void> {
-  const src = path.join(getSetlistsDir(), baseId, versionLabel, 'setlist.yaml');
-  if (!existsSync(src)) throw new Error('Version not found');
-  const raw = await readFile(src, 'utf-8');
-  const filePath = path.join(getSetlistsDir(), `${baseId}.yaml`);
-  await writeFile(filePath, raw, 'utf-8');
-}
-
-export async function createSetlistDateVersion(baseId: string, date: string, copyCurrent = true): Promise<void> {
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) throw new Error('Invalid date');
+export async function createSetlistDateVersion(
+  baseId: string,
+  date: string,
+  copyCurrent = true,
+): Promise<string> {
+  if (!isSetlistDate(date)) throw new Error('Invalid date');
   const filePath = path.join(getSetlistsDir(), `${baseId}.yaml`);
   if (!existsSync(filePath)) throw new Error('Setlist not found');
-  const versionDir = path.join(getSetlistsDir(), baseId, date);
+
+  const raw = await readFile(filePath, 'utf-8');
+  const current = SetlistSchema.parse(yaml.load(raw));
+  const version: Setlist = {
+    ...current,
+    date,
+    songs: copyCurrent ? current.songs : [],
+    voiceShares: copyCurrent ? current.voiceShares : [],
+    modified: new Date().toISOString(),
+  };
+
+  const existing = await findVersionWithKey(baseId, setlistContentKey(version));
+  if (existing) return existing;
+
+  const label = await uniqueVersionLabel(baseId, date);
+  const versionDir = path.join(getSetlistsDir(), baseId, label);
   await mkdir(versionDir, { recursive: true });
-  if (copyCurrent) {
-    const raw = await readFile(filePath, 'utf-8');
-    await writeFile(path.join(versionDir, 'setlist.yaml'), raw, 'utf-8');
-  } else {
-    const raw = await readFile(filePath, 'utf-8');
-    const parsed = yaml.load(raw) as Record<string, unknown>;
-    const empty = { ...parsed, songs: [], date, modified: new Date().toISOString() };
-    await writeFile(path.join(versionDir, 'setlist.yaml'), yaml.dump(empty, { lineWidth: -1 }), 'utf-8');
-  }
+  await writeFile(
+    path.join(versionDir, 'setlist.yaml'),
+    yaml.dump(version, { lineWidth: -1 }),
+    'utf-8',
+  );
+  return label;
 }
 
 export async function getSong(id: string): Promise<SongMeta> {

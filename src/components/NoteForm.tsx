@@ -2,6 +2,7 @@
 
 import { useState, useCallback, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { notFound } from "next/navigation";
 import { languageLabelFor } from "@/lib/i18n/labels";
 import { useTranslation } from "@/lib/i18n";
@@ -320,7 +321,7 @@ export function NoteForm({ initialNote, isNew = true, noteId, languages: languag
     setError(null);
     try {
       const builtSections: NoteSection[] = sections.map((s, i) => {
-        if (s.type === "manual") return { type: "manual", md: s.md || "", periodic_behavior: s.periodic_behavior || "same" };
+        if (s.type === "manual") return { type: "manual", ...(s.id ? { id: s.id } : {}), md: s.md || "", periodic_behavior: s.periodic_behavior || "same" };
         const sectionLang = resolveNoteLanguage(language, s.languages, locale) || language;
         const disc = s.discriminator || (Array.isArray(s.allFields) && s.allFields.includes("type") ? "type" : (s.allFields?.[0] || "type"));
         const keys = Array.isArray(s.fieldOrder) && s.fieldOrder.length
@@ -559,23 +560,32 @@ export function NoteForm({ initialNote, isNew = true, noteId, languages: languag
                       <option value="different_per_period">Different text per period</option>
                     </select>
                   </div>
-                  {LANGUAGES.map((langOpt) => (
-                    <div key={langOpt.value} className="space-y-1">
-                      <label className="block text-sm font-medium mb-1">Text — {langOpt.label}</label>
-                      <textarea
-                        value={(section.mdByLanguage && section.mdByLanguage[langOpt.value]) ?? (langOpt.value === LANGUAGES[0]?.value ? (section.md || "") : "")}
-                        onChange={(e) => {
-                          const next = { ...(section.mdByLanguage || {}) };
-                          next[langOpt.value] = e.target.value;
-                          const primary = next[LANGUAGES[0]?.value || langOpt.value] || e.target.value;
-                          updateSection(index, { mdByLanguage: next, md: primary });
-                        }}
-                        rows={6}
-                        placeholder="Text in Markdown..."
-                        className="w-full px-3 py-2 border rounded-md text-sm resize-y"
-                      />
-                    </div>
-                  ))}
+                  {isEdit && section.periodic_behavior === "different_per_period" ? (
+                    <p className="text-sm text-neutral-500">
+                      This manual part changes per date. Edit each occurrence in the{" "}
+                      <Link href={`/notes/${noteId}/manual`} className="text-blue-600 hover:underline dark:text-blue-400">
+                        manual history editor
+                      </Link>.
+                    </p>
+                  ) : (
+                    LANGUAGES.map((langOpt) => (
+                      <div key={langOpt.value} className="space-y-1">
+                        <label className="block text-sm font-medium mb-1">Text — {langOpt.label}</label>
+                        <textarea
+                          value={(section.mdByLanguage && section.mdByLanguage[langOpt.value]) ?? (langOpt.value === LANGUAGES[0]?.value ? (section.md || "") : "")}
+                          onChange={(e) => {
+                            const next = { ...(section.mdByLanguage || {}) };
+                            next[langOpt.value] = e.target.value;
+                            const primary = next[LANGUAGES[0]?.value || langOpt.value] || e.target.value;
+                            updateSection(index, { mdByLanguage: next, md: primary });
+                          }}
+                          rows={6}
+                          placeholder="Text in Markdown..."
+                          className="w-full px-3 py-2 border rounded-md text-sm resize-y"
+                        />
+                      </div>
+                    ))
+                  )}
                 </div>
               ) : (
                 <div className="space-y-3">
