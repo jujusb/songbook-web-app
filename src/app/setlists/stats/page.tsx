@@ -26,18 +26,19 @@ function periodHref(period: SetlistStatsPeriod, lang?: string): string {
 export default async function SetlistStatsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ range?: string; lang?: string }>;
+  searchParams: Promise<{ range?: string; lang?: string; setlist?: string; setlistId?: string }>;
 }) {
   const session = await getSession();
   const role = session?.role ?? null;
   if (!canViewSetlistStats(role)) redirect("/login");
 
-  const { range, lang } = await searchParams;
+  const { range, lang, setlist, setlistId } = await searchParams;
   const period = periodFromParam(range);
   const result = await collectSetlistUsage({
     role,
     userId: session?.userId,
     period,
+    setlistId: setlistId || setlist,
   });
   const rows = lang ? result.rows.filter((row) => row.languages.includes(lang)) : result.rows;
 

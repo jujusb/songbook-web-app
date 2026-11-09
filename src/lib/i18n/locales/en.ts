@@ -11,6 +11,7 @@ const en = {
     newSetlist: '+ New Setlist',
     admin: 'Admin',
     users: 'Users',
+    publication: 'Publication',
     profile: 'Profile',
   },
   home: {

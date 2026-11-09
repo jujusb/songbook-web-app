@@ -138,6 +138,11 @@ export default async function RootLayout({
                 </Link>
               )}
               {showEditActions && (
+                <Link href="/admin/publication" className={NAV_LINK_CLASS}>
+                  <T k="nav.publication" />
+                </Link>
+              )}
+              {showEditActions && (
                 <Link href="/songs/new" className={NAV_ACTION_CLASS}>
                   <T k="nav.newSong" />
                 </Link>

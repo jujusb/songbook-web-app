@@ -38,6 +38,10 @@ export interface CollectSetlistUsageOptions {
   userId?: string;
   period?: SetlistStatsPeriod;
   now?: Date;
+  /** Restrict aggregation to one or more setlists (by source setlist id). */
+  setlistId?: string;
+  setlist?: string;
+  setlistIds?: string[];
 }
 
 const DAY_MS = 24 * 60 * 60 * 1000;
@@ -80,6 +84,12 @@ export async function collectSetlistUsage(
   options: CollectSetlistUsageOptions,
 ): Promise<SetlistStatsResult> {
   const { role, userId, period = 'month', now = new Date() } = options;
+  const requestedSetlists = new Set<string>();
+  if (options.setlistId) requestedSetlists.add(options.setlistId);
+  if (options.setlist) requestedSetlists.add(options.setlist);
+  if (Array.isArray(options.setlistIds)) {
+    for (const id of options.setlistIds) if (typeof id === 'string') requestedSetlists.add(id);
+  }
   const periodStart = getSetlistStatsPeriodStart(period, now);
   const today = now.toISOString().slice(0, 10);
 
@@ -113,7 +123,11 @@ export async function collectSetlistUsage(
   let totalEvents = 0;
   let undatedSetlists = 0;
 
-  for (const [sourceId, setlist] of sources) {
+  const sourcesToUse = requestedSetlists.size
+    ? new Map([...sources].filter(([id]) => requestedSetlists.has(id)))
+    : sources;
+
+  for (const [sourceId, setlist] of sourcesToUse) {
     const versions = await listSetlistVersions(sourceId);
     const dated: DatedSnapshot[] = currentSnapshot(setlist);
 

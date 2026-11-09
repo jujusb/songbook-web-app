@@ -1,5 +1,5 @@
 import { notFound, redirect } from "next/navigation";
-import { getSong, getSongTitle, getSongTranslation, getSongTranslations, getLanguagesConfig, getSongIdsByLanguage } from "@/lib/content";
+import { getSong, getSongTitle, getSongTranslation, getSongTranslations, getLanguagesConfig, getSongIdsByLanguage, addSongTranslation } from "@/lib/content";
 import { getSession, canEdit, canEditSong, getCurrentUser } from "@/lib/auth";
 import { isReadOnly } from "@/lib/readonly";
 import { normalizeLanguageCode } from "@/lib/language-codes";
@@ -31,7 +31,14 @@ export default async function EditPage({
   try {
     translation = await getSongTranslation(songId, lang);
   } catch {
-    notFound();
+    // Scaffold a draft translation for a missing language so editors can
+    // fill it in directly from status/publication pages.
+    try {
+      await addSongTranslation(songId, lang);
+      translation = await getSongTranslation(songId, lang);
+    } catch {
+      notFound();
+    }
   }
 
   const translations = await getSongTranslations(songId);

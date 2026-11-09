@@ -72,6 +72,8 @@ export type SongListItem = SongMeta & {
   choTitles: Record<string, string>;
   /** Per-language published status from translation frontmatter */
   published?: Record<string, boolean>;
+  /** Per-language chords-published status from translation frontmatter */
+  chordsPublished?: Record<string, boolean>;
 };
 
 export interface ListSongsOptions {
@@ -113,6 +115,7 @@ export async function listSongs(options: ListSongsOptions = {}): Promise<SongLis
           const meta = SongMetaSchema.parse(parsed);
           let translations: string[] = [];
           const publishedMap: Record<string, boolean> = {};
+          const chordsPublishedMap: Record<string, boolean> = {};
           try {
             const files = await readdir(songPath);
             translations = files
@@ -121,6 +124,7 @@ export async function listSongs(options: ListSongsOptions = {}): Promise<SongLis
             // Read published status from each translation
             for (const lang of translations) {
               publishedMap[lang] = await isPublishedTranslation(songPath, lang);
+              chordsPublishedMap[lang] = await isChordsPublishedTranslation(songPath, lang);
             }
           } catch {
             // no .cho files readable
@@ -131,6 +135,9 @@ export async function listSongs(options: ListSongsOptions = {}): Promise<SongLis
             translations = translations.filter((lang) => publishedMap[lang]);
             for (const lang of Object.keys(publishedMap)) {
               if (!publishedMap[lang]) delete publishedMap[lang];
+            }
+            for (const lang of Object.keys(chordsPublishedMap)) {
+              if (!publishedMap[lang]) delete chordsPublishedMap[lang];
             }
           }
           const choTitles: Record<string, string> = {};
@@ -160,7 +167,7 @@ export async function listSongs(options: ListSongsOptions = {}): Promise<SongLis
           ) {
             continue; // skip unpublished songs for non-admin
           }
-          songs.push({ ...meta, translations, choTitles, published: publishedMap });
+          songs.push({ ...meta, translations, choTitles, published: publishedMap, chordsPublished: chordsPublishedMap });
         } catch {
           // skip invalid
         }
@@ -620,6 +627,16 @@ async function isPublishedTranslation(songPath: string, lang: string): Promise<b
     const raw = await readFile(path.join(songPath, `${toFileCode(lang)}.cho`), 'utf-8');
     const { data } = matter(raw);
     return data?.published === true;
+  } catch {
+    return false;
+  }
+}
+
+async function isChordsPublishedTranslation(songPath: string, lang: string): Promise<boolean> {
+  try {
+    const raw = await readFile(path.join(songPath, `${toFileCode(lang)}.cho`), 'utf-8');
+    const { data } = matter(raw);
+    return data?.chordsPublished === true;
   } catch {
     return false;
   }
@@ -1294,3 +1311,60 @@ export {
   type RevisionGCOptions,
   type RevisionCollectionResult,
 } from './revisions';
+
+export interface PublicationLanguageStatus {
+  present: boolean;
+  published: boolean;
+  chordsPublished: boolean;
+}
+
+export interface PublicationStatusRow {
+  songId: string;
+  title: string;
+  languages: Record<string, PublicationLanguageStatus>;
+}
+
+export interface PublicationStatusResult {
+  languages: string[];
+  defaultLanguage: string;
+  rows: PublicationStatusRow[];
+}
+
+export async function getPublicationStatus(options?: {
+  role?: 'public' | 'reviewer' | 'admin' | 'setlist_creator';
+}): Promise<PublicationStatusResult> {
+  const role = options?.role ?? 'admin';
+  const [langConfig, songs] = await Promise.all([
+    getLanguagesConfig(),
+    listSongs({ onlyPublished: false, role }),
+  ]);
+  const languages = langConfig.languages;
+  const rows = songs
+    .slice()
+    .sort((a, b) => a.id.localeCompare(b.id))
+    .map((song) => {
+      const languagesMap: Record<string, PublicationLanguageStatus> = {};
+      for (const lang of languages) {
+        const present = (song.translations ?? []).includes(lang);
+        languagesMap[lang] = {
+          present,
+          published: present && song.published?.[lang] === true,
+          chordsPublished: present && song.chordsPublished?.[lang] === true,
+        };
+      }
+      return {
+        songId: song.id,
+        title: song.title,
+        languages: languagesMap,
+      };
+    });
+  return { languages, defaultLanguage: langConfig.default, rows };
+}
+
+export const collectPublicationStatus = getPublicationStatus;
+export const collectPublication = getPublicationStatus;
+export const getPublication = getPublicationStatus;
+export const getPublicationMatrix = getPublicationStatus;
+export const getPublicationReport = getPublicationStatus;
+export const getPublishStatus = getPublicationStatus;
+export const getPublicationStats = getPublicationStatus;

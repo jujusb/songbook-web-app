@@ -13,6 +13,7 @@ const es: Translations = {
     newSetlist: '+ Nueva Lista',
     admin: 'Admin',
     users: 'Usuarios',
+    publication: 'Publicación',
     profile: 'Mi perfil',
   },
   home: {
