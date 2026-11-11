@@ -197,7 +197,14 @@ export function NoteManualEditor({
         <input
           type="date"
           value={selectedDate}
-          onChange={(e) => setSelectedDate(e.target.value)}
+          onChange={(e) => {
+            const next = e.target.value;
+            if (!next) return;
+            setSelectedDate(next);
+            const url = new URL(window.location.href);
+            url.searchParams.set("date", next);
+            window.history.replaceState(null, "", url.toString());
+          }}
           className="px-3 py-2 border border-neutral-300 dark:border-neutral-700 rounded-md bg-white dark:bg-neutral-900 text-sm"
         />
       </div>

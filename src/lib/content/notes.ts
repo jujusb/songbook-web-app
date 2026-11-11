@@ -200,6 +200,30 @@ export async function getNoteManualVersion(
   return period;
 }
 
+/**
+ * Mirror the current manual text of a date into plain markdown files:
+ * `<note>/<date>/<lang>/<section>.md` (lang uses the file code, e.g. `en`).
+ */
+async function writeManualMarkdown(noteId: string, date: string, period: NoteManualPeriod): Promise<void> {
+  const id = sanitizeId(noteId);
+  const note = await getNote(id);
+  const noteLang = note?.language;
+  for (const [sectionKey, content] of Object.entries(period.sections)) {
+    const safeSection = sanitizeId(sectionKey);
+    if (!safeSection) continue;
+    const byLang: Record<string, string> = { ...(content.mdByLanguage ?? {}) };
+    if (content.md && noteLang && byLang[noteLang] === undefined) byLang[noteLang] = content.md;
+    for (const [lang, text] of Object.entries(byLang)) {
+      // Folder code is the short language (en-US -> en), like the .cho files.
+      const fileLang = sanitizeId(lang.split('-')[0]);
+      if (!fileLang) continue;
+      const dir = path.join(getNoteDir(id), date, fileLang);
+      await mkdir(dir, { recursive: true });
+      await writeFile(path.join(dir, `${safeSection}.md`), text, 'utf-8');
+    }
+  }
+}
+
 export async function saveNoteManualPeriod(
   noteId: string,
   date: string,
@@ -221,6 +245,7 @@ export async function saveNoteManualPeriod(
 
   await mkdir(getNoteManualDir(id), { recursive: true });
   await writeFile(manualPeriodPath(id, date), yaml.dump(next, { noRefs: true }), 'utf-8');
+  await writeManualMarkdown(id, date, next);
   return next;
 }
 
@@ -238,6 +263,7 @@ export async function restoreNoteManualVersion(
   }
   await mkdir(getNoteManualDir(id), { recursive: true });
   await writeFile(manualPeriodPath(id, date), yaml.dump(target, { noRefs: true }), 'utf-8');
+  await writeManualMarkdown(id, date, target);
   return target;
 }
 

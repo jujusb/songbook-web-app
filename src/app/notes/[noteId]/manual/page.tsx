@@ -5,6 +5,7 @@ import { isReadOnly } from "@/lib/readonly";
 import { getNote } from "@/lib/content/notes";
 import { getLanguagesConfig } from "@/lib/content";
 import { NoteManualEditor } from "@/components/NoteManualEditor";
+import { noteApplicableLanguages } from "@/lib/notes";
 
 export async function generateMetadata({
   params,
@@ -45,9 +46,10 @@ export default async function NoteManualPage({
 
   return (
     <NoteManualEditor
+      key={initialDate}
       noteId={noteId}
       note={note}
-      languages={langConfig.languages}
+      languages={noteApplicableLanguages(note.sections || note.content, langConfig.languages)}
       initialDate={initialDate}
     />
   );

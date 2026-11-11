@@ -6,7 +6,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { languageLabelFor } from "@/lib/i18n/labels";
 import { useTranslation } from "@/lib/i18n";
-import { notesApi, NoteMetadata, NoteSection, NoteOrderedField, extractApiSectionText, getApiResultKeys, getNestedValue, resolveNoteLanguage } from "@/lib/notes";
+import { notesApi, NoteMetadata, NoteSection, NoteOrderedField, extractApiSectionText, getApiResultKeys, getNestedValue, resolveNoteLanguage, noteApplicableLanguages } from "@/lib/notes";
 
 const RECURRENT_TYPES = [
   { value: "weekly", label: "Weekly" },
@@ -226,6 +226,7 @@ export function NoteForm({ initialNote, isNew = true, noteId, languages: languag
   const [sections, setSections] = useState<NoteSection[]>(
     (initialNote?.sections?.length ? initialNote.sections : initialNote?.content?.length ? initialNote.content : [{ type: "manual", md: "" } as NoteSection]).map(hydrateSection)
   );
+  const manualLanguages = noteApplicableLanguages(sections, LANGUAGES.map((l) => l.value)).map((code) => ({ value: code, label: languageLabelFor(code) }));
   const [previews, setPreviews] = useState<Record<number, SectionPreview>>({});
   const [activeTypeTab, setActiveTypeTab] = useState<Record<number, string>>({});
 
@@ -568,15 +569,15 @@ export function NoteForm({ initialNote, isNew = true, noteId, languages: languag
                       </Link>.
                     </p>
                   ) : (
-                    LANGUAGES.map((langOpt) => (
+                    manualLanguages.map((langOpt) => (
                       <div key={langOpt.value} className="space-y-1">
                         <label className="block text-sm font-medium mb-1">Text — {langOpt.label}</label>
                         <textarea
-                          value={(section.mdByLanguage && section.mdByLanguage[langOpt.value]) ?? (langOpt.value === LANGUAGES[0]?.value ? (section.md || "") : "")}
+                          value={(section.mdByLanguage && section.mdByLanguage[langOpt.value]) ?? (langOpt.value === manualLanguages[0]?.value ? (section.md || "") : "")}
                           onChange={(e) => {
                             const next = { ...(section.mdByLanguage || {}) };
                             next[langOpt.value] = e.target.value;
-                            const primary = next[LANGUAGES[0]?.value || langOpt.value] || e.target.value;
+                            const primary = next[manualLanguages[0]?.value || langOpt.value] || e.target.value;
                             updateSection(index, { mdByLanguage: next, md: primary });
                           }}
                           rows={6}

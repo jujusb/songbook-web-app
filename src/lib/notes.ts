@@ -81,6 +81,22 @@ export function noteManualSectionKey(section: NoteSection, index: number): strin
   return section.id || `section-${index}`;
 }
 
+/**
+ * Languages a manual text part can be written in: the note's "API applicable
+ * languages" (set on its API sections), restricted to the configured site
+ * languages and kept in site order. Empty selection means all site languages.
+ */
+export function noteApplicableLanguages(
+  sections: NoteSection[] | undefined,
+  siteLanguages: string[],
+): string[] {
+  const api = (sections || []).find((s) => s.type === 'api' && (s.languages?.length ?? 0) > 0);
+  if (!api?.languages) return siteLanguages;
+  const selected = new Set(api.languages);
+  const filtered = siteLanguages.filter((lang) => selected.has(lang));
+  return filtered.length > 0 ? filtered : siteLanguages;
+}
+
 export interface NoteMetadata {
   id: string;
   title: string;
