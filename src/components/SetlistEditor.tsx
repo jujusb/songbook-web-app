@@ -42,12 +42,24 @@ interface SetlistData {
   songs: SetlistItem[];
 }
 
+interface PreviousVersion {
+  label: string;
+  title: string;
+  description?: string;
+  image?: string;
+  date?: string;
+  eventDate?: string;
+  songs: SetlistItem[];
+}
+
 export function SetlistEditor({
    availableSongs,
    initialSetlist,
    isNew,
    linkOnly = false,
    versionLabel,
+   newDate = false,
+   previousVersions = [],
    allowedLinkHosts = [],
   allowHttpLinks = false,
 }: {
@@ -58,6 +70,10 @@ export function SetlistEditor({
   isNew: boolean;
   linkOnly?: boolean;
   versionLabel?: string;
+  /** When true, the form creates a new dated version instead of updating. */
+  newDate?: boolean;
+  /** Dated versions that can be copied into the new date. */
+  previousVersions?: PreviousVersion[];
 }) {
   const router = useRouter();
   const { languageLabel, t } = useTranslation();
@@ -66,6 +82,7 @@ export function SetlistEditor({
   const [image, setImage] = useState(initialSetlist?.image || "");
   const [date, setDate] = useState(initialSetlist?.date || "");
   const [songs, setSongs] = useState<SetlistItem[]>(initialSetlist?.songs || []);
+  const [copySource, setCopySource] = useState("current");
   const [search, setSearch] = useState("");
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -92,7 +109,7 @@ export function SetlistEditor({
       return () => window.clearTimeout(timer);
     }
     let cancelled = false;
-    fetch(`/api/setlists/${initialSetlist.id}/history`)
+    fetch(`/setlists/${initialSetlist.id}/history`)
       .then((res) => (res.ok ? res.json() : []))
       .then((versions: Array<{ date?: string; eventDate?: string; label?: string }>) => {
         if (cancelled) return;
@@ -170,6 +187,27 @@ export function SetlistEditor({
     if (data?.url) setImage(data.url);
   }, []);
 
+  const applyCopySource = useCallback((source: string) => {
+    setCopySource(source);
+    if (source === "current") {
+      setImage(initialSetlist?.image || "");
+      setDescription(initialSetlist?.description || "");
+      setSongs(initialSetlist?.songs || []);
+      return;
+    }
+    if (source === "empty") {
+      setImage("");
+      setDescription("");
+      setSongs([]);
+      return;
+    }
+    const version = previousVersions.find((v) => v.label === source);
+    if (!version) return;
+    setImage(version.image || "");
+    setDescription(version.description || "");
+    setSongs(version.songs || []);
+  }, [initialSetlist?.image, initialSetlist?.description, initialSetlist?.songs, previousVersions]);
+
   const updateItem = useCallback((index: number, patch: Partial<SetlistItem>) => {
     setSongs((prev) =>
       prev.map((s, i) => (i === index ? ({ ...s, ...patch } as SetlistItem) : s))
@@ -233,6 +271,10 @@ export function SetlistEditor({
       setError("Title is required");
       return;
     }
+    if (newDate && !date.trim()) {
+      setError("Date is required");
+      return;
+    }
     for (const s of songs) {
       if (!isLinkItem(s)) continue;
       const check = isHttpUrl(s.url.trim())
@@ -253,6 +295,33 @@ export function SetlistEditor({
         .map((s) =>
           isLinkItem(s) ? { ...s, url: s.url.trim(), title: s.title?.trim() || undefined } : s
         );
+
+      if (newDate) {
+        if (!initialSetlist?.id) throw new Error("Setlist not found");
+        const res = await fetch(`/setlists/${initialSetlist.id}/history/new-date`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            date: date.trim(),
+            title: title.trim(),
+            description: description.trim() || undefined,
+            image: image.trim() || undefined,
+            songs: items,
+          }),
+        });
+
+        if (!res.ok) {
+          const data = await res.json().catch(() => ({}));
+          throw new Error(data.error || "Save failed");
+        }
+
+        const saved = await res.json().catch(() => ({}));
+        const label = saved?.label || date.trim();
+        router.push(`/setlists/${initialSetlist.id}?version=${encodeURIComponent(label)}`);
+        router.refresh();
+        return;
+      }
+
        const payload = {
          ...(initialSetlist?.id && { id: initialSetlist.id }),
          ...(versionLabel && { version: versionLabel }),
@@ -281,28 +350,6 @@ export function SetlistEditor({
       setError(err instanceof Error ? err.message : "Save failed");
     } finally {
       setSaving(false);
-    }
-  };
-
-  const saveNewDate = async (copy: boolean) => {
-    const date = window.prompt("New date (YYYY-MM-DD)", new Date().toISOString().slice(0, 10));
-    if (!date || !initialSetlist?.id) return;
-    try {
-      const res = await fetch(`/api/setlists/${initialSetlist.id}/history/new-date`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ date, copy }),
-      });
-      if (!res.ok) {
-        const data = await res.json().catch(() => ({}));
-        setError(data?.error || "Failed to create date version");
-        return;
-      }
-      const data = await res.json().catch(() => ({}));
-      router.push(`/setlists/${initialSetlist.id}/edit?version=${encodeURIComponent(data?.label || date)}`);
-      router.refresh();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed");
     }
   };
 
@@ -338,14 +385,37 @@ export function SetlistEditor({
         </div>
         {!linkOnly && (
           <div>
-            <label className="block text-sm font-medium mb-1">Date</label>
+            <label className="block text-sm font-medium mb-1">Date{newDate ? " *" : ""}</label>
             <input
               type="date"
               value={date}
               onChange={(e) => setDate(e.target.value)}
               disabled={!!versionLabel}
+              required={newDate}
               className="w-full px-3 py-2 border border-neutral-300 dark:border-neutral-700 rounded-md bg-white dark:bg-neutral-900 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
+          </div>
+        )}
+        {newDate && (
+          <div className="sm:col-span-2">
+            <label className="block text-sm font-medium mb-1">Start from</label>
+            <select
+              value={copySource}
+              onChange={(e) => applyCopySource(e.target.value)}
+              className="w-full px-3 py-2 border border-neutral-300 dark:border-neutral-700 rounded-md bg-white dark:bg-neutral-900 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+            >
+              <option value="current">Current setlist (copy)</option>
+              <option value="empty">Empty setlist</option>
+              {previousVersions.map((version) => (
+                <option key={version.label} value={version.label}>
+                  {version.eventDate || version.date || version.label}
+                  {version.title ? ` — ${version.title}` : ""}
+                </option>
+              ))}
+            </select>
+            <p className="mt-1 text-xs text-neutral-500">
+              Copy the image and songs from the current setlist or a previous date, then adjust them below.
+            </p>
           </div>
         )}
         <div className="sm:col-span-2">
@@ -674,25 +744,16 @@ export function SetlistEditor({
           disabled={saving}
           className="px-4 py-2 bg-blue-600 text-white rounded-md font-medium text-sm hover:bg-blue-700 disabled:opacity-50 transition-colors"
         >
-          {saving ? "Saving..." : isNew ? "Create Setlist" : "Save Changes"}
+          {saving ? "Saving..." : isNew ? "Create Setlist" : newDate ? "Create date setlist" : "Save Changes"}
         </button>
-        {!isNew && initialSetlist?.id && (
-          <>
-            <button
-              type="button"
-              onClick={() => void saveNewDate(true)}
-              className="px-4 py-2 bg-neutral-700 text-white rounded-md text-sm hover:bg-neutral-800 transition-colors"
-            >
-              New date (copy)
-            </button>
-            <button
-              type="button"
-              onClick={() => void saveNewDate(false)}
-              className="px-4 py-2 border border-neutral-300 dark:border-neutral-700 rounded-md text-sm hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors"
-            >
-              New date (empty)
-            </button>
-          </>
+        {!isNew && !newDate && initialSetlist?.id && (
+          <button
+            type="button"
+            onClick={() => router.push(`/setlists/${initialSetlist.id}/edit?newDate=1`)}
+            className="px-4 py-2 bg-neutral-700 text-white rounded-md text-sm hover:bg-neutral-800 transition-colors"
+          >
+            New date
+          </button>
         )}
         <button
           type="button"

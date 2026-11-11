@@ -119,6 +119,62 @@ describe('content/index.ts — setlist history', () => {
     expect(await content.listSetlistVersions('sunday')).toHaveLength(2);
   });
 
+  it('creates a dated version from explicit date, image and songs', async () => {
+    await content.saveSetlist({
+      id: 'sunday',
+      title: 'Sunday service',
+      date: '2026-01-11',
+      songs: [song('song-a')],
+      ownerId: 'creator',
+    });
+
+    const label = await content.createSetlistDateVersion('sunday', '2026-02-01', true, {
+      title: 'Easter service',
+      description: 'Special event',
+      image: 'https://example.com/easter.jpg',
+      songs: [song('song-b')],
+    });
+    expect(label).toBe('2026-02-01');
+
+    const version = await content.getSetlistVersion('sunday', label);
+    expect(version.title).toBe('Easter service');
+    expect(version.description).toBe('Special event');
+    expect(version.image).toBe('https://example.com/easter.jpg');
+    expect(version.songs).toEqual([song('song-b')]);
+
+    const current = await content.getSetlist('sunday');
+    expect(current.title).toBe('Sunday service');
+    expect(current.date).toBe('2026-01-11');
+    expect(current.songs).toEqual([song('song-a')]);
+  });
+
+  it('lists the content of dated versions for copying', async () => {
+    await content.saveSetlist({
+      id: 'sunday',
+      title: 'Sunday service',
+      date: '2026-01-11',
+      image: 'https://example.com/current.jpg',
+      songs: [song('song-b')],
+      ownerId: 'creator',
+    });
+    await content.createSetlistDateVersion('sunday', '2026-01-04', false, {
+      title: 'Previous service',
+      image: 'https://example.com/previous.jpg',
+      songs: [song('song-a')],
+    });
+
+    const versions = await content.listSetlistVersionContents('sunday');
+    expect(versions).toHaveLength(2);
+    const previous = versions.find((version) => version.label === '2026-01-04');
+    expect(previous).toMatchObject({
+      label: '2026-01-04',
+      title: 'Previous service',
+      image: 'https://example.com/previous.jpg',
+      eventDate: '2026-01-04',
+    });
+    expect(previous?.songs).toEqual([song('song-a')]);
+  });
+
   it('includes the current setlist in the history timeline', async () => {
     await content.saveSetlist({
       id: 'sunday',

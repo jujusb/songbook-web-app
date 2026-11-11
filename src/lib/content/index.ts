@@ -33,6 +33,7 @@ import {
   type Artist,
   type Setlist,
   type SetlistInput,
+  type SetlistItem,
 } from './schemas';
 
 /**
@@ -604,10 +605,45 @@ export async function listSetlistVersions(baseId: string): Promise<SetlistVersio
   return result.sort((a, b) => b.label.localeCompare(a.label));
 }
 
+export interface SetlistVersionContent {
+  label: string;
+  title: string;
+  description?: string;
+  image?: string;
+  date?: string;
+  eventDate?: string;
+  songs: SetlistItem[];
+}
+
+/** Full content of every dated version, used to prefill a new date. */
+export async function listSetlistVersionContents(baseId: string): Promise<SetlistVersionContent[]> {
+  const versions = await readSetlistVersions(baseId);
+  return versions
+    .map(({ label, setlist }) => {
+      const date = isSetlistDate(setlist.date) ? setlist.date : undefined;
+      return {
+        label,
+        title: setlist.title || baseId,
+        description: setlist.description,
+        image: setlist.image,
+        date,
+        eventDate: parseSetlistVersionDate(label) ?? date ?? undefined,
+        songs: setlist.songs,
+      };
+    })
+    .sort((a, b) => b.label.localeCompare(a.label));
+}
+
 export async function createSetlistDateVersion(
   baseId: string,
   date: string,
   copyCurrent = true,
+  content?: {
+    title: string;
+    description?: string;
+    image?: string;
+    songs: SetlistItem[];
+  },
 ): Promise<string> {
   if (!isSetlistDate(date)) throw new Error('Invalid date');
   const current = await getSetlist(baseId);
@@ -616,13 +652,20 @@ export async function createSetlistDateVersion(
 
   const existingVersions = await readSetlistVersions(baseId);
 
-  const version: Setlist = {
+  const version: Setlist = SetlistSchema.parse({
     ...current,
+    ...(content
+      ? {
+          title: content.title,
+          description: content.description,
+          image: content.image,
+        }
+      : {}),
     date,
-    songs: copyCurrent ? current.songs : [],
-    voiceShares: copyCurrent ? current.voiceShares : [],
+    songs: content ? content.songs : copyCurrent ? current.songs : [],
+    voiceShares: content ? [] : copyCurrent ? current.voiceShares : [],
     modified: new Date().toISOString(),
-  };
+  });
 
   // Insurance: one dated entry per link and per day. A new date is only
   // allowed when it does not already exist among the archived versions with

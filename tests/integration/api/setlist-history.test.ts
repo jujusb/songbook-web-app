@@ -5,7 +5,7 @@ import { GET as historyGET } from '@/app/setlists/[setlistId]/history/route';
 import { POST as newDatePOST } from '@/app/setlists/[setlistId]/history/new-date/route';
 import { createTempContentDir, mockContentDir } from '../../utils/temp-content';
 import { createUser, createSession } from '@/lib/auth';
-import { getSetlist, listSetlistVersions, saveSetlist } from '@/lib/content';
+import { getSetlist, getSetlistVersion, listSetlistVersions, saveSetlist } from '@/lib/content';
 
 describe('API /setlists/[setlistId]/history', () => {
   let tempDir: Awaited<ReturnType<typeof createTempContentDir>>;
@@ -64,7 +64,7 @@ describe('API /setlists/[setlistId]/history', () => {
   it('lists versions for the owner', async () => {
     mockAuth(creatorToken);
     const response = await historyGET(
-      new NextRequest('http://localhost/api/setlists/sunday/history'),
+      new NextRequest('http://localhost/setlists/sunday/history'),
       params('sunday'),
     );
     const data = await response.json();
@@ -79,7 +79,7 @@ describe('API /setlists/[setlistId]/history', () => {
   it('allows reading history through a share token', async () => {
     mockAuth(publicToken);
     const response = await historyGET(
-      new NextRequest('http://localhost/api/setlists/sunday/history?share=share-token'),
+      new NextRequest('http://localhost/setlists/sunday/history?share=share-token'),
       params('sunday'),
     );
 
@@ -89,7 +89,7 @@ describe('API /setlists/[setlistId]/history', () => {
   it('hides private history without a share token', async () => {
     mockAuth(publicToken);
     const response = await historyGET(
-      new NextRequest('http://localhost/api/setlists/sunday/history'),
+      new NextRequest('http://localhost/setlists/sunday/history'),
       params('sunday'),
     );
 
@@ -99,7 +99,7 @@ describe('API /setlists/[setlistId]/history', () => {
   it('lets an admin create a dated version', async () => {
     mockAuth(adminToken);
     const response = await newDatePOST(
-      new NextRequest('http://localhost/api/setlists/sunday/history/new-date', {
+      new NextRequest('http://localhost/setlists/sunday/history/new-date', {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
         body: JSON.stringify({ date: '2026-02-01', copy: true }),
@@ -112,10 +112,42 @@ describe('API /setlists/[setlistId]/history', () => {
     expect(data).toMatchObject({ success: true, date: '2026-02-01', label: '2026-02-01' });
   });
 
+  it('creates a dated version with the provided date, image and songs', async () => {
+    mockAuth(creatorToken);
+    const response = await newDatePOST(
+      new NextRequest('http://localhost/setlists/sunday/history/new-date', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({
+          date: '2026-02-08',
+          title: 'Easter service',
+          description: 'Special event',
+          image: '/api/images/easter.jpg',
+          songs: [{ type: 'song', songId: 'song-a', lang: 'en' }],
+        }),
+      }),
+      params('sunday'),
+    );
+    const data = await response.json();
+
+    expect(response.status).toBe(200);
+    expect(data).toMatchObject({ success: true, date: '2026-02-08', label: '2026-02-08' });
+
+    const version = await getSetlistVersion('sunday', data.label);
+    expect(version.title).toBe('Easter service');
+    expect(version.description).toBe('Special event');
+    expect(version.image).toBe('/api/images/easter.jpg');
+    expect(version.songs).toEqual([{ type: 'song', songId: 'song-a', lang: 'en' }]);
+
+    // The working setlist is not replaced by the new dated snapshot.
+    const current = await getSetlist('sunday');
+    expect(current.date).toBe('2026-01-11');
+  });
+
   it('rejects new-date by a public user', async () => {
     mockAuth(publicToken);
     const response = await newDatePOST(
-      new NextRequest('http://localhost/api/setlists/sunday/history/new-date', {
+      new NextRequest('http://localhost/setlists/sunday/history/new-date', {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
         body: JSON.stringify({ date: '2026-02-01' }),

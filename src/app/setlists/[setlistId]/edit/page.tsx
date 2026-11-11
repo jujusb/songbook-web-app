@@ -2,8 +2,8 @@ import type { Metadata } from "next";
 import { getSetlistLinkAllowedHosts, getSetlistLinkAllowHttp } from "@/lib/config";
 import { notFound, redirect } from "next/navigation";
 import Link from "next/link";
-import { getSetlist, getSetlistVersion, listSongs, getSongTranslations, getShareBaseUrl } from "@/lib/content";
-import { getSession, canEdit, canCreateSetlist, canManageSetlistShares } from "@/lib/auth";
+import { getSetlist, getSetlistVersion, listSongs, getSongTranslations, getShareBaseUrl, listSetlistVersionContents } from "@/lib/content";
+import { getSession, canEdit, canCreateSetlist, canManageSetlistShares, canManageSetlistHistory } from "@/lib/auth";
 import { SetlistEditor } from "@/components/SetlistEditor";
 import { SetlistShareControls } from "@/components/SetlistShareControls";
 
@@ -22,16 +22,18 @@ export default async function SetlistEditPage({
   searchParams,
 }: {
   params: Promise<{ setlistId: string }>;
-  searchParams: Promise<{ version?: string }>;
+  searchParams: Promise<{ version?: string; newDate?: string }>;
 }) {
   const { setlistId } = await params;
-  const { version: versionParam } = await searchParams;
+  const { version: versionParam, newDate: newDateParam } = await searchParams;
+  const isNewDate = newDateParam === "1" || newDateParam === "true";
 
   let setlist;
   try {
-    setlist = versionParam && versionParam !== 'current'
-      ? await getSetlistVersion(setlistId, versionParam)
-      : await getSetlist(setlistId);
+    setlist =
+      !isNewDate && versionParam && versionParam !== 'current'
+        ? await getSetlistVersion(setlistId, versionParam)
+        : await getSetlist(setlistId);
   } catch {
     notFound();
   }
@@ -49,7 +51,11 @@ export default async function SetlistEditPage({
     redirect(`/setlists/${setlistId}`);
   }
 
-  const showShareControls = isEditor || (isOwner && canManageSetlistShares(role));
+  if (isNewDate && !canManageSetlistHistory(role, setlist, session.userId)) {
+    redirect(`/setlists/${setlistId}`);
+  }
+
+  const showShareControls = !isNewDate && (isEditor || (isOwner && canManageSetlistShares(role)));
   const publicUrl = await getShareBaseUrl();
 
   const songs = await listSongs();
@@ -60,6 +66,12 @@ export default async function SetlistEditPage({
     })
   );
 
+  const previousVersions = isNewDate
+    ? (await listSetlistVersionContents(setlistId)).filter(
+        (version) => version.label !== setlist.date && version.eventDate !== setlist.date,
+      )
+    : [];
+
   return (
     <div className="max-w-full mx-auto px-4 sm:px-6 lg:px-8 py-8">
       <Link
@@ -68,7 +80,9 @@ export default async function SetlistEditPage({
       >
         &larr; {setlist.title}
       </Link>
-      <h1 className="text-2xl font-bold mb-6">Edit: {setlist.title}</h1>
+      <h1 className="text-2xl font-bold mb-6">
+        {isNewDate ? `New date: ${setlist.title}` : `Edit: ${setlist.title}`}
+      </h1>
 
       {showShareControls && (
         <SetlistShareControls
@@ -88,12 +102,15 @@ export default async function SetlistEditPage({
           id: setlist.id,
           title: setlist.title,
           description: setlist.description || "",
-         date: setlist.date || "",
-            songs: setlist.songs,
-         }}
-         isNew={false}
-         versionLabel={versionParam && versionParam !== 'current' ? versionParam : undefined}
-       />
+          image: setlist.image || "",
+          date: isNewDate ? "" : setlist.date || "",
+          songs: setlist.songs,
+        }}
+        isNew={false}
+        newDate={isNewDate}
+        previousVersions={previousVersions}
+        versionLabel={!isNewDate && versionParam && versionParam !== 'current' ? versionParam : undefined}
+      />
     </div>
   );
 }

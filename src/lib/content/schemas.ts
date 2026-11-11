@@ -194,6 +194,16 @@ export function isHttpUrl(value: string): boolean {
   }
 }
 
+/**
+ * Images may be absolute http(s) URLs or same-origin app paths (the image
+ * upload endpoint returns `/api/images/...`). Protocol-relative URLs (`//host`)
+ * are rejected so a stored image can never point at another origin by accident.
+ */
+export function isSafeImageUrl(value: string): boolean {
+  if (isHttpUrl(value)) return true;
+  return value.startsWith('/') && !value.startsWith('//') && !value.includes('\\');
+}
+
 export const SetlistSongItemSchema = z.object({
   type: z.literal('song'),
   songId: z.string(),
@@ -285,7 +295,7 @@ export const SetlistSchema = z.object({
   id: z.string(),
   title: z.string(),
   description: z.string().optional(),
-  image: z.string().max(SETLIST_LINK_MAX_LENGTH).refine(isHttpUrl, 'URL must be http(s)').optional(),
+  image: z.string().max(SETLIST_LINK_MAX_LENGTH).refine(isSafeImageUrl, 'URL must be http(s) or an app path').optional(),
   date: z.string().optional(),               // e.g. service date "2025-07-13"
   mode: z.string().optional(),              // default rendering mode
   songs: z.array(SetlistItemSchema).default([]),

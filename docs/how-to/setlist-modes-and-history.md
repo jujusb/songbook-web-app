@@ -56,7 +56,7 @@ Example:
 ### Viewing and restoring history
 
 - The **Version history** section appears below the setlist (and on its share page). Select a version to open it in the setlist view.
-- **Save date (copy)** creates a dated snapshot from the current root without changing the root. **Save date (empty)** creates an empty snapshot for that date (useful for planning a future event).
+- **New** opens the editor for a new dated version: choose the event date, image and song list, optionally copying them from the current setlist or a previous date, then confirm with **Create date setlist**. The current setlist is left untouched.
 - Restoring and creating dated versions require `admin`/`reviewer`, or a `setlist_creator` who owns the setlist. In read-only deployments all history writes are disabled.
 
 ### Statistics

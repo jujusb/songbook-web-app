@@ -41,4 +41,17 @@ describe('setlist items', () => {
   it('rejects overly long notes', () => {
     expect(SetlistItemSchema.safeParse({ type: 'note', id: 'n', text: 'a'.repeat(5001) }).success).toBe(false);
   });
+
+  it('accepts absolute and app-relative image URLs', () => {
+    const base = { id: 'x', title: 'X', songs: [] };
+    expect(SetlistSchema.safeParse({ ...base, image: 'https://example.com/a.jpg' }).success).toBe(true);
+    expect(SetlistSchema.safeParse({ ...base, image: '/api/images/a.png' }).success).toBe(true);
+  });
+
+  it.each(['//evil.example/a.png', '/\\\\evil.example/a.png', 'javascript:alert(1)', 'data:image/png;base64,x'])(
+    'rejects unsafe image url %s',
+    (image) => {
+      expect(SetlistSchema.safeParse({ id: 'x', title: 'X', songs: [], image }).success).toBe(false);
+    },
+  );
 });
