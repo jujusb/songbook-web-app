@@ -42,7 +42,9 @@ export function SetlistHistoryBrowser({
   const targetId = historySetlistId || setlistId;
   const manage = canManage ?? canEdit;
   const [versions, setVersions] = useState<HistoryVersion[]>(initialVersions);
-  const [selected, setSelected] = useState<string>(currentVersion || "");
+  // The selected entry always mirrors the URL, so the dropdown never drifts
+  // from the version actually being displayed.
+  const selected = currentVersion && currentVersion !== "current" ? currentVersion : "";
 
   const shareQuery = shareToken ? `?share=${encodeURIComponent(shareToken)}` : "";
 
@@ -84,14 +86,14 @@ export function SetlistHistoryBrowser({
           value={selected}
           onChange={(e) => {
             const label = e.target.value;
-            setSelected(label);
             const base = versionHrefBase || `/setlists/${setlistId}`;
-            if (label) router.push(`${base}?version=${encodeURIComponent(label)}`);
-            else router.push(base);
+            const query = shareToken && !versionHrefBase ? `&share=${encodeURIComponent(shareToken)}` : "";
+            if (label) router.push(`${base}?version=${encodeURIComponent(label)}${query}`, { scroll: false });
+            else router.push(shareToken && !versionHrefBase ? `${base}?share=${encodeURIComponent(shareToken)}` : base, { scroll: false });
           }}
         >
           <option value="">Current version</option>
-          {versions.map((v) => (
+          {versions.filter((v) => v.label !== "current").map((v) => (
             <option key={v.label} value={v.label}>
               {dateOf(v) || v.title || v.label}{v.date && v.eventDate && v.date !== v.eventDate ? ` • ${v.label}` : ""}
             </option>
