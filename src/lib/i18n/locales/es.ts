@@ -270,6 +270,12 @@ const es: Translations = {
     lyricsViewMode: 'Modo de Visualización',
     lyricsViewAll: 'Todo Expandido',
     lyricsViewList: 'Solo Lista',
+    modes: {
+      default: 'Predeterminado',
+      public: 'Público',
+      guitarist: 'Guitarrista',
+      rehersal: 'Ensayo',
+    },
     removeFromLibrary: 'Eliminar de Mi Biblioteca',
     all: 'Todas las voces',
     spotify: 'Spotify',

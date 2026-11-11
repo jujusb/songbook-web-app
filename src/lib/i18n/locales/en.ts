@@ -268,6 +268,12 @@ const en = {
     lyricsViewMode: 'Lyrics View',
     lyricsViewAll: 'All Expanded',
     lyricsViewList: 'List Only',
+    modes: {
+      default: 'Default',
+      public: 'Public',
+      guitarist: 'Guitarist',
+      rehersal: 'Rehearsal',
+    },
     removeFromLibrary: 'Remove from Library',
     all: 'All Voices',
     spotify: 'Spotify',

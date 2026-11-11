@@ -14,6 +14,7 @@ import { SetlistPdfButton } from "@/components/SetlistPdfButton";
 import SetlistModeSelector from "@/components/SetlistModeSelector";
 import { DeleteButton } from "@/components/DeleteButton";
 import { getSetlistVoiceShares } from "@/lib/navidrome/setlist-shares";
+import { normalizeSetlistMode } from "@/lib/setlist-modes";
 
 export async function generateMetadata({ params }: { params: Promise<{ setlistId: string }> }): Promise<Metadata> {
   const { setlistId } = await params;
@@ -57,7 +58,9 @@ export default async function SetlistPage({
     notFound();
   }
 
-  const currentMode = typeof mode === "string" ? mode : (setlist.mode || getSetlistDefaultMode());
+  const currentMode = normalizeSetlistMode(
+    typeof mode === "string" ? mode : setlist.mode || getSetlistDefaultMode()
+  );
 
   const session = await getSession();
   const userId = session?.userId;
@@ -261,6 +264,7 @@ export default async function SetlistPage({
       <SetlistModeSelector setlistId={setlistId} currentMode={currentMode} allowedModes={getSetlistModesAllowed()} />
 
       <SetlistReadOnlyView
+        key={currentMode}
         songs={songDetails}
         entries={entries}
         userPreferences={userPrefs}

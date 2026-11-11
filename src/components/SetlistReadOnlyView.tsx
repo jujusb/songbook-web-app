@@ -17,6 +17,7 @@ import { AutoScrollControl } from "@/components/AutoScrollControl";
 import { MarkdownView } from "@/components/MarkdownView";
 import { EmbedFrame, OpenInNewTabButton } from "@/components/OpenInNewTabButton";
 import type { VoiceSection, VoiceGroup } from "@/lib/navidrome/voices";
+import { normalizeSetlistMode } from "@/lib/setlist-modes";
 
 export interface SetlistReadOnlySong {
   songId: string;
@@ -136,20 +137,26 @@ export function SetlistReadOnlyView({
 
   const visible = useMemo(() => songs.filter((song) => song.published !== false), [songs]);
 
-  const safeMode = (mode || "guitarist").trim();
-  const modeAllowsChords = safeMode === "guitarist" || safeMode === "instrumentalist";
-  const showTranspose = safeMode === "guitarist";
-  const voiceCanGenerate = canGenerate && safeMode === "rehersal";
-  const [displayMode, setDisplayMode] = useState<"all" | "list">(safeMode === "rehersal" ? "list" : userPreferences.setlistLyricsView);
+  const safeMode = normalizeSetlistMode(mode);
+  const isDefaultMode = safeMode === "default";
+  const isRehearsalMode = safeMode === "rehersal";
+  const modeAllowsChords = isDefaultMode || safeMode === "guitarist";
+  const showTranspose = isDefaultMode || safeMode === "guitarist";
+  const voiceCanGenerate = canGenerate && isRehearsalMode;
+  const [displayMode, setDisplayMode] = useState<"all" | "list">(
+    isDefaultMode ? userPreferences.setlistLyricsView : isRehearsalMode ? "list" : "all"
+  );
   const [expandedSongIds, setExpandedSongIds] = useState<Set<string>>(new Set());
   const [transposeMap, setTransposeMap] = useState<Map<string, number>>(
     new Map(Object.entries(userPreferences.setlistTranspose))
   );
   const [globalOptions, setGlobalOptions] = useState({
-    showChords: userPreferences.showChords && modeAllowsChords,
-    showRepeats: userPreferences.showRepeats,
-    chordNotation: userPreferences.chordNotation,
-    inlineChords: userPreferences.inlineChords,
+    showChords: isDefaultMode ? userPreferences.showChords : safeMode === "guitarist",
+    showRepeats: isDefaultMode ? userPreferences.showRepeats : true,
+    chordNotation: isDefaultMode
+      ? userPreferences.chordNotation
+      : ("letters" as UserPreferences["chordNotation"]),
+    inlineChords: isDefaultMode ? userPreferences.inlineChords : false,
   });
   const [showGlobalOptions, setShowGlobalOptions] = useState(false);
 
@@ -164,7 +171,7 @@ export function SetlistReadOnlyView({
     let cancelled = false;
 
     const fetchVoiceData = async () => {
-      if (safeMode !== "rehersal") {
+      if (!isRehearsalMode) {
         if (!cancelled) { setVoiceLoading(false); setVoiceInitialized(false); }
         return;
       }
@@ -208,7 +215,7 @@ export function SetlistReadOnlyView({
     return () => {
       cancelled = true;
     };
-  }, [visible]);
+  }, [visible, isRehearsalMode]);
 
   // Derive the default section instead of setting state from an effect.
   const defaultVoiceSection = useMemo(() => {
@@ -238,12 +245,13 @@ export function SetlistReadOnlyView({
   const handleToggleAll = useCallback(async () => {
     const nextMode = displayMode === "all" ? "list" : "all";
     setDisplayMode(nextMode);
+    if (!isDefaultMode) return;
     try {
       await updateSetlistLyricsViewAction(nextMode);
     } catch (err) {
       console.error("Failed to update lyrics view preference:", err);
     }
-  }, [displayMode]);
+  }, [displayMode, isDefaultMode]);
 
   const handleToggleSong = useCallback((songId: string) => {
     setExpandedSongIds((prev) => {
@@ -261,22 +269,24 @@ export function SetlistReadOnlyView({
     const current = transposeMap.get(songId) ?? 0;
     const next = Math.max(-12, Math.min(12, current + delta));
     setTransposeMap((prev) => new Map(prev).set(songId, next));
+    if (!showTranspose) return;
     try {
       await updateSetlistTransposeAction(sourceSetlistId, songId, next);
     } catch (err) {
       console.error("Failed to update transpose:", err);
     }
-  }, [sourceSetlistId, transposeMap]);
+  }, [sourceSetlistId, transposeMap, showTranspose]);
 
   const handleUpdateGlobalOptions = useCallback(async (options: Partial<typeof globalOptions>) => {
     const next = { ...globalOptions, ...options };
     setGlobalOptions(next);
+    if (!isDefaultMode) return;
     try {
       await updateSetlistGlobalOptionsAction(next);
     } catch (err) {
       console.error("Failed to update global options:", err);
     }
-  }, [globalOptions]);
+  }, [globalOptions, isDefaultMode]);
 
   // Build combined body map from songBodies and song.body
   const combinedBodyMap = new Map<string, string>();
@@ -379,7 +389,7 @@ export function SetlistReadOnlyView({
                   </a>
                 )}
               </>
-            ) : (safeMode === "rehersal" ? (
+            ) : (isRehearsalMode ? (
               <button
                 onClick={() => {
                   const groups = voiceData.get(song.songId);
@@ -427,6 +437,7 @@ export function SetlistReadOnlyView({
             <div className="px-4 py-3 bg-white dark:bg-neutral-950 border-b border-neutral-200 dark:border-neutral-800">
               <div className="flex items-center gap-3 flex-wrap">
                 {/* Transpose Controls */}
+                {showTranspose && (
                 <div className="flex items-center gap-2">
                   <span className="text-xs text-neutral-500">{t("setlist.transpose")}:</span>
                   <button
@@ -457,8 +468,9 @@ export function SetlistReadOnlyView({
                     </button>
                   ) : null}
                 </div>
+                )}
                 <span className="text-xs text-neutral-400 ml-auto">
-                  {semitones !== 0 ? t("setlist.semitones", { count: Math.abs(semitones) }) : ""}
+                  {showTranspose && semitones !== 0 ? t("setlist.semitones", { count: Math.abs(semitones) }) : ""}
                 </span>
               </div>
             </div>
@@ -545,7 +557,7 @@ export function SetlistReadOnlyView({
   return (
     <>
       {/* Voice playlists belong to rehearsal mode only. */}
-      {safeMode === "rehersal" && (
+      {isRehearsalMode && (
         <SetlistVoicePlaylists
           setlistId={sourceSetlistId}
           shares={voiceShares}
@@ -589,6 +601,7 @@ export function SetlistReadOnlyView({
               </button>
 
               {/* Global Options Toggle */}
+              {isDefaultMode && (
               <button
                 onClick={() => setShowGlobalOptions(!showGlobalOptions)}
                 className="p-2 border border-neutral-300 dark:border-neutral-700 rounded-md hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors"
@@ -597,6 +610,7 @@ export function SetlistReadOnlyView({
               >
                 <SettingsIcon />
               </button>
+              )}
 
               {/* View Original Link */}
               {isReference ? (
@@ -614,7 +628,7 @@ export function SetlistReadOnlyView({
         </div>
 
         {/* Global Options Panel */}
-        {showGlobalOptions ? (
+        {isDefaultMode && showGlobalOptions ? (
           <div className="px-4 py-3 bg-neutral-100 dark:bg-neutral-800 border-b border-neutral-200 dark:border-neutral-800">
             <div className="flex flex-wrap items-center gap-4">
               {modeAllowsChords && (
@@ -669,7 +683,7 @@ export function SetlistReadOnlyView({
       </div>
 
       <AutoScrollControl
-        initialSpeed={userPreferences.autoScrollSpeed}
+        initialSpeed={isDefaultMode ? userPreferences.autoScrollSpeed : undefined}
       />
     </>
   );

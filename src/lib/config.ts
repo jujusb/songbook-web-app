@@ -1,3 +1,5 @@
+import { SETLIST_MODES, normalizeSetlistMode } from '@/lib/setlist-modes';
+
 export function getSetlistMaxSongs(): number {
   const val = process.env.SETLIST_MAX_SONGS;
   if (!val) return 50;
@@ -37,11 +39,17 @@ export function getNavidromeFrameOrigins(): string[] {
 }
 
 export function getSetlistDefaultMode(): string {
-  return (process.env.SETLIST_DEFAULT_MODE || 'guitarist').trim();
+  return normalizeSetlistMode(process.env.SETLIST_DEFAULT_MODE || 'default');
 }
 
 export function getSetlistModesAllowed(): string[] {
+  const fallback = [...SETLIST_MODES];
   const val = process.env.SETLIST_MODES_ALLOWED;
-  if (!val) return ['public', 'guitarist', 'rehersal', 'concert', 'instrumentalist'];
-  return val.split(',').map((v) => v.trim()).filter(Boolean);
+  if (!val) return fallback;
+  const modes = val
+    .split(',')
+    .map((v) => v.trim())
+    .filter(Boolean)
+    .map(normalizeSetlistMode);
+  return modes.length > 0 ? [...new Set(modes)] : fallback;
 }

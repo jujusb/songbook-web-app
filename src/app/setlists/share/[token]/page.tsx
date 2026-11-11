@@ -1,6 +1,7 @@
 import { headers } from "next/headers";
 import { validateLinkUrl, safeHost } from "@/lib/setlist-links";
 import { getSetlistLinkAllowedHosts, getSetlistLinkAllowHttp, getSetlistDefaultMode } from "@/lib/config";
+import { normalizeSetlistMode } from "@/lib/setlist-modes";
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 import Link from "next/link";
@@ -94,7 +95,9 @@ export default async function SetlistSharePage({
   }
 
   const historyVersions = await listSetlistVersions(sourceSetlistId);
-  const currentMode = typeof mode === "string" ? mode : (sourceSetlist.mode || getSetlistDefaultMode());
+  const currentMode = normalizeSetlistMode(
+    typeof mode === "string" ? mode : sourceSetlist.mode || getSetlistDefaultMode()
+  );
 
   const songDetails = await Promise.all(
     sourceSetlist.songs.filter(isSongItem).map(async (item) => {
@@ -257,6 +260,7 @@ export default async function SetlistSharePage({
       )}
 
       <SetlistReadOnlyView
+        key={currentMode}
         songs={songDetails}
         entries={entries}
         userPreferences={userPrefs}

@@ -73,53 +73,53 @@ The **Statistics** page at `/setlists/stats` shows which songs were used across 
 
 | Variable | Default | Description |
 |---|---|---|
-| `SETLIST_DEFAULT_MODE` | `guitarist` | Default mode for new setlists |
-| `SETLIST_MODES_ALLOWED` | `rehersal,concert,guitarist,instrumentalist` | Comma-separated list of enabled modes |
+| `SETLIST_DEFAULT_MODE` | `default` | Default mode for new setlists |
+| `SETLIST_MODES_ALLOWED` | `default,public,guitarist,rehersal` | Comma-separated list of enabled modes |
 
 #### Setting the default mode
 
 ```env
-SETLIST_DEFAULT_MODE=guitarist
+SETLIST_DEFAULT_MODE=default
 ```
 
 #### Enabling/disabling modes
 
 ```env
-# Only enable guitarist and concert modes
-SETLIST_MODES_ALLOWED=guitarist,concert
+# Only enable guitarist and public modes
+SETLIST_MODES_ALLOWED=guitarist,public
 ```
 
 ### Modes
 
-A setlist can be rendered in one of four modes, selected via the mode selector or URL query param `?mode=<key>`. The mode is stored in the setlist's YAML frontmatter and persists across views.
+A setlist can be rendered in one of four modes, selected via the mode selector or URL query param `?mode=<key>`. When no `?mode` is present, the mode stored in the setlist's YAML frontmatter is used, falling back to `SETLIST_DEFAULT_MODE`.
 
 #### Available modes
 
 | Mode | Query param | Use case | What you see |
 |---|---|---|---|
-| **Public** | `?mode=public` | Public performance / projection | Lyrics only, fullscreen-friendly, no chord diagrams, minimal UI |
-| **Guitarist** (default) | `?mode=guitarist` | Most common use, guitar players | Chords over lyrics, transposition control, chord diagrams, voice playlist (optional) |
-| **Rehearsal** | `?mode=rehersal` | Singers rehearsing | Voice playlist part selection, no chord diagrams, lyrics with voice part highlights |
-| **Concert** | `?mode=concert` | Public performance / projection | Lyrics only, fullscreen-friendly, no chord diagrams, minimal UI |
-| **Instrumentalist** | `?mode=instrumentalist` | Other instrumentalists | Sheet music/partitions view, chord symbols simplified or omitted, focus on melody/parts |
+| **Default** | `?mode=default` | Personal use | Everything follows the logged-in user's profile preferences (chords, repeats, chord notation, inline chords, lyrics view, transpose, auto-scroll) |
+| **Public** | `?mode=public` | Public performance / projection | Lyrics only, no chords, all songs expanded, fixed display settings independent of the user profile |
+| **Guitarist** | `?mode=guitarist` | Guitar players | Chords over lyrics, fixed display settings independent of the user profile |
+| **Rehearsal** | `?mode=rehersal` | Singers rehearsing | Voice playlists and per-song voice selection, lyrics only (no chords), list view |
+
+Legacy mode names are still accepted and map to the new behaviours: `concert` → `public`, `instrumentalist` → `guitarist`, and the correct spelling `rehearsal` → `rehersal`.
+
+#### Mode details
+
+- **Default mode**: uses the user's saved display settings. Changing the display options or transposition from the UI saves them to the user profile for next time.
+- **Public mode**: fixed lyrics-only rendering. No chord toggles, no transposition controls, no voice playlists.
+- **Guitarist mode**: fixed chord rendering with transposition controls. Display preferences from the user profile are ignored (chords are always shown, using letter notation and separate chord rows).
+- **Rehearsal mode**: fixed lyrics-only rendering with voice playlists and per-song voice selection. Display preferences from the user profile are ignored.
 
 #### Switching modes
 
 1. **Via the mode selector** (visible to setlist owners and admins):
-   - Open a setlist and look for the mode toolbar button
-   - Click to cycle through enabled modes, or select a specific one
-   - The mode is saved to the setlist's frontmatter
+   - Open a setlist and click the desired mode button
+   - The mode is remembered via the URL (`?mode=<key>`)
 
 2. **Via URL**:
-   - Append `?mode=<key>` to the setlist URL, e.g.: `http://YOUR_INSTANCE/setlists/my-setlist?mode=concert`
+   - Append `?mode=<key>` to the setlist URL, e.g.: `http://YOUR_INSTANCE/setlists/my-setlist?mode=public`
    - Useful for sharing a specific view with others
-
-#### Mode details
-
-- **Rehearsal mode**: Voice playlist, no chord diagrams, part selection per song
-- **Concert mode**: Lyrics only, fullscreen-friendly, minimal UI
-- **Guitarist mode** (default): Chords over lyrics, transposition control, chord diagrams
-- **Instrumentalist mode**: Partition-oriented, melody focus, reduced chord symbols
 
 ## See also
 
