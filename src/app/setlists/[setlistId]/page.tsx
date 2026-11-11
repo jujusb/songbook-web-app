@@ -50,7 +50,7 @@ export default async function SetlistPage({
 
   let setlist;
   try {
-    setlist = versionParam
+    setlist = versionParam && versionParam !== 'current'
       ? await getSetlistVersion(sourceSetlistId, versionParam)
       : baseSetlist;
   } catch {
@@ -239,14 +239,14 @@ export default async function SetlistPage({
               shareToken={setlist.shareToken}
             />
           )}
-          {canEditSetlist && (
-            <Link
-              href={`/setlists/${setlistId}/edit`}
-              className="text-sm px-3 py-1.5 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors"
-            >
-              Edit
-            </Link>
-          )}
+           {canEditSetlist && (
+             <Link
+               href={`/setlists/${setlistId}/edit${versionParam ? `?version=${encodeURIComponent(versionParam)}` : ""}`}
+               className="text-sm px-3 py-1.5 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors"
+             >
+               Edit
+             </Link>
+           )}
           {showDeleteActions && (
             <DeleteButton
               apiEndpoint="/api/setlists"

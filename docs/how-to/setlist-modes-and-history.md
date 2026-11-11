@@ -11,9 +11,30 @@ Each setlist keeps one **permanent root file** and a set of **dated snapshots**.
 - **Current setlist**: `<data>/setlists/<setlist-id>.yaml` — the permanent link and the active version
 - **Dated versions**: `<data>/setlists/<setlist-id>/<label>/setlist.yaml`
 - **Automatic versions**: Before the root is overwritten, the previous root is archived if its content changed. Saving only metadata (public flag, share token/slug, subscribers, voice shares, mode, modified timestamp) does **not** create a version.
-- **Version labels**: The setlist's `date` when available (`YYYY-MM-DD`). If that folder already exists, a timestamp label is used instead (`YYYY-MM-DDTHH-MM-SS`, with `-N` on further collisions) so a version is never overwritten.
-- **Event dates**: History and statistics use the YAML `date` first, then fall back to the `YYYY-MM-DD` prefix of the folder label. Old date-only folders keep working without migration.
+- **Version labels**: The setlist's `date` when available (`YYYY-MM-DD`). Creating a second dated version on the same day is rejected, so each link/day keeps a single entry. If a folder with that label already exists only from an identical snapshot, the existing entry is reused.
+- **Storage layout**: The root file (`<setlist-id>.yaml`) keeps only shared/static link metadata (id, title, current date, public, share token/slug, owner, created, modified, subscribers). The song list, image, mode, description and voice shares live in `<setlist-id>/<date>/setlist.yaml`, including for the current event, so every version is self-contained.
+- **Event dates**: History and statistics use the `YYYY-MM-DD` prefix of the version folder first, then fall back to the YAML `date`. Old snapshots with stale or missing YAML dates therefore still show the date they were archived under.
 - **Saved shared setlists**: A reference (a setlist saved from a share link) resolves its history to the original setlist, so all subscribers see the same event timeline. The share page exposes that history read-only.
+
+### Migrating older setlists
+
+Older setlists stored the full current content in the root YAML file. Migrate them to the dated-version layout with:
+
+```bash
+npm run migrate:setlist-versions -- --dry
+npm run migrate:setlist-versions
+```
+
+The script copies each root's current content into `<setlist-id>/<date>/setlist.yaml`, writes that date back to the root, and leaves only static link metadata in the root file. It can run more than once safely.
+
+Root files without a date reuse the date of an existing version with identical content. Otherwise they use today's date; pass `--date YYYY-MM-DD` to choose a different date:
+
+```bash
+npm run migrate:setlist-versions -- --date 2026-11-01
+```
+
+If a version folder already exists for the current date with different content, the existing folder is preserved under a timestamped label before the current content takes the date label.
+
 
 ### Recurrent event workflow
 

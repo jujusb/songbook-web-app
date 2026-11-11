@@ -278,7 +278,34 @@ export async function getAlbumTitle(albumId: string, lang: string): Promise<stri
   }
 }
 
-// --- Setlists ---
+async function hydrateSetlist(root: Setlist): Promise<Setlist> {
+  const date = isSetlistDate(root.date) ? root.date : undefined;
+  if (!date) {
+    // Backward compatibility: older root files may still hold full content.
+    return root;
+  }
+  const versionPath = path.join(getSetlistsDir(), root.id, date, 'setlist.yaml');
+  if (!existsSync(versionPath)) {
+    return root;
+  }
+  try {
+    const raw = await readFile(versionPath, 'utf-8');
+    const version = SetlistSchema.parse(yaml.load(raw));
+    return {
+      ...root,
+      description: version.description,
+      // The current version folder is named after the root date, which is the
+      // authoritative event date even if the version file has a stale date.
+      date: root.date,
+      image: version.image,
+      songs: version.songs,
+      voiceShares: version.voiceShares,
+      mode: version.mode ?? root.mode,
+    };
+  } catch {
+    return root;
+  }
+}
 // Setlists live at: <data>/setlists/<setlist-id>.yaml (falls back to content/setlists)
 
 export interface ListSetlistsOptions {
@@ -302,7 +329,7 @@ export async function listSetlists(options: ListSetlistsOptions = {}): Promise<S
         if (setlist.sharedFrom && setlist.ownerId !== userId) {
           continue;
         }
-        setlists.push(setlist);
+        setlists.push(await hydrateSetlist(setlist));
       } catch {}
     }
     // Sort by date descending (newest first), then by title
@@ -322,27 +349,32 @@ export async function getSetlist(id: string): Promise<Setlist> {
   const filePath = path.join(getSetlistsDir(), `${id}.yaml`);
   const raw = await readFile(filePath, 'utf-8');
   const parsed = yaml.load(raw);
-  const setlist = SetlistSchema.parse(parsed);
+  const root = SetlistSchema.parse(parsed);
+
+  // Hydrate the active version's mutable content from its dated folder when
+  // the root only stores shared/static metadata.
+  const hydrated = await hydrateSetlist(root);
 
   // If this is a reference setlist, merge with original
-  if (setlist.sharedFrom) {
+  if (hydrated.sharedFrom) {
     try {
-      const original = await getSetlist(setlist.sharedFrom.setlistId);
+      const original = await getSetlist(hydrated.sharedFrom.setlistId);
       return {
-        ...setlist,
+        ...hydrated,
         // Override with original's mutable content
         title: original.title,
         description: original.description,
         date: original.date,
         songs: original.songs,
         voiceShares: original.voiceShares,
+        image: original.image,
       };
     } catch {
       // If original not found, return reference as-is
-      return setlist;
+      return hydrated;
     }
   }
-  return setlist;
+  return hydrated;
 }
 
 /**
@@ -375,10 +407,6 @@ interface StoredSetlistVersion {
 
 const SETLIST_DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
 const VERSION_DATE_PREFIX = /^(\d{4}-\d{2}-\d{2})/;
-
-function todayDate(): string {
-  return new Date().toISOString().slice(0, 10);
-}
 
 export function isSetlistDate(value: unknown): value is string {
   return typeof value === 'string' && SETLIST_DATE_PATTERN.test(value);
@@ -456,17 +484,6 @@ async function uniqueVersionLabel(baseId: string, date: string): Promise<string>
   return label;
 }
 
-async function archiveSetlistVersion(baseId: string, setlist: Setlist, raw: string): Promise<void> {
-  const key = setlistContentKey(setlist);
-  if (await findVersionWithKey(baseId, key)) return;
-
-  const date = isSetlistDate(setlist.date) ? setlist.date : todayDate();
-  const label = await uniqueVersionLabel(baseId, date);
-  const versionDir = path.join(getSetlistsDir(), baseId, label);
-  await mkdir(versionDir, { recursive: true });
-  await writeFile(path.join(versionDir, 'setlist.yaml'), raw, 'utf-8');
-}
-
 export async function saveSetlist(setlist: SetlistInput): Promise<void> {
   const validated = SetlistSchema.parse(setlist);
   if (isReservedSetlistId(validated.id)) {
@@ -476,25 +493,54 @@ export async function saveSetlist(setlist: SetlistInput): Promise<void> {
   await mkdir(dir, { recursive: true });
   const filePath = path.join(dir, `${validated.id}.yaml`);
 
-  // Archive the previous active version before overwriting, but only when its
-  // content actually changed. Saving a share link, toggling visibility, or
-  // regenerating voice shares must not create or overwrite history.
-  if (existsSync(filePath)) {
-    try {
-      const previousRaw = await readFile(filePath, 'utf-8');
-      const previous = SetlistSchema.parse(yaml.load(previousRaw));
-      if (setlistContentKey(previous) !== setlistContentKey(validated)) {
-        await archiveSetlistVersion(validated.id, previous, previousRaw);
-      }
-    } catch {
-      // best-effort history
-    }
+  const existingRoot = existsSync(filePath)
+    ? SetlistSchema.parse(yaml.load(await readFile(filePath, 'utf-8')))
+    : null;
+  const existingCurrent = existingRoot ? await hydrateSetlist(existingRoot) : null;
+
+  const date = isSetlistDate(validated.date)
+    ? validated.date
+    : isSetlistDate(existingCurrent?.date)
+      ? existingCurrent!.date
+      : null;
+
+  if (date) {
+    const version: Setlist = {
+      ...validated,
+      date,
+      title: validated.title,
+      mode: validated.mode || existingCurrent?.mode || getSetlistDefaultMode(),
+      modified: new Date().toISOString(),
+    };
+    const versionDir = path.join(dir, validated.id, date);
+    await mkdir(versionDir, { recursive: true });
+    await writeFile(path.join(versionDir, 'setlist.yaml'), yaml.dump(version, { lineWidth: -1 }), 'utf-8');
   }
-  const content = yaml.dump(
-    { ...validated, mode: validated.mode || getSetlistDefaultMode(), modified: new Date().toISOString() },
-    { lineWidth: -1 }
-  );
-  await writeFile(filePath, content, 'utf-8');
+
+  const rootMeta = {
+    id: validated.id,
+    title: validated.title,
+    date: date ?? undefined,
+    public: validated.public ?? existingRoot?.public ?? false,
+    shareToken: validated.shareToken ?? existingRoot?.shareToken,
+    shareSlug: validated.shareSlug ?? existingRoot?.shareSlug,
+    ownerId: validated.ownerId ?? existingRoot?.ownerId,
+    created: existingRoot?.created ?? validated.created ?? new Date().toISOString(),
+    modified: new Date().toISOString(),
+    subscribers: validated.subscribers ?? existingRoot?.subscribers ?? [],
+  };
+
+  if (!date) {
+    // Preserve undated setlists using the legacy root layout.
+    await writeFile(filePath, yaml.dump({
+      ...rootMeta,
+      ...validated,
+      mode: validated.mode || getSetlistDefaultMode(),
+      modified: new Date().toISOString(),
+    }, { lineWidth: -1 }), 'utf-8');
+  } else {
+    await writeFile(filePath, yaml.dump(rootMeta, { lineWidth: -1 }), 'utf-8');
+  }
 }
 
 export async function deleteSetlist(id: string): Promise<void> {
@@ -507,12 +553,16 @@ export async function getSetlistVersion(baseId: string, versionLabel: string): P
   if (!existsSync(fp)) throw new Error('Version not found');
   const raw = await readFile(fp, 'utf-8');
   const parsed = yaml.load(raw);
-  return SetlistSchema.parse(parsed);
+  const setlist = SetlistSchema.parse(parsed);
+  // The history folder label is the authoritative event date. Older version
+  // files may still carry a stale or missing date from before the migration.
+  const labelDate = parseSetlistVersionDate(versionLabel);
+  return labelDate ? { ...setlist, date: labelDate } : setlist;
 }
 
 export async function listSetlistVersions(baseId: string): Promise<SetlistVersionInfo[]> {
   const versions = await readSetlistVersions(baseId);
-  return versions
+  const result = versions
     .map(({ label, setlist }) => {
       const date = isSetlistDate(setlist.date) ? setlist.date : undefined;
       return {
@@ -520,11 +570,38 @@ export async function listSetlistVersions(baseId: string): Promise<SetlistVersio
         path: label,
         title: setlist.title || baseId,
         date,
-        eventDate: date ?? parseSetlistVersionDate(label) ?? undefined,
+        // Prefer the folder label so old snapshots with stale YAML dates still
+        // show the date they were archived under.
+        eventDate: parseSetlistVersionDate(label) ?? date ?? undefined,
         description: setlist.description,
       };
-    })
-    .sort((a, b) => b.label.localeCompare(a.label));
+    });
+  // Include the current root as a history entry so an active event is never
+  // missing from the timeline, unless another entry already represents it.
+  const rootFilePath = path.join(getSetlistsDir(), `${baseId}.yaml`);
+  if (existsSync(rootFilePath)) {
+    try {
+      const raw = await readFile(rootFilePath, 'utf-8');
+      const current = SetlistSchema.parse(yaml.load(raw));
+      const currentDate = isSetlistDate(current.date) ? current.date : undefined;
+      if (currentDate) {
+        const already = result.some((entry) => (entry.eventDate ?? entry.date) === currentDate);
+        if (!already) {
+          result.push({
+            label: 'current',
+            path: '',
+            title: current.title || baseId,
+            date: currentDate,
+            eventDate: currentDate,
+            description: current.description,
+          });
+        }
+      }
+    } catch {
+      // Best effort: ignore an unreadable root.
+    }
+  }
+  return result.sort((a, b) => b.label.localeCompare(a.label));
 }
 
 export async function createSetlistDateVersion(
@@ -533,11 +610,12 @@ export async function createSetlistDateVersion(
   copyCurrent = true,
 ): Promise<string> {
   if (!isSetlistDate(date)) throw new Error('Invalid date');
+  const current = await getSetlist(baseId);
   const filePath = path.join(getSetlistsDir(), `${baseId}.yaml`);
   if (!existsSync(filePath)) throw new Error('Setlist not found');
 
-  const raw = await readFile(filePath, 'utf-8');
-  const current = SetlistSchema.parse(yaml.load(raw));
+  const existingVersions = await readSetlistVersions(baseId);
+
   const version: Setlist = {
     ...current,
     date,
@@ -545,6 +623,25 @@ export async function createSetlistDateVersion(
     voiceShares: copyCurrent ? current.voiceShares : [],
     modified: new Date().toISOString(),
   };
+
+  // Insurance: one dated entry per link and per day. A new date is only
+  // allowed when it does not already exist among the archived versions with
+  // different content. Identical snapshots reuse the existing entry instead.
+  for (const archived of existingVersions) {
+    const existingDate = isSetlistDate(archived.setlist.date)
+      ? archived.setlist.date
+      : parseSetlistVersionDate(archived.label);
+    if (existingDate !== date) continue;
+    if (setlistContentKey(archived.setlist) !== setlistContentKey(version)) {
+      throw new Error('A history entry already exists for this date');
+    }
+  }
+
+  // The current root itself already occupies this date; do not create a
+  // duplicate dated snapshot for the same day.
+  if (isSetlistDate(current.date) && current.date === date) {
+    throw new Error('A history entry already exists for this date');
+  }
 
   const existing = await findVersionWithKey(baseId, setlistContentKey(version));
   if (existing) return existing;

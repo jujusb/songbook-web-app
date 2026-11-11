@@ -16,7 +16,8 @@
     "test:all": "npm run test:coverage && npm run test:e2e",
     "migrate:revisions": "node scripts/migrate-revisions.mjs",
     "collect:revisions": "node scripts/collect-revisions.mjs",
-    "migrate:data-layout": "node scripts/migrate-data-layout.mjs"
+    "migrate:data-layout": "node scripts/migrate-data-layout.mjs",
+    "migrate:setlist-versions": "node scripts/migrate-setlist-versions.mjs"
   },
   "dependencies": {
     "@codemirror/commands": "^6.10.4",

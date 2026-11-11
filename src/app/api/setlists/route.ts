@@ -1,11 +1,15 @@
 import { NextResponse } from "next/server";
-import { listSetlists, getSetlist, saveSetlist, deleteSetlist } from "@/lib/content";
+import { mkdir, writeFile } from "fs/promises";
+import path from "path";
+import * as yaml from "js-yaml";
+import { listSetlists, getSetlist, getSetlistVersion, saveSetlist, deleteSetlist } from "@/lib/content";
+import { getShareBaseUrl } from "@/lib/content";
 import { getSession, canEdit, canAdmin, canCreateSetlist } from "@/lib/auth";
 import { isReadOnlyFor } from "@/lib/readonly";
 import { generateSetlistVoiceShares } from "@/lib/navidrome/setlist-shares";
 import { getSetlistMaxSongs, getSetlistLinkAllowedHosts, getSetlistLinkAllowHttp } from "@/lib/config";
 import { validateLinkUrl } from "@/lib/setlist-links";
-import { getShareBaseUrl } from "@/lib/content";
+import { getSetlistsDir } from "@/lib/content/paths";
 import { z } from "zod";
 import { isReservedSetlistId, isSongItem, isLinkItem, SetlistItemSchema, type Setlist, type SetlistItem } from "@/lib/content/schemas";
 
@@ -180,13 +184,43 @@ export async function PUT(request: Request) {
       return NextResponse.json({ error: parsedItems.error }, { status: parsedItems.status ?? 400 });
     }
 
-    // Load existing to preserve created date and check ownership
-    let existing: Setlist | null = null;
-    try {
-      existing = await getSetlist(data.id);
-    } catch {
-      return NextResponse.json({ error: "Setlist not found" }, { status: 404 });
-    }
+     const editingVersion = typeof data.version === 'string' && data.version && data.version !== 'current'
+       ? data.version
+       : undefined;
+
+     // Load existing to preserve created date and check ownership
+     let existing: Setlist | null = null;
+     try {
+       existing = await getSetlist(data.id);
+     } catch {
+       return NextResponse.json({ error: "Setlist not found" }, { status: 404 });
+     }
+
+     // Editing a historical dated version: update that version's file only.
+     if (editingVersion) {
+       try {
+         const existingVersion = await getSetlistVersion(data.id, editingVersion);
+         const itemsVersion = parsedItems.items;
+         const updatedVersion: Setlist = {
+           ...existingVersion,
+           title: data.title,
+           description: data.description || undefined,
+           date: existingVersion.date,
+           image: data.image || existingVersion.image,
+           songs: itemsVersion,
+           voiceShares: existingVersion.voiceShares ?? [],
+           mode: existingVersion.mode,
+           modified: new Date().toISOString(),
+         };
+         const versionDir = path.join(getSetlistsDir(), data.id, editingVersion);
+         await mkdir(versionDir, { recursive: true });
+         await writeFile(path.join(versionDir, 'setlist.yaml'), yaml.dump(updatedVersion, { lineWidth: -1 }), 'utf-8');
+         const updated = await getSetlistVersion(data.id, editingVersion);
+         return NextResponse.json(updated);
+       } catch {
+         return NextResponse.json({ error: "Version not found" }, { status: 404 });
+       }
+     }
 
     // Check ownership for setlist_creator role
     const isOwner = existing.ownerId === userId;

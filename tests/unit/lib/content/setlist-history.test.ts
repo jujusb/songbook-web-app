@@ -36,9 +36,9 @@ describe('content/index.ts — setlist history', () => {
     });
 
     const versions = await content.listSetlistVersions('sunday');
-    expect(versions).toHaveLength(1);
-    expect(versions[0].label).toBe('2026-01-04');
-    expect(versions[0].eventDate).toBe('2026-01-04');
+    expect(versions).toHaveLength(2);
+    expect(versions.find((v) => v.label === '2026-01-04')?.label).toBe('2026-01-04');
+    expect(versions.find((v) => v.label === '2026-01-11')?.eventDate).toBe('2026-01-11');
 
     const archived = await content.getSetlistVersion('sunday', '2026-01-04');
     expect(archived.date).toBe('2026-01-04');
@@ -61,7 +61,7 @@ describe('content/index.ts — setlist history', () => {
     await content.saveSetlist({ ...base, public: true, shareToken: 'share-token' });
     await content.saveSetlist({ ...base, subscribers: ['user-1'] });
 
-    expect(await content.listSetlistVersions('sunday')).toHaveLength(0);
+    expect(await content.listSetlistVersions('sunday')).toHaveLength(1);
   });
 
   it('does not duplicate an identical snapshot', async () => {
@@ -75,10 +75,10 @@ describe('content/index.ts — setlist history', () => {
     await content.saveSetlist(base);
     await content.saveSetlist(base);
 
-    expect(await content.listSetlistVersions('sunday')).toHaveLength(0);
+    expect(await content.listSetlistVersions('sunday')).toHaveLength(1);
   });
 
-  it('avoids overwriting an existing date folder', async () => {
+  it('rejects a duplicate setlist date', async () => {
     await content.saveSetlist({
       id: 'sunday',
       title: 'Sunday service',
@@ -90,12 +90,9 @@ describe('content/index.ts — setlist history', () => {
     const first = await content.createSetlistDateVersion('sunday', '2026-01-04', true);
     expect(first).toBe('2026-01-04');
 
-    const second = await content.createSetlistDateVersion('sunday', '2026-01-04', false);
-    expect(second).toMatch(/^2026-01-04T/);
-
-    const versions = await content.listSetlistVersions('sunday');
-    expect(versions.map((version) => version.label).sort()).toEqual([first, second].sort());
-    expect((await content.getSetlistVersion('sunday', second)).songs).toEqual([]);
+    // Different content on the same date is not allowed, ensuring one
+    // entry per link and day.
+    await expect(content.createSetlistDateVersion('sunday', '2026-01-04', false)).rejects.toThrow();
   });
 
   it('creates a dated version without changing the current setlist', async () => {
@@ -119,7 +116,20 @@ describe('content/index.ts — setlist history', () => {
 
     const again = await content.createSetlistDateVersion('sunday', '2026-01-04', true);
     expect(again).toBe(label);
-    expect(await content.listSetlistVersions('sunday')).toHaveLength(1);
+    expect(await content.listSetlistVersions('sunday')).toHaveLength(2);
+  });
+
+  it('includes the current setlist in the history timeline', async () => {
+    await content.saveSetlist({
+      id: 'sunday',
+      title: 'Sunday service',
+      date: '2026-01-11',
+      songs: [song('song-a')],
+      ownerId: 'creator',
+    });
+
+    const versions = await content.listSetlistVersions('sunday');
+    expect(versions.some((version) => version.eventDate === '2026-01-11')).toBe(true);
   });
 
   it('falls back to the version folder label for the event date', async () => {
@@ -134,5 +144,22 @@ describe('content/index.ts — setlist history', () => {
 
     const versions = await content.listSetlistVersions('legacy');
     expect(versions[0]).toMatchObject({ label: '2026-02-01', eventDate: '2026-02-01' });
+  });
+
+  it('prefers the version folder date over a stale date in the version file', async () => {
+    const dir = `${tempDir.path}/data/setlists/legacy/2026-03-08`;
+    const { mkdir, writeFile } = await import('fs/promises');
+    await mkdir(dir, { recursive: true });
+    await writeFile(
+      `${dir}/setlist.yaml`,
+      `id: legacy\ntitle: Legacy\ndate: 2026-03-01\nsongs: []\n`,
+      'utf-8',
+    );
+
+    const versions = await content.listSetlistVersions('legacy');
+    expect(versions[0].eventDate).toBe('2026-03-08');
+
+    const version = await content.getSetlistVersion('legacy', '2026-03-08');
+    expect(version.date).toBe('2026-03-08');
   });
 });

@@ -154,7 +154,7 @@ export function SetlistReadOnlyView({
   const [showGlobalOptions, setShowGlobalOptions] = useState(false);
 
   // Voice-related state
-  const [activeSection, setActiveSection] = useState<VoiceSection>('tenor');
+  const [activeSectionOverride, setActiveSectionOverride] = useState<VoiceSection | null>(null);
   const [voiceData, setVoiceData] = useState<Map<string, VoiceGroup[]>>(new Map());
   const [voiceLoading, setVoiceLoading] = useState(true);
   const [voiceInitialized, setVoiceInitialized] = useState(false);
@@ -210,46 +210,30 @@ export function SetlistReadOnlyView({
     };
   }, [visible]);
 
-  // Initialize activeSection from preferredVoice or first available
-  useEffect(() => {
-    if (voiceInitialized && !voiceLoading) {
-      let initialized = false;
+  // Derive the default section instead of setting state from an effect.
+  const defaultVoiceSection = useMemo(() => {
+    if (!voiceInitialized || voiceLoading) return "tenor" as VoiceSection;
 
-      // Try preferred voice first
-      if (preferredVoice) {
-        for (const groups of voiceData.values()) {
-          const hasContent = groups.some((group) =>
-            group.sections.some((s) => s.section === preferredVoice && s.parts.length > 0)
-          );
-          if (hasContent) {
-            setActiveSection(preferredVoice);
-            initialized = true;
-            break;
-          }
-        }
-      }
-
-      // Fall back to first available section across all songs
-      if (!initialized) {
-        for (const groups of voiceData.values()) {
-          for (const group of groups) {
-            const section = group.sections.find((s) => s.parts.length > 0);
-            if (section) {
-              setActiveSection(section.section);
-              initialized = true;
-              break;
-            }
-          }
-          if (initialized) break;
-        }
-      }
-
-      // If still no content, default to tenor
-      if (!initialized) {
-        setActiveSection('tenor');
+    if (preferredVoice) {
+      for (const groups of voiceData.values()) {
+        const hasContent = groups.some((group) =>
+          group.sections.some((s) => s.section === preferredVoice && s.parts.length > 0)
+        );
+        if (hasContent) return preferredVoice;
       }
     }
+
+    for (const groups of voiceData.values()) {
+      for (const group of groups) {
+        const section = group.sections.find((s) => s.parts.length > 0);
+        if (section) return section.section;
+      }
+    }
+
+    return "tenor" as VoiceSection;
   }, [voiceInitialized, voiceLoading, voiceData, preferredVoice]);
+
+  const activeSection = activeSectionOverride ?? defaultVoiceSection;
 
   const handleToggleAll = useCallback(async () => {
     const nextMode = displayMode === "all" ? "list" : "all";
@@ -410,7 +394,7 @@ export function SetlistReadOnlyView({
                       for (const group of groups) {
                         const section = group.sections.find((s) => s.parts.length > 0);
                         if (section) {
-                          setActiveSection(section.section);
+                          setActiveSectionOverride(section.section);
                           break;
                         }
                       }
@@ -560,22 +544,24 @@ export function SetlistReadOnlyView({
 
   return (
     <>
-      {/* Top-level voice playlists - use preferredVoice for initial selection only */}
-      <SetlistVoicePlaylists
-        setlistId={sourceSetlistId}
-        shares={voiceShares}
-        canGenerate={voiceCanGenerate}
-        songs={visible.map((s) => ({
-          songId: s.songId,
-          lang: s.lang,
-          title: s.title,
-          spotify: s.spotify,
-          youtube: s.youtube,
-          originalLang: s.originalLang,
-          preferredVoice: preferredVoice,
-        }))}
-        preferredVoice={preferredVoice}
-      />
+      {/* Voice playlists belong to rehearsal mode only. */}
+      {safeMode === "rehersal" && (
+        <SetlistVoicePlaylists
+          setlistId={sourceSetlistId}
+          shares={voiceShares}
+          canGenerate={voiceCanGenerate}
+          songs={visible.map((s) => ({
+            songId: s.songId,
+            lang: s.lang,
+            title: s.title,
+            spotify: s.spotify,
+            youtube: s.youtube,
+            originalLang: s.originalLang,
+            preferredVoice: preferredVoice,
+          }))}
+          preferredVoice={preferredVoice}
+        />
+      )}
 
       <div className="border border-neutral-200 dark:border-neutral-800 rounded-lg overflow-hidden">
         {/* Header Toolbar */}

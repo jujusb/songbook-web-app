@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { getSetlistLinkAllowedHosts, getSetlistLinkAllowHttp } from "@/lib/config";
 import { notFound, redirect } from "next/navigation";
 import Link from "next/link";
-import { getSetlist, listSongs, getSongTranslations, getShareBaseUrl } from "@/lib/content";
+import { getSetlist, getSetlistVersion, listSongs, getSongTranslations, getShareBaseUrl } from "@/lib/content";
 import { getSession, canEdit, canCreateSetlist, canManageSetlistShares } from "@/lib/auth";
 import { SetlistEditor } from "@/components/SetlistEditor";
 import { SetlistShareControls } from "@/components/SetlistShareControls";
@@ -19,14 +19,19 @@ export async function generateMetadata({ params }: { params: Promise<{ setlistId
 
 export default async function SetlistEditPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ setlistId: string }>;
+  searchParams: Promise<{ version?: string }>;
 }) {
   const { setlistId } = await params;
+  const { version: versionParam } = await searchParams;
 
   let setlist;
   try {
-    setlist = await getSetlist(setlistId);
+    setlist = versionParam && versionParam !== 'current'
+      ? await getSetlistVersion(setlistId, versionParam)
+      : await getSetlist(setlistId);
   } catch {
     notFound();
   }
@@ -83,11 +88,12 @@ export default async function SetlistEditPage({
           id: setlist.id,
           title: setlist.title,
           description: setlist.description || "",
-          date: setlist.date || "",
-          songs: setlist.songs,
-        }}
-        isNew={false}
-      />
+         date: setlist.date || "",
+            songs: setlist.songs,
+         }}
+         isNew={false}
+         versionLabel={versionParam && versionParam !== 'current' ? versionParam : undefined}
+       />
     </div>
   );
 }

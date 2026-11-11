@@ -42,7 +42,7 @@ export function SetlistHistoryBrowser({
   const targetId = historySetlistId || setlistId;
   const manage = canManage ?? canEdit;
   const [versions, setVersions] = useState<HistoryVersion[]>(initialVersions);
-  const [selected, setSelected] = useState<string>(currentVersion || (initialVersions[0]?.label ?? ""));
+  const [selected, setSelected] = useState<string>(currentVersion || "");
   const [status, setStatus] = useState<string | null>(null);
   const [newDate, setNewDate] = useState(() => new Date().toISOString().slice(0, 10));
 
@@ -82,7 +82,9 @@ export function SetlistHistoryBrowser({
     if (res.ok) {
       const data = await res.json().catch(() => ({}));
       setStatus(`Saved version ${data?.label || newDate}`);
+      if (data?.label) setSelected(data.label);
       await refresh();
+      if (data?.label) router.push(`/setlists/${targetId}/edit?version=${encodeURIComponent(data.label)}`);
     } else {
       const data = await res.json().catch(() => ({}));
       setStatus(data?.error || "Failed");
@@ -116,13 +118,12 @@ export function SetlistHistoryBrowser({
           onChange={(e) => {
             const label = e.target.value;
             setSelected(label);
-            if (label) {
-              const base = versionHrefBase || `/setlists/${setlistId}`;
-              router.push(`${base}?version=${encodeURIComponent(label)}`);
-            }
+            const base = versionHrefBase || `/setlists/${setlistId}`;
+            if (label) router.push(`${base}?version=${encodeURIComponent(label)}`);
+            else router.push(base);
           }}
         >
-          <option value="">Select version…</option>
+          <option value="">Current version</option>
           {versions.map((v) => (
             <option key={v.label} value={v.label}>
               {dateOf(v) || v.title || v.label}{v.date && v.eventDate && v.date !== v.eventDate ? ` • ${v.label}` : ""}

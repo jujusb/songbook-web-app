@@ -43,11 +43,12 @@ interface SetlistData {
 }
 
 export function SetlistEditor({
-  availableSongs,
-  initialSetlist,
-  isNew,
-  linkOnly = false,
-  allowedLinkHosts = [],
+   availableSongs,
+   initialSetlist,
+   isNew,
+   linkOnly = false,
+   versionLabel,
+   allowedLinkHosts = [],
   allowHttpLinks = false,
 }: {
   allowedLinkHosts?: string[];
@@ -56,6 +57,7 @@ export function SetlistEditor({
   initialSetlist?: SetlistData;
   isNew: boolean;
   linkOnly?: boolean;
+  versionLabel?: string;
 }) {
   const router = useRouter();
   const { languageLabel, t } = useTranslation();
@@ -251,9 +253,10 @@ export function SetlistEditor({
         .map((s) =>
           isLinkItem(s) ? { ...s, url: s.url.trim(), title: s.title?.trim() || undefined } : s
         );
-      const payload = {
-        ...(initialSetlist?.id && { id: initialSetlist.id }),
-        title: title.trim(),
+       const payload = {
+         ...(initialSetlist?.id && { id: initialSetlist.id }),
+         ...(versionLabel && { version: versionLabel }),
+         title: title.trim(),
         description: description.trim() || undefined,
         image: image.trim() || undefined,
         date: date.trim() || undefined,
@@ -272,7 +275,7 @@ export function SetlistEditor({
       }
 
       const saved = await res.json();
-      router.push(`/setlists/${saved.id}`);
+      router.push(`/setlists/${saved.id}${versionLabel ? `?version=${encodeURIComponent(versionLabel)}` : ""}`);
       router.refresh();
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : "Save failed");
@@ -295,7 +298,8 @@ export function SetlistEditor({
         setError(data?.error || "Failed to create date version");
         return;
       }
-      router.push(`/setlists/${initialSetlist.id}`);
+      const data = await res.json().catch(() => ({}));
+      router.push(`/setlists/${initialSetlist.id}/edit?version=${encodeURIComponent(data?.label || date)}`);
       router.refresh();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed");
@@ -339,6 +343,7 @@ export function SetlistEditor({
               type="date"
               value={date}
               onChange={(e) => setDate(e.target.value)}
+              disabled={!!versionLabel}
               className="w-full px-3 py-2 border border-neutral-300 dark:border-neutral-700 rounded-md bg-white dark:bg-neutral-900 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
           </div>

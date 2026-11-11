@@ -1,6 +1,6 @@
 import { headers } from "next/headers";
 import { validateLinkUrl, safeHost } from "@/lib/setlist-links";
-import { getSetlistLinkAllowedHosts, getSetlistLinkAllowHttp } from "@/lib/config";
+import { getSetlistLinkAllowedHosts, getSetlistLinkAllowHttp, getSetlistDefaultMode } from "@/lib/config";
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 import Link from "next/link";
@@ -62,10 +62,10 @@ export default async function SetlistSharePage({
   searchParams,
 }: {
   params: Promise<{ token: string }>;
-  searchParams: Promise<{ version?: string }>;
+  searchParams: Promise<{ version?: string; mode?: string }>;
 }) {
   const { token } = await params;
-  const { version: versionParam } = await searchParams;
+  const { version: versionParam, mode } = await searchParams;
   const setlist = await findSetlistByShareToken(token);
   if (!setlist) notFound();
 
@@ -94,6 +94,7 @@ export default async function SetlistSharePage({
   }
 
   const historyVersions = await listSetlistVersions(sourceSetlistId);
+  const currentMode = typeof mode === "string" ? mode : (sourceSetlist.mode || getSetlistDefaultMode());
 
   const songDetails = await Promise.all(
     sourceSetlist.songs.filter(isSongItem).map(async (item) => {
@@ -265,6 +266,7 @@ export default async function SetlistSharePage({
         preferredVoice={currentUser?.voice}
         voiceShares={voiceShares}
         canGenerate={false}
+        mode={currentMode}
       />
 
       <SetlistHistoryBrowser

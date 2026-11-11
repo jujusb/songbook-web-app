@@ -70,8 +70,10 @@ describe('API /setlists/[setlistId]/history', () => {
     const data = await response.json();
 
     expect(response.status).toBe(200);
-    expect(data).toHaveLength(1);
-    expect(data[0]).toMatchObject({ label: '2026-01-04', eventDate: '2026-01-04' });
+    expect(data).toHaveLength(2);
+    expect(data).toEqual(
+      expect.arrayContaining([expect.objectContaining({ label: '2026-01-04', eventDate: '2026-01-04' })]),
+    );
   });
 
   it('allows reading history through a share token', async () => {
