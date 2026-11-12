@@ -474,14 +474,14 @@ const labeledRepeat = raw.match(
                 escapeHtml(text.slice(to, seg.end));
             }
           }
-          const chordHtml = showChords
-            ? `<div class="vce-chord-row"><span class="vce-chord">${escapeHtml(seg.chord) || "&nbsp;"}</span></div>`
-            : "";
-          return (
-            `<div class="vce-seg">${chordHtml}` +
-            `<div class="vce-lyrics-row"><div class="vce-lyrics-text">${body || "&nbsp;"}</div></div>` +
-            "</div>"
-          );
+          // Chord first in the source so the reading order is chord, lyric,
+          // chord, lyric. The chord is positioned above its lyric text, so it
+          // takes no width and the text flows and breaks at word boundaries.
+          const chordHtml =
+            showChords && seg.chord !== ""
+              ? `<span class="vce-chord">${escapeHtml(seg.chord)}</span>`
+              : "";
+          return `<span class="vce-seg">${chordHtml}<span class="vce-lyrics-text">${body || "&nbsp;"}</span></span>`;
         })
         .join("");
       emit(`  <div class="vce-line wrap"${lineAttr}>${segHtml}</div>`);

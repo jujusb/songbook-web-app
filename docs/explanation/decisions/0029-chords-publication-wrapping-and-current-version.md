@@ -26,11 +26,11 @@ Accepted; extends [0028](./0028-manual-text-markdown-modes-and-date-flow.md).
 ### Wrapped chord lines
 
 - `renderVisualChordSheet` has a `wrapSegments` option, enabled on the song page (`ChordSheet`) and the setlist view. Each line is split at its chords into `.vce-seg` blocks holding one chord over its lyric part.
-- Segments are inline-blocks, so a long line wraps between segments and reads chord, lyric, chord, lyric on narrow screens.
+- Each segment is an inline `<span class="vce-seg">` holding the chord (first in the markup, so reading order is chord, lyric, chord, lyric) and its lyric text. The chord is positioned above the text, so it takes no width: words fill each line and wrap at word boundaries, and a part moves to the next line only with its word.
 - A split never falls inside a word: a chord between two non-space characters moves back to the start of that word.
 - A chord placed on a space moves forward to the next word, so the space stays at the end of the previous segment and no segment starts with a gap.
 - The same rule applies to the non-wrapped chord row (print, PDF, editor preview): a chord on a space is drawn over the next word's first letter.
-- Chord rows take no width, so chords add no spacing between words. A long chord may extend into the space beside its lyric.
+- A chord wider than its word may overlap the text beside it, since it takes no width.
 - The editor and the reference picker keep the previous markup, because the picker reads one lyric element per line.
 - Setlist PDF and print output keep the previous layout.
 
@@ -62,9 +62,9 @@ Accepted; extends [0028](./0028-manual-text-markdown-modes-and-date-flow.md).
 
 ### Negative
 
-- Chords can overlap the start of a short following lyric when a chord is wider than its lyric.
+- A chord wider than its word may overlap the text beside it.
 - A new date whose folder name is taken does not become current, which breaks the "latest date is current" rule in that case.
-- The wrapped layout was checked from the CSS only; it has not been verified in a browser on a phone.
+- The wrapped layout was checked from the markup and CSS only; it has not been verified in a browser on a phone.
 - Setlist PDF and print still show the stacked layout.
 
 ### Carried forward

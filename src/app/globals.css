@@ -475,47 +475,52 @@ a.ref-marker:hover {
   border-bottom-color: transparent;
 }
 
-/* Chord-over-lyric segments: each chord travels with its lyric part. Segments
-   are inline-blocks, so a long line wraps between segments (never between a
-   chord and its lyric) and keeps the chord above its own text on mobile. */
+/* Chord-over-lyric segments: each chord is positioned above the lyric text it
+   belongs to. The text is inline, so words fill the line and wrap at word
+   boundaries; the chord takes no width and stays first in reading order. */
 .visual-chord-sheet .vce-line.wrap {
   display: block;
   width: 100%;
   min-width: 0;
   text-align: left;
   white-space: normal;
+  line-height: 2.6em;
 }
 
 .visual-chord-sheet .vce-seg {
-  display: inline-block;
-  vertical-align: top;
-  max-width: 100%;
-  min-width: 0;
-  white-space: normal;
+  position: relative;
+  display: inline;
 }
 
-.visual-chord-sheet .vce-seg .vce-chord-row {
-  /* Zero width: a chord never widens its segment, so it adds no space
-     between lyric words. Long chords extend to the right instead. */
-  width: 0;
-  white-space: nowrap;
-  overflow: visible;
-}
-
-.visual-chord-sheet .vce-seg .vce-chord-row .vce-chord {
-  margin-right: 0.4em;
-}
-
-.visual-chord-sheet .vce-seg .vce-lyrics-row {
-  display: block;
-}
-
-.visual-chord-sheet .vce-seg .vce-lyrics-text {
-  display: block;
+.visual-chord-sheet .vce-line.wrap .vce-lyrics-text {
+  display: inline;
   white-space: pre-wrap;
   /* Break inside a word only when a single word is wider than the screen. */
   word-break: normal;
   overflow-wrap: break-word;
+  line-height: inherit;
+}
+
+.visual-chord-sheet .vce-seg > .vce-chord {
+  position: absolute;
+  left: 0;
+  bottom: 100%;
+  white-space: nowrap;
+  font-size: 0.75em;
+  line-height: 1;
+  font-weight: 700;
+  color: #2563eb;
+  cursor: default;
+}
+
+@media (prefers-color-scheme: dark) {
+  .visual-chord-sheet .vce-seg > .vce-chord {
+    color: #60a5fa;
+  }
+}
+
+.visual-chord-sheet.hide-chords .vce-seg > .vce-chord {
+  display: none;
 }
 
 /* Highlighted lyric span in the reference visual picker */
