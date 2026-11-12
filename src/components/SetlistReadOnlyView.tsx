@@ -305,6 +305,7 @@ export function SetlistReadOnlyView({
     const song = songs.find((s) => s.songId === songId);
     const showChords = globalOptions.showChords && song?.chordsPublished === true;
     let rendered = renderVisualChordSheet(transposed, {
+      wrapSegments: true,
       showChords,
       repeatChorus: globalOptions.showRepeats,
       inlineChords: globalOptions.inlineChords,

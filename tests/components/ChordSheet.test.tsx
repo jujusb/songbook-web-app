@@ -35,6 +35,11 @@ const sampleSource = `{title: Test Song}
 [C]Twas [G]grace that [Am]taught my [F]heart to [C]fear
 {end_of_verse}`;
 
+/** Lyrics are split into chord/lyric segments, so match the combined text. */
+function lyricLines(): string {
+  return Array.from(document.querySelectorAll('.vce-lyrics-text')).map((el) => el.textContent ?? '').join('');
+}
+
 describe('ChordSheet Component', () => {
   beforeEach(() => {
     vi.useFakeTimers();
@@ -50,7 +55,7 @@ describe('ChordSheet Component', () => {
     expect(screen.getByText('1')).toBeInTheDocument();
     expect(screen.getByText('Chorus')).toBeInTheDocument();
     expect(screen.getByText('2')).toBeInTheDocument();
-    expect(screen.getByText(/Amazing grace how sweet the sound/)).toBeInTheDocument();
+    expect(lyricLines()).toContain('Amazing grace how sweet the sound');
   });
 
   it('displays transpose controls', () => {
@@ -71,7 +76,7 @@ describe('ChordSheet Component', () => {
     expect(screen.getByText('+2')).toBeInTheDocument();
 
     // Chord sheet should still render after transposition
-    expect(screen.getByText(/Amazing grace how sweet the sound/)).toBeInTheDocument();
+    expect(lyricLines()).toContain('Amazing grace how sweet the sound');
   });
 
   it('shows reset button when transposed', () => {
@@ -136,7 +141,7 @@ describe('ChordSheet Component', () => {
 
     renderWithProviders(<ChordSheet initialSource={sampleSource} songKey="C" />);
 
-    expect(screen.getByText(/Amazing grace how sweet the sound/)).toBeInTheDocument();
+    expect(lyricLines()).toContain('Amazing grace how sweet the sound');
   });
 
   it('handles empty references', () => {

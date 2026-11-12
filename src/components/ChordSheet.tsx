@@ -49,7 +49,7 @@ interface Footnote {
 }
 
 function renderSource(source: string, options?: { inlineChords?: boolean; repeatChorus?: boolean; hideInstrumentals?: boolean }): string {
-  return renderVisualChordSheet(source, { repeatChorus: options?.repeatChorus ?? true, inlineChords: options?.inlineChords, hideInstrumentals: options?.hideInstrumentals });
+  return renderVisualChordSheet(source, { repeatChorus: options?.repeatChorus ?? true, inlineChords: options?.inlineChords, hideInstrumentals: options?.hideInstrumentals, wrapSegments: true });
 }
 
 function transposeSource(source: string, semitones: number): string {

@@ -475,6 +475,34 @@ a.ref-marker:hover {
   border-bottom-color: transparent;
 }
 
+/* Chord-over-lyric segments: each chord travels with its lyric part and the
+   line wraps between segments (narrow screens). */
+.visual-chord-sheet .vce-line.wrap {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  width: 100%;
+  min-width: 0;
+  column-gap: 0;
+}
+
+.visual-chord-sheet .vce-seg {
+  display: flex;
+  flex-direction: column;
+  max-width: 100%;
+  min-width: 0;
+}
+
+.visual-chord-sheet .vce-seg .vce-chord-row {
+  white-space: pre;
+}
+
+.visual-chord-sheet .vce-seg .vce-lyrics-text {
+  white-space: pre-wrap;
+  word-break: break-word;
+  overflow-wrap: anywhere;
+}
+
 /* Highlighted lyric span in the reference visual picker */
 .vce-ref-select {
   background: #fde68a;

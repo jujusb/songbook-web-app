@@ -20,6 +20,10 @@ const basePreferences = {
   setlistTranspose: {},
 };
 
+function lyricsText(root: ParentNode = document): string {
+  return Array.from(root.querySelectorAll('.vce-lyrics-text')).map((el) => el.textContent).join('');
+}
+
 function renderMode(mode: string, preferences = basePreferences, songOverride: Partial<typeof song> = {}) {
   return renderWithProviders(
     <SetlistReadOnlyView
@@ -43,7 +47,7 @@ describe('SetlistReadOnlyView modes', () => {
       setlistLyricsView: 'list',
     });
 
-    expect(screen.getByText(/Hello world/)).toBeInTheDocument();
+    expect(lyricsText(container)).toContain('Hello world');
     expect(screen.queryByRole('button', { name: /transpose up/i })).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /display options/i })).not.toBeInTheDocument();
     expect(container.querySelector('.visual-chord-sheet')).toHaveClass('hide-chords');
@@ -56,7 +60,7 @@ describe('SetlistReadOnlyView modes', () => {
       setlistLyricsView: 'list',
     });
 
-    expect(screen.getByText(/Hello world/)).toBeInTheDocument();
+    expect(lyricsText(container)).toContain('Hello world');
     expect(screen.getByRole('button', { name: /transpose up/i })).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /display options/i })).not.toBeInTheDocument();
     expect(container.querySelector('.visual-chord-sheet')).not.toHaveClass('hide-chords');
@@ -69,7 +73,7 @@ describe('SetlistReadOnlyView modes', () => {
       setlistLyricsView: 'list',
     });
 
-    expect(screen.queryByText(/Hello world/)).not.toBeInTheDocument();
+    expect(lyricsText(container)).not.toContain('Hello world');
     expect(screen.getByRole('button', { name: /display options/i })).toBeInTheDocument();
     expect(container.querySelector('.visual-chord-sheet')).toBeNull();
   });
@@ -81,7 +85,7 @@ describe('SetlistReadOnlyView modes', () => {
       setlistLyricsView: 'all',
     });
 
-    expect(screen.getByText(/Hello world/)).toBeInTheDocument();
+    expect(lyricsText(container)).toContain('Hello world');
     expect(container.querySelector('.visual-chord-sheet')).not.toHaveClass('hide-chords');
   });
 
@@ -91,7 +95,7 @@ describe('SetlistReadOnlyView modes', () => {
       { ...basePreferences, showChords: true, setlistLyricsView: 'all' },
       { chordsPublished: false },
     );
-    expect(screen.getByText(/Hello world/)).toBeInTheDocument();
+    expect(lyricsText(container)).toContain('Hello world');
     expect(container.querySelector('.visual-chord-sheet')).toHaveClass('hide-chords');
   });
 

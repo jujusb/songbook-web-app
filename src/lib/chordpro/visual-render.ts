@@ -30,6 +30,33 @@ export interface VisualRenderOptions {
   hideInstrumentals?: boolean;
   /** When false, chord rows are not rendered (chords hidden). */
   showChords?: boolean;
+  /**
+   * Split each line at its chords into `.vce-seg` blocks (chord over its lyric
+   * part). Segments wrap as whole units, so on narrow screens a line reads
+   * chord/lyric/chord/lyric instead of all chords stacked above all lyrics.
+   */
+  wrapSegments?: boolean;
+}
+
+interface LineSegment {
+  chord: string;
+  start: number;
+  end: number;
+}
+
+/** Split a lyric line at each chord position (positions are lyric char indexes). */
+function splitSegments(lyrics: string, chords: { position: number; chord: string }[]): LineSegment[] {
+  const sorted = [...chords].sort((a, b) => a.position - b.position);
+  const starts: { start: number; chord: string }[] = [];
+  if (sorted.length === 0 || sorted[0].position > 0) starts.push({ start: 0, chord: "" });
+  for (const cp of sorted) {
+    starts.push({ start: Math.min(Math.max(cp.position, 0), lyrics.length), chord: cp.chord });
+  }
+  return starts.map((seg, i) => ({
+    chord: seg.chord,
+    start: seg.start,
+    end: i + 1 < starts.length ? starts[i + 1].start : lyrics.length,
+  }));
 }
 
 function renderMetadataDirective(raw: string): string | null {
@@ -72,6 +99,7 @@ export function renderVisualChordSheet(
     inlineChords = false,
     hideInstrumentals = false,
     showChords = true,
+    wrapSegments = false,
   } = options;
   const lines = parseChordProSource(source);
   const out: string[] = ['<div class="vce-lines">'];
@@ -416,6 +444,37 @@ const labeledRepeat = raw.match(
       }
     }
     const lineAttr = dataContentLine ? ` data-content-line="${contentLine}"` : "";
+    if (wrapSegments) {
+      const text = line.lyrics || "\u00A0";
+      const segments = splitSegments(text, line.chords);
+      const segHtml = segments
+        .map((seg) => {
+          const piece = text.slice(seg.start, seg.end);
+          let body = escapeHtml(piece);
+          if (highlightRange && highlightRange.line === contentLine) {
+            const from = Math.max(highlightRange.start, seg.start);
+            const to = Math.min(highlightRange.end, seg.end);
+            if (to > from) {
+              body =
+                escapeHtml(text.slice(seg.start, from)) +
+                `<mark class="vce-ref-select">${escapeHtml(text.slice(from, to))}</mark>` +
+                escapeHtml(text.slice(to, seg.end));
+            }
+          }
+          const chordHtml = showChords
+            ? `<div class="vce-chord-row"><span class="vce-chord">${escapeHtml(seg.chord) || "&nbsp;"}</span></div>`
+            : "";
+          return (
+            `<div class="vce-seg">${chordHtml}` +
+            `<div class="vce-lyrics-row"><div class="vce-lyrics-text">${body || "&nbsp;"}</div></div>` +
+            "</div>"
+          );
+        })
+        .join("");
+      emit(`  <div class="vce-line wrap"${lineAttr}>${segHtml}</div>`);
+      if (isContentLine(line)) contentLine++;
+      continue;
+    }
     emit(
       `  <div class="vce-line"${lineAttr}>` +
         `${showChords ? `    <div class="vce-chord-row">${chordParts.join("")}</div>` : ""}` +
