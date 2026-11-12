@@ -29,6 +29,7 @@ Accepted; extends [0028](./0028-manual-text-markdown-modes-and-date-flow.md).
 - Segments are inline-blocks, so a long line wraps between segments and reads chord, lyric, chord, lyric on narrow screens.
 - A split never falls inside a word: a chord between two non-space characters moves back to the start of that word.
 - A chord placed on a space moves forward to the next word, so the space stays at the end of the previous segment and no segment starts with a gap.
+- The same rule applies to the non-wrapped chord row (print, PDF, editor preview): a chord on a space is drawn over the next word's first letter.
 - Chord rows take no width, so chords add no spacing between words. A long chord may extend into the space beside its lyric.
 - The editor and the reference picker keep the previous markup, because the picker reads one lyric element per line.
 - Setlist PDF and print output keep the previous layout.

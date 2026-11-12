@@ -58,3 +58,11 @@ describe('renderVisualChordSheet wrapSegments spaces', () => {
     expect(html).not.toContain('<div class="vce-lyrics-text"> world</div>');
   });
 });
+
+describe('renderVisualChordSheet chord row on spaces', () => {
+  it('draws a chord on a space over the next word in the non-wrapped row', () => {
+    const html = renderVisualChordSheet('Hello[G] world', {});
+    // "Hello" is 5 characters, so the chord row starts the chord at column 6 (the "w").
+    expect(html).toContain('<span class="vce-chord-space">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span><span class="vce-chord">G</span>');
+  });
+});

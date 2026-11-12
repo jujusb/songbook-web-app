@@ -429,14 +429,18 @@ const labeledRepeat = raw.match(
       chordParts.push('<span class="vce-chord-placeholder">&nbsp;</span>');
     } else {
       let currentPos = 0;
+      const lyricsText = line.lyrics || "";
       for (const cp of chords) {
-        if (cp.position > currentPos) {
+        // A chord on a space is drawn over the next word's first letter.
+        let position = Math.max(cp.position, currentPos);
+        while (position < lyricsText.length && /\s/.test(lyricsText[position])) position++;
+        if (position > currentPos) {
           chordParts.push(
-            `<span class="vce-chord-space">${"&nbsp;".repeat(cp.position - currentPos)}</span>`
+            `<span class="vce-chord-space">${"&nbsp;".repeat(position - currentPos)}</span>`
           );
         }
         chordParts.push(`<span class="vce-chord">${escapeHtml(cp.chord)}</span>`);
-        currentPos = cp.position + cp.chord.length;
+        currentPos = position + cp.chord.length;
       }
     }
 
