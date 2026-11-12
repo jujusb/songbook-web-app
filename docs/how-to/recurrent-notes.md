@@ -2,12 +2,12 @@
 2. Click the **Add note** button in the setlist editor
 3. Browse available notes or use the search bar
 4. Select a note from the list
-5. A date select appears. It lists only the dates the note's schedule allows:
+5. A month calendar appears. Only the dates the note's schedule allows are clickable:
    - **daily** notes: every day
    - **weekly** notes: every date with the chosen weekday (for example every Sunday)
    - **monthly** notes: the first Sunday, the first and second Sundays, or the last day of the month
    - **specific-dates** notes: only the dates published for the note
-6. Select the desired date. The rule is shown next to the select. Dates outside the window (one year back to one year ahead) are not offered.
+6. Click the desired date. The rule is shown under the calendar. Use the arrows to move between months.
 7. The note will be added to the setlist with the selected date's version
 8. Save the setlist
 
@@ -56,7 +56,7 @@ The note will now have three sections that appear in order:
 2. Manual opening prayer
 3. Psalm text fetched from the API
 
-When adding this note to a setlist, the date selector will show the assembled text from all sections for the selected date.
+When adding this note to a setlist, the calendar will show the assembled text from all sections for the selected date.
 
 ### Per-date manual text
 

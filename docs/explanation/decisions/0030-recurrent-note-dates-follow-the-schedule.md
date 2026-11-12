@@ -40,10 +40,11 @@ Periodic behavior is not part of the rule.
 
 ### Setlist picker
 
-- The date control in the setlist editor is a select that lists only allowed dates, from one year
-  before to one year after today. The default is the next allowed date.
-- Existing recurrent items in a setlist get the same select. A saved date that no longer matches
-  the rule is shown in red so the editor can see it.
+- The date picker in the setlist editor is the shared `RecurrentDateSelect` month calendar. Only
+  allowed dates are clickable. The default is the next allowed date on or after today.
+- Existing recurrent items in a setlist get the same calendar with `autoCorrect` off. A saved date
+  that no longer matches the rule is kept as saved, and the calendar shows no selected day, so the
+  editor can see it and pick a new date. Saved data is never moved silently.
 
 ### Note page and manual editor
 
@@ -78,8 +79,8 @@ Periodic behavior is not part of the rule.
 
 ### Negative
 
-- A note with no matching dates in the window shows an empty, disabled date select, with no
-  explanation yet.
+- A note with no matching dates shows a calendar with no clickable days and a "No dates available"
+  message.
 - The one-year window is a UI limit. Setting a date further away requires the API, which accepts
   any date the rule allows.
 - A `specific-dates` note with no published dates cannot be added to any setlist until dates are
@@ -87,7 +88,6 @@ Periodic behavior is not part of the rule.
 
 ### Carried forward
 
-- Show an explanation when a note has no selectable dates.
 - Decide whether the picker window should follow the setlist's own date rather than today.
 
 ## Evidence
@@ -96,7 +96,7 @@ Periodic behavior is not part of the rule.
 - `src/lib/setlist-items.ts` (`validateRecurrentNoteDates`)
 - `src/app/api/setlists/route.ts` (create, update and version-edit paths)
 - `src/components/RecurrentDateSelect.tsx` (note page and manual editor month calendar)
-- `src/components/SetlistEditor.tsx` (`datesForNote`, date selects), `src/components/NoteForm.tsx`
+- `src/components/SetlistEditor.tsx` (add panel and item rows use `RecurrentDateSelect`), `src/components/NoteForm.tsx`
   (`SCHEDULES_BY_TYPE`)
 - `src/lib/i18n/locales/{en,fr,es}.ts` (`setlist.dateNotAllowed`)
 - Tests: `tests/unit/lib/note-schedule.test.ts`, `tests/unit/lib/setlist-recurrent-dates.test.ts`, `tests/components/RecurrentDateSelect.test.tsx`
