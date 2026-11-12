@@ -437,6 +437,12 @@ export function NoteForm({ initialNote, isNew = true, noteId, languages: languag
 
   return (
     <div className="max-w-full mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <Link
+        href={isEdit && noteId ? `/notes/${noteId}` : "/notes"}
+        className="text-sm text-blue-600 dark:text-blue-400 hover:underline mb-4 inline-block"
+      >
+        &larr; {isEdit ? "Back to note" : "Back to notes"}
+      </Link>
       <h1 className="text-2xl font-bold mb-6">{isEdit ? "Edit Note" : "New Recurrent Note"}</h1>
       {error && <div className="mb-4 px-4 py-2 bg-red-50 dark:bg-red-950 border border-red-200 dark:border-red-800 rounded-md text-red-700 dark:text-red-300 text-sm">{error}</div>}
       <div className="space-y-4 mb-8">

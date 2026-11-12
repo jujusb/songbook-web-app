@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 import { getSetlistLinkAllowedHosts, getSetlistLinkAllowHttp } from "@/lib/config";
 import { notFound, redirect } from "next/navigation";
-import Link from "next/link";
 import { getSetlist, getSetlistVersion, listSongs, getSongTranslations, getShareBaseUrl, listSetlistVersionContents } from "@/lib/content";
 import { getSession, canEdit, canCreateSetlist, canManageSetlistShares, canManageSetlistHistory } from "@/lib/auth";
 import { SetlistEditor } from "@/components/SetlistEditor";
@@ -74,12 +73,6 @@ export default async function SetlistEditPage({
 
   return (
     <div className="max-w-full mx-auto px-4 sm:px-6 lg:px-8 py-8">
-      <Link
-        href={`/setlists/${setlistId}`}
-        className="text-sm text-blue-600 dark:text-blue-400 hover:underline mb-4 inline-block"
-      >
-        &larr; {setlist.title}
-      </Link>
       <h1 className="text-2xl font-bold mb-6">
         {isNewDate ? `New date: ${setlist.title}` : `Edit: ${setlist.title}`}
       </h1>

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useCallback, useEffect, useMemo } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useTranslation } from "@/lib/i18n";
 import { getSetlistMaxSongs } from "@/lib/config";
@@ -165,19 +166,15 @@ export function SetlistEditor({
       ? [...availableHistoryDates, date]
       : availableHistoryDates;
 
+  // Any calendar date is allowed: the note is rendered for that date even when
+  // no setlist version exists for it yet. Known dates are only suggestions.
   const addRecurrentNote = useCallback(() => {
-    if (!pickNoteId || !pickDate) return;
-    const isAvailableDate =
-      availableHistoryDates.includes(pickDate) || date === pickDate;
-    if (!isAvailableDate) {
-      setError(t('setlist.noSetlistDate'));
-      return;
-    }
+    if (!pickNoteId || !/^\d{4}-\d{2}-\d{2}$/.test(pickDate)) return;
     setSongs((prev) => [...prev, { type: "recurrent-note", id: newItemId(), noteId: pickNoteId, date: pickDate }]);
     setShowRecurrent(false);
     setPickNoteId("");
     setError(null);
-  }, [pickNoteId, pickDate, availableHistoryDates, date, t]);
+  }, [pickNoteId, pickDate]);
 
   const uploadSetlistImage = useCallback(async (file: File) => {
     const form = new FormData();
@@ -362,8 +359,20 @@ export function SetlistEditor({
       )
     : [];
 
+  const backHref = isNew
+    ? "/setlists"
+    : initialSetlist?.id
+      ? `/setlists/${initialSetlist.id}`
+      : "/setlists";
+
   return (
     <div className="space-y-6">
+      <Link
+        href={backHref}
+        className="text-sm text-blue-600 dark:text-blue-400 hover:underline inline-block"
+      >
+        &larr; {newDate ? "Back to setlist" : isNew ? "Back to setlists" : "Back to setlist"}
+      </Link>
       {error && (
         <div className="px-4 py-2 bg-red-50 dark:bg-red-950 border border-red-200 dark:border-red-800 rounded-md text-red-700 dark:text-red-300 text-sm">
           {error}
