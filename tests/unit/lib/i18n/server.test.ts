@@ -84,17 +84,17 @@ describe('i18n/server.ts', () => {
     });
 
     it('rejects invalid cookie values', () => {
-      expect(getLocale(store('x'))).toBe('en');
-      expect(getLocale(store('not a locale!'))).toBe('en');
+      expect(getLocale(store('x'))).toBe('en-US');
+      expect(getLocale(store('not a locale!'))).toBe('en-US');
     });
 
     it('returns the fallback when the cookie is absent', () => {
-      expect(getLocale({ get: () => undefined })).toBe('en');
+      expect(getLocale({ get: () => undefined })).toBe('en-US');
       expect(getLocale(store('es'), 'fr')).toBe('es');
     });
 
     it('returns the fallback when no store is provided', () => {
-      expect(getLocale()).toBe('en');
+      expect(getLocale()).toBe('en-US');
       expect(getLocale(undefined, 'es')).toBe('es');
     });
   });

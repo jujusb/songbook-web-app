@@ -55,7 +55,7 @@ Several behaviours had drifted from what users expected:
 ### Negative
 
 - Manual history is no longer recorded for new saves. Re-saving a date overwrites it; recovery means copying the `<date>/` folder beforehand.
-- `toFileCode` in `src/lib/language-codes.ts` returns the app code for mapped languages (`en-US` rather than `en`) because of an operator-precedence bug. The notes code avoids it by deriving the short code itself. Fixing `toFileCode` would move existing `.cho` and note paths, so it is left as a separate decision.
+- Fixed later: `toFileCode` returned the app code for mapped languages (an operator-precedence bug), so published status was read from the wrong file. It now returns the short code (`en-US` → `en`). See [0029](./0029-chords-publication-wrapping-and-current-version.md).
 - The mode selector's links do not keep the `version` parameter, so switching mode on an older version returns to the current setlist.
 
 ### Carried forward

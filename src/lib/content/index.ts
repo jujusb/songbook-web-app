@@ -550,6 +550,7 @@ export async function saveSetlist(setlist: SetlistInput): Promise<void> {
     created: existingRoot?.created ?? validated.created ?? new Date().toISOString(),
     modified: new Date().toISOString(),
     subscribers: validated.subscribers ?? existingRoot?.subscribers ?? [],
+    sharedFrom: validated.sharedFrom ?? existingRoot?.sharedFrom,
   };
 
   if (!date) {

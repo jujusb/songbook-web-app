@@ -29,6 +29,7 @@ describe('API /api/songs', () => {
   });
   
   afterEach(async () => {
+    vi.unstubAllEnvs();
     await tempDir.cleanup();
     vi.clearAllMocks();
   });
@@ -113,8 +114,8 @@ describe('API /api/songs', () => {
       const data = await response.json();
 
       expect(response.status).toBe(200);
-      expect(data[0].translations).toEqual(['en']);
-      expect(data[0].published).toEqual({ en: true });
+      expect(data[0].translations).toEqual(['en-US']);
+      expect(data[0].published).toEqual({ 'en-US': true });
       vi.unstubAllEnvs();
     });
   });

@@ -79,3 +79,14 @@ Accepted; extends [0028](./0028-manual-text-markdown-modes-and-date-flow.md).
 - `src/app/setlists/[setlistId]/page.tsx`, `src/app/setlists/share/[token]/page.tsx` (`chordsPublished`)
 - `src/lib/content/index.ts` (`createSetlistDateVersion`), `src/components/SetlistEditor.tsx` (`currentDate`, back link, recurrent-note date)
 - Tests: `tests/unit/lib/chordpro/wrap-segments.test.ts`, `tests/components/SetlistReadOnlyView.test.tsx`, `tests/components/ChordSheet.test.tsx`, `tests/unit/lib/content/setlist-history.test.ts`, `tests/integration/api/setlist-history.test.ts`
+
+## Test suite repair (same day)
+
+The full suite was green at this point (941 tests). Fixes made on the way:
+
+- `toFileCode` precedence bug fixed: published/chords-published flags were read from `en-US.cho` and never matched, so the public instance hid published songs. Regression covered by the content tests.
+- `saveSetlist` now persists `sharedFrom` in the root file, so saved references merge with their original.
+- `createT` and `getLocale` accept short codes (`es`) and use `en-US` as the fallback, matching ADR 0026.
+- French API text keeps a blank line between lines; other languages keep single line breaks.
+- Stale tests updated to app codes (`en-US`, `es-ES`); test setup now unmounts rendered components after each test and the songs tests reset environment variables.
+

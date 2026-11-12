@@ -37,7 +37,10 @@ const ALIASES: Readonly<Record<string, string>> = {
 
 /** App code -> file code used in `<lang>.cho` names and revision folders. */
 export function toFileCode(code: string): string {
-  return APP_TO_FILE[code] ?? ALIASES[code] == null ? code : APP_TO_FILE[ALIASES[code]] ?? code;
+  const mapped = APP_TO_FILE[code];
+  if (mapped !== undefined) return mapped;
+  const alias = ALIASES[code];
+  return alias === undefined ? code : (APP_TO_FILE[alias] ?? code);
 }
 
 /** File code found on disk (e.g. `en` from `en.cho`) -> app code. */

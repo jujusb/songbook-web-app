@@ -1,3 +1,4 @@
+import { normalizeLanguageCode } from '@/lib/language-codes';
 import en from './locales/en';
 import es from './locales/es';
 import fr from './locales/fr';
@@ -24,7 +25,7 @@ function interpolate(template: string, params?: Record<string, string | number>)
 }
 
 export function createT(uiLocale: string) {
-  const translations = locales[uiLocale] || locales['en-US'];
+  const translations = locales[uiLocale] || locales[normalizeLanguageCode(uiLocale)] || locales['en-US'];
   return (key: string, params?: Record<string, string | number>): string => {
     const value = resolve(translations, key);
     if (value === undefined) {

@@ -38,11 +38,11 @@ describe('content/index.ts — drafts in read-only mode', () => {
   });
 
   it('lists only the published languages of a song', async () => {
-    expect((await content.getSongTranslations('test-song')).sort()).toEqual(['en', 'es']);
+    expect((await content.getSongTranslations('test-song')).sort()).toEqual(['en-US', 'es-ES']);
 
     vi.stubEnv('SONGBOOK_READONLY', '1');
 
-    expect(await content.getSongTranslations('test-song')).toEqual(['en']);
+    expect(await content.getSongTranslations('test-song')).toEqual(['en-US']);
   });
 
   it('lists only the published languages in the song list', async () => {
@@ -51,9 +51,9 @@ describe('content/index.ts — drafts in read-only mode', () => {
     const songs = await content.listSongs({ onlyPublished: true, role: 'public' });
     const song = songs.find((s) => s.id === 'test-song');
 
-    expect(song?.translations).toEqual(['en']);
+    expect(song?.translations).toEqual(['en-US']);
     // Nothing is left to mark as unpublished: the drafts are not mentioned.
-    expect(song?.published).toEqual({ en: true });
+    expect(song?.published).toEqual({ 'en-US': true });
     expect(song?.choTitles?.es).toBeUndefined();
   });
 
@@ -61,8 +61,8 @@ describe('content/index.ts — drafts in read-only mode', () => {
     const songs = await content.listSongs({ onlyPublished: true, role: 'admin' });
     const song = songs.find((s) => s.id === 'test-song');
 
-    expect(song?.translations?.sort()).toEqual(['en', 'es']);
-    expect(song?.published).toEqual({ en: true, es: false });
+    expect(song?.translations?.sort()).toEqual(['en-US', 'es-ES']);
+    expect(song?.published).toEqual({ 'en-US': true, 'es-ES': false });
   });
 
   it('does not list a song in a language that is not deployed', async () => {

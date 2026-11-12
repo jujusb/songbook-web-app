@@ -74,7 +74,7 @@ describe('proxy.ts', () => {
 
   it('does not rewrite the locale cookie when it already matches', async () => {
     const req = new NextRequest(new URL('/browse?lang=es', 'http://localhost:3000'), {
-      headers: { cookie: 'songbook-ui-locale=es' },
+      headers: { cookie: 'songbook-ui-locale=es-ES' },
     });
     const res = await proxy(req);
     expect(res.headers.get('set-cookie')).toBeNull();

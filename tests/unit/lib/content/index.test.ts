@@ -152,8 +152,8 @@ describe('content/index.ts', () => {
       
       const songs = await listSongs()({ role: 'admin' });
       const song = songs.find(s => s.id === 'published-song');
-      expect(song?.translations).toContain('en');
-      expect(song?.translations).toContain('es');
+      expect(song?.translations).toContain('en-US');
+      expect(song?.translations).toContain('es-ES');
     });
   });
 
@@ -251,9 +251,9 @@ describe('content/index.ts', () => {
       }, '{title: Français}\nContenu');
       
       const translations = await getSongTranslations()('trans-song');
-      expect(translations).toContain('en');
-      expect(translations).toContain('es');
-      expect(translations).toContain('fr');
+      expect(translations).toContain('en-US');
+      expect(translations).toContain('es-ES');
+      expect(translations).toContain('fr-FR');
     });
 
     it('adds new translation', async () => {
@@ -276,12 +276,13 @@ describe('content/index.ts', () => {
         language: 'es', status: 'draft', published: false, chordsPublished: false
       }, '{title: Español}\nContenido');
       
-      const remaining = await deleteSongTranslation()('trans-song', 'es');
-      expect(remaining).toEqual(['en']);
+      const remaining = await deleteSongTranslation()('trans-song', 'es-ES');
+      expect(remaining).toEqual(['en-US']);
     });
 
     it('throws when deleting last translation', async () => {
-      await expect(deleteSongTranslation()('trans-song', 'en')).rejects.toThrow('LAST_TRANSLATION');
+      await createSong()('solo-song', 'Solo Song', 'en');
+      await expect(deleteSongTranslation()('solo-song', 'en-US')).rejects.toThrow('LAST_TRANSLATION');
     });
   });
 
@@ -370,8 +371,8 @@ describe('content/index.ts', () => {
   describe('Config operations', () => {
     it('gets languages config', async () => {
       const config = await getLanguagesConfig()();
-      expect(config.languages).toContain('en');
-      expect(config.default).toBe('en');
+      expect(config.languages).toContain('en-US');
+      expect(config.default).toBe('en-US');
     });
 
     it('gets site config', async () => {

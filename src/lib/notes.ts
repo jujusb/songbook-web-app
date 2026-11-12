@@ -553,9 +553,10 @@ function stripHtmlTags(value: string): string {
   return value.replace(/<\/?[^>]+>/g, "").replace(/&nbsp;/g, " ").replace(/&amp;/g, "&");
 }
 
-/** French liturgical texts use blank lines between verses; keep that spacing everywhere. */
+/** French liturgical texts put a blank line between each line; other languages keep single line breaks. */
 function normalizeLineSpacing(value: string, lang?: string): string {
-  return value.replace(/\r\n/g, '\n').replace(/\n+/g, '\n');
+  const single = value.replace(/\r\n/g, '\n').replace(/\n+/g, '\n');
+  return lang && /^fr\b/i.test(lang) ? single.replace(/\n/g, '\n\n') : single;
 }
 
 

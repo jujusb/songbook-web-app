@@ -85,7 +85,7 @@ describe('API /api/songs/[id]/revisions', () => {
 
     expect(response.status).toBe(200);
     expect(data.songId).toBe('rev-song');
-    expect(data.lang).toBe('en');
+    expect(data.lang).toBe('en-US');
     expect(Array.isArray(data.revisions)).toBe(true);
     expect(data.revisions).toHaveLength(1);
     expect(data.revisions[0].timestamp).toBe(timestamp);
