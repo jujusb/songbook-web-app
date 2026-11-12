@@ -279,13 +279,34 @@ export async function getAlbumTitle(albumId: string, lang: string): Promise<stri
   }
 }
 
+/**
+ * The current setlist is the most recent dated folder under `<id>/`. Its date
+ * is taken from the folder names, not from the date stored in `<id>.yaml`.
+ * On the same day, the later (timestamped) label wins.
+ */
+async function latestVersionFolder(baseId: string): Promise<{ label: string; date: string } | null> {
+  const dir = path.join(getSetlistsDir(), baseId);
+  if (!existsSync(dir)) return null;
+  let best: { label: string; date: string } | null = null;
+  for (const entry of await readdir(dir, { withFileTypes: true })) {
+    if (!entry.isDirectory()) continue;
+    const date = parseSetlistVersionDate(entry.name);
+    if (!date || !existsSync(path.join(dir, entry.name, 'setlist.yaml'))) continue;
+    if (!best || date > best.date || (date === best.date && entry.name > best.label)) {
+      best = { label: entry.name, date };
+    }
+  }
+  return best;
+}
+
 async function hydrateSetlist(root: Setlist): Promise<Setlist> {
-  const date = isSetlistDate(root.date) ? root.date : undefined;
+  const latest = await latestVersionFolder(root.id);
+  const date = latest?.date ?? (isSetlistDate(root.date) ? root.date : undefined);
   if (!date) {
     // Backward compatibility: older root files may still hold full content.
     return root;
   }
-  const versionPath = path.join(getSetlistsDir(), root.id, date, 'setlist.yaml');
+  const versionPath = path.join(getSetlistsDir(), root.id, latest?.label ?? date, 'setlist.yaml');
   if (!existsSync(versionPath)) {
     return root;
   }
@@ -295,9 +316,9 @@ async function hydrateSetlist(root: Setlist): Promise<Setlist> {
     return {
       ...root,
       description: version.description,
-      // The current version folder is named after the root date, which is the
-      // authoritative event date even if the version file has a stale date.
-      date: root.date,
+      // The folder name is the authoritative event date, even if the version
+      // file has a stale date.
+      date,
       image: version.image,
       songs: version.songs,
       voiceShares: version.voiceShares,

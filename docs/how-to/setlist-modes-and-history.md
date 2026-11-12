@@ -62,7 +62,7 @@ Example:
 
 #### Current version
 
-The current setlist is always the most recent dated version. Creating a date later than the current one makes it current; an older date is stored in history without changing the current setlist. A date equal to the current setlist's date is refused, with a message asking for another date.
+The current setlist is always the most recent dated version, found from the dated folder names (the date stored in the root `<id>.yaml` is not used). Creating a date later than the current one makes it current; an older date is stored in history without changing the current setlist. A date equal to the current setlist's date is refused, with a message asking for another date.
 
 ### Statistics
 

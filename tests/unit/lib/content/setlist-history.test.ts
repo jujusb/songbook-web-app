@@ -233,4 +233,23 @@ describe('content/index.ts — setlist history', () => {
     const version = await content.getSetlistVersion('legacy', '2026-03-08');
     expect(version.date).toBe('2026-03-08');
   });
+
+  it('uses the most recent dated folder as current, ignoring the root date', async () => {
+    await content.saveSetlist({
+      id: 'sunday',
+      title: 'Sunday service',
+      date: '2026-01-11',
+      songs: [song('song-a')],
+      ownerId: 'creator',
+    });
+    // Point the root back to an older date; the newer folder must still win.
+    const { readFile, writeFile } = await import('fs/promises');
+    const rootPath = `${tempDir.path}/data/setlists/sunday.yaml`;
+    const root = await readFile(rootPath, 'utf-8');
+    await writeFile(rootPath, root.replace('2026-01-11', '2026-01-04'), 'utf-8');
+
+    const current = await content.getSetlist('sunday');
+    expect(current.date).toBe('2026-01-11');
+    expect(current.songs).toEqual([song('song-a')]);
+  });
 });

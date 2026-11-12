@@ -37,6 +37,7 @@ Accepted; extends [0028](./0028-manual-text-markdown-modes-and-date-flow.md).
 ### Current version
 
 - The current setlist is always the most recent dated version. Creating a date later than the current one makes it current (the root's `date` pointer moves to it). An older date is stored in history only.
+- The current setlist is read from the most recent dated folder under `<id>/`, chosen from the folder names. The date stored in `<id>.yaml` is not used to pick it, so a stale pointer cannot hide a newer version. On the same day, the later timestamped label wins.
 - A new date whose folder name is already taken by different content gets a timestamped label and does not become current.
 
 ### Date validation
