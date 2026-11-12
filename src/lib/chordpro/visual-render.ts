@@ -51,6 +51,9 @@ function splitSegments(lyrics: string, chords: { position: number; chord: string
   if (sorted.length === 0 || sorted[0].position > 0) starts.push({ start: 0, chord: "" });
   for (const cp of sorted) {
     let start = Math.min(Math.max(cp.position, 0), lyrics.length);
+    // A chord on a space belongs to the word after it: the space stays at the
+    // end of the previous segment, so no segment starts with a visible gap.
+    while (start < lyrics.length && /\s/.test(lyrics[start])) start++;
     // Never split a word: when the chord sits inside a word, the segment
     // starts at the beginning of that word (the chord moves back with it).
     while (start > 0 && start < lyrics.length && !/\s/.test(lyrics[start - 1]) && !/\s/.test(lyrics[start])) {

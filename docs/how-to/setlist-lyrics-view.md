@@ -133,5 +133,5 @@ Chords are shown for a song only when its chords are published for the song's la
 
 ## Long lines on small screens
 
-Each line is split into chord-over-lyric segments at its chords. On a narrow screen a long line wraps between segments, so the reading order is chord, lyric, chord, lyric. A segment is never split inside a word: a chord placed inside a word sits over the start of that word. Chords take no width, so they do not add spaces between words; a long chord can extend into the space beside its lyric.
+Each line is split into chord-over-lyric segments at its chords. On a narrow screen a long line wraps between segments, so the reading order is chord, lyric, chord, lyric. A segment is never split inside a word: a chord placed inside a word sits over the start of that word. A chord placed on a space sits over the next word, and the space stays at the end of the previous part, so no part starts with a gap. Chords take no width, so they do not add spaces between words; a long chord can extend into the space beside its lyric.
 

@@ -48,3 +48,13 @@ describe('renderVisualChordSheet wrapSegments word boundaries', () => {
     expect(html).toContain('<div class="vce-lyrics-text">world</div>');
   });
 });
+
+describe('renderVisualChordSheet wrapSegments spaces', () => {
+  it('does not start a segment with the space a chord sits on', () => {
+    const html = renderVisualChordSheet('Hello[G] world', { wrapSegments: true });
+    expect(html).toContain('<div class="vce-lyrics-text">Hello </div>');
+    expect(html).toContain('<span class="vce-chord">G</span>');
+    expect(html).toContain('<div class="vce-lyrics-text">world</div>');
+    expect(html).not.toContain('<div class="vce-lyrics-text"> world</div>');
+  });
+});
