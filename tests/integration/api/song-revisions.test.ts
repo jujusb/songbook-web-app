@@ -39,13 +39,13 @@ describe('API /api/songs/[id]/revisions', () => {
 
     await createSong('rev-song', 'Rev Song', 'en-US');
     await tempDir.writeFile(
-      'library/no-album/rev-song/en.cho',
+      'library/no-album/rev-song/en-US.cho',
       '---\nlanguage: en\ntitle: Original Title\ntranslator: null\nstatus: draft\npublished: false\nmodifiedBy: admin\nlastModified: !!str 2026-01-01T00:00:00.000Z\n---\n{title: Original}\nVerse 1\n'
     );
     await saveSongTranslation(
       'rev-song',
-      'en',
-      { language: 'en', title: 'Second Title', translator: null, modifiedBy: 'admin', status: 'draft', published: false, chordsPublished: false },
+      'en-US',
+      { language: 'en-US', title: 'Second Title', translator: null, modifiedBy: 'admin', status: 'draft', published: false, chordsPublished: false },
       '{title: Original}\nVerse 1\nVerse 2'
     );
     const revisions = await listRevisions('rev-song', 'en-US');
@@ -94,12 +94,12 @@ describe('API /api/songs/[id]/revisions', () => {
   it('honours the lang query parameter', async () => {
     mockAuth(adminToken);
     const response = await GET(
-      createMockRequest('GET', 'http://localhost/api/songs/rev-song/revisions?lang=es'),
+      createMockRequest('GET', 'http://localhost/api/songs/rev-song/revisions?lang=es-ES'),
       params('rev-song')
     );
     const data = await response.json();
     expect(response.status).toBe(200);
-    expect(data.lang).toBe('es');
+    expect(data.lang).toBe('es-ES');
   });
 
   it('returns 404 for a missing song', async () => {

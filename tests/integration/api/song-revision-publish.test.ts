@@ -36,13 +36,13 @@ describe('API /api/songs/[id]/revisions/[timestamp]/publish', () => {
 
     await createSong('rev-song', 'Rev Song', 'en-US');
     await tempDir.writeFile(
-      'library/no-album/rev-song/en.cho',
+      'library/no-album/rev-song/en-US.cho',
       '---\nlanguage: en\ntitle: Original Title\ntranslator: null\nstatus: draft\npublished: false\nmodifiedBy: admin\nlastModified: !!str 2026-01-01T00:00:00.000Z\n---\n{title: Original}\nVerse 1\n'
     );
     await saveSongTranslation(
       'rev-song',
-      'en',
-      { language: 'en', title: 'Second Title', translator: null, modifiedBy: 'admin', status: 'draft', published: false, chordsPublished: false },
+      'en-US',
+      { language: 'en-US', title: 'Second Title', translator: null, modifiedBy: 'admin', status: 'draft', published: false, chordsPublished: false },
       '{title: Original}\nVerse 1\nVerse 2'
     );
     const revisions = await listRevisions('rev-song', 'en-US');
@@ -93,7 +93,7 @@ describe('API /api/songs/[id]/revisions/[timestamp]/publish', () => {
   it('publishes a revision', async () => {
     mockAuth(adminToken);
     const response = await POST(
-      createMockRequest('POST', 'http://localhost/api/x?lang=en'),
+      createMockRequest('POST', 'http://localhost/api/x?lang=en-US'),
       params('rev-song', timestamp)
     );
     const data = await response.json();

@@ -26,4 +26,4 @@ vi.stubEnv('JWT_SECRET', 'test-secret-key-for-testing-only');
 vi.stubEnv('ADMIN_PASSWORD', 'test-admin-password');
 vi.stubEnv('NODE_ENV', 'test');
 vi.stubEnv('SONGBOOK_READONLY', '0');
-vi.stubEnv('LANGUAGES', 'en-US,es-ES,fr-FR');
+vi.stubEnv('LANGUAGES', 'en-US,es-ES,fr-FR,de-DE');

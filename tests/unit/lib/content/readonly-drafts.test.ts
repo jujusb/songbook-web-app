@@ -12,20 +12,21 @@ describe('content/index.ts — drafts in read-only mode', () => {
 
   beforeEach(async () => {
     vi.resetModules();
+    vi.stubEnv('LANGUAGES', 'en-US,es-ES,fr-FR,de-DE');
     tempDir = await createTempContentDir();
     content = await import('@/lib/content');
 
     await content.createSong('test-song', 'Test Song', 'en-US');
     await content.saveSongTranslation(
       'test-song',
-      'en',
-      { language: 'en', status: 'final', published: true, chordsPublished: false },
+      'en-US',
+      { language: 'en-US', status: 'final', published: true, chordsPublished: false },
       '{title: Test}\nEnglish'
     );
     await content.saveSongTranslation(
       'test-song',
-      'es',
-      { language: 'es', status: 'draft', published: false, chordsPublished: false },
+      'es-ES',
+      { language: 'es-ES', status: 'draft', published: false, chordsPublished: false },
       '{title: Prueba}\nEspanol'
     );
   });
@@ -68,12 +69,12 @@ describe('content/index.ts — drafts in read-only mode', () => {
   it('does not list a song in a language that is not deployed', async () => {
     // Writable: the default language lists every song, even the ones that
     // only exist in another language.
-    expect(content.shouldShowSongInLanguage(['fr'], 'en', 'en')).toBe(true);
+    expect(content.shouldShowSongInLanguage(['fr-FR'], 'en-US', 'en-US')).toBe(true);
 
     vi.stubEnv('SONGBOOK_READONLY', '1');
 
     // Read-only: the song is only listed in the language it is published in.
-    expect(content.shouldShowSongInLanguage(['fr'], 'en', 'en')).toBe(false);
-    expect(content.shouldShowSongInLanguage(['fr'], 'fr', 'en')).toBe(true);
+    expect(content.shouldShowSongInLanguage(['fr-FR'], 'en-US', 'en-US')).toBe(false);
+    expect(content.shouldShowSongInLanguage(['fr-FR'], 'fr-FR', 'en-US')).toBe(true);
   });
 });

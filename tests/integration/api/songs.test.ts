@@ -79,11 +79,11 @@ describe('API /api/songs', () => {
       await createSong('draft-song', 'Draft Song', 'en-US');
       
       await saveSongTranslation('published-song', 'en-US', {
-        language: 'en', status: 'final', published: true, chordsPublished: false
+        language: 'en-US', status: 'final', published: true, chordsPublished: false
       }, '{title: Published}\nContent');
       
       await saveSongTranslation('draft-song', 'en-US', {
-        language: 'en', status: 'draft', published: false, chordsPublished: false
+        language: 'en-US', status: 'draft', published: false, chordsPublished: false
       }, '{title: Draft}\nContent');
       
       mockAuth(undefined); // No session = public
@@ -101,11 +101,11 @@ describe('API /api/songs', () => {
       await createSong('published-song', 'Published Song', 'en-US');
 
       await saveSongTranslation('published-song', 'en-US', {
-        language: 'en', status: 'final', published: true, chordsPublished: false
+        language: 'en-US', status: 'final', published: true, chordsPublished: false
       }, '{title: Published}\nContent');
 
-      await saveSongTranslation('published-song', 'es', {
-        language: 'es', status: 'draft', published: false, chordsPublished: false
+      await saveSongTranslation('published-song', 'es-ES', {
+        language: 'es-ES', status: 'draft', published: false, chordsPublished: false
       }, '{title: Borrador}\nContenido');
 
       mockAuth(undefined); // No session = public
@@ -126,7 +126,7 @@ describe('API /api/songs', () => {
       const req = createMockRequest('POST', {
         id: 'new-song',
         title: 'New Song',
-        lang: 'en',
+        lang: 'en-US',
       });
       
       const response = await POST(req);
@@ -166,7 +166,7 @@ describe('API /api/songs', () => {
       const req = createMockRequest('POST', {
         id: 'album-song',
         title: 'Album Song',
-        lang: 'en',
+        lang: 'en-US',
         albumId: 'test-album',
       });
       
@@ -182,7 +182,7 @@ describe('API /api/songs', () => {
       const req = createMockRequest('POST', {
         id: 'chordpro-song',
         title: 'ChordPro Song',
-        lang: 'en',
+        lang: 'en-US',
         chordpro: '{title: ChordPro Song}\n\n{verse: 1}\n[C]Content [G]here',
       });
       

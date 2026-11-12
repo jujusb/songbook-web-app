@@ -71,11 +71,11 @@ describe('API /api/albums', () => {
       await createAlbum('draft-album', 'Draft Album', 'various-artists');
 
       // An album counts as published when it has at least one published song.
-      await createSong('pub-song', 'Published Song', 'en', 'published-album');
+      await createSong('pub-song', 'Published Song', 'en-US', 'published-album');
       await saveSongTranslation(
         'pub-song',
-        'en',
-        { language: 'en', status: 'final', published: true, chordsPublished: false },
+        'en-US',
+        { language: 'en-US', status: 'final', published: true, chordsPublished: false },
         '{title: Published}',
         'published-album'
       );
@@ -83,11 +83,11 @@ describe('API /api/albums', () => {
       pubAlbum.songs = ['pub-song'];
       await saveAlbum(pubAlbum);
 
-      await createSong('draft-song', 'Draft Song', 'en', 'draft-album');
+      await createSong('draft-song', 'Draft Song', 'en-US', 'draft-album');
       await saveSongTranslation(
         'draft-song',
-        'en',
-        { language: 'en', status: 'draft', published: false, chordsPublished: false },
+        'en-US',
+        { language: 'en-US', status: 'draft', published: false, chordsPublished: false },
         '{title: Draft}',
         'draft-album'
       );
