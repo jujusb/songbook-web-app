@@ -6,15 +6,19 @@ import { normalizeSetlistMode } from "@/lib/setlist-modes";
 
 export default function SetlistModeSelector({
   setlistId,
+  hrefBase,
   currentMode,
   allowedModes,
 }: {
   setlistId: string;
+  /** Overrides the link base (e.g. `/setlists/share/<token>`). Defaults to `/setlists/<setlistId>`. */
+  hrefBase?: string;
   currentMode: string;
   allowedModes: string[];
 }) {
   const { t } = useTranslation();
   const activeMode = normalizeSetlistMode(currentMode);
+  const base = hrefBase ?? `/setlists/${setlistId}`;
 
   return (
     <div className="flex flex-wrap gap-2">
@@ -23,7 +27,7 @@ export default function SetlistModeSelector({
         return (
           <Link
             key={normalized}
-            href={`/setlists/${setlistId}?mode=${normalized}`}
+            href={`${base}?mode=${normalized}`}
             aria-current={activeMode === normalized ? "page" : undefined}
             className={`px-3 py-1.5 text-sm border rounded-md ${activeMode === normalized ? "bg-blue-600 text-white" : "hover:bg-neutral-100 dark:hover:bg-neutral-800"}`}
           >

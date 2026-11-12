@@ -1,6 +1,7 @@
 import { headers } from "next/headers";
 import { validateLinkUrl, safeHost } from "@/lib/setlist-links";
-import { getSetlistLinkAllowedHosts, getSetlistLinkAllowHttp, getSetlistDefaultMode } from "@/lib/config";
+import { getSetlistLinkAllowedHosts, getSetlistLinkAllowHttp, getSetlistDefaultMode, getSetlistModesAllowed } from "@/lib/config";
+import SetlistModeSelector from "@/components/SetlistModeSelector";
 import { normalizeSetlistMode } from "@/lib/setlist-modes";
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
@@ -260,6 +261,13 @@ export default async function SetlistSharePage({
         // eslint-disable-next-line @next/next/no-img-element
         <img src={setlist.image} alt={setlist.title} className="max-w-full h-auto rounded mb-4" />
       )}
+
+      <SetlistModeSelector
+        setlistId={setlist.id}
+        hrefBase={`/setlists/share/${encodeURIComponent(token)}`}
+        currentMode={currentMode}
+        allowedModes={getSetlistModesAllowed()}
+      />
 
       <SetlistReadOnlyView
         key={currentMode}

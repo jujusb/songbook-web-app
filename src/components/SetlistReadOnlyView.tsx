@@ -146,7 +146,7 @@ export function SetlistReadOnlyView({
   const showTranspose = isDefaultMode || safeMode === "guitarist";
   const voiceCanGenerate = canGenerate && isRehearsalMode;
   const [displayMode, setDisplayMode] = useState<"all" | "list">(
-    isDefaultMode ? userPreferences.setlistLyricsView : isRehearsalMode ? "list" : "all"
+    isDefaultMode ? userPreferences.setlistLyricsView : "all"
   );
   const [expandedSongIds, setExpandedSongIds] = useState<Set<string>>(new Set());
   const [transposeMap, setTransposeMap] = useState<Map<string, number>>(
@@ -245,6 +245,8 @@ export function SetlistReadOnlyView({
   const activeSection = activeSectionOverride ?? defaultVoiceSection;
 
   const handleToggleAll = useCallback(async () => {
+    // Rehearsal mode always shows every song's lyrics expanded.
+    if (isRehearsalMode) return;
     const nextMode = displayMode === "all" ? "list" : "all";
     setDisplayMode(nextMode);
     if (!isDefaultMode) return;
@@ -253,7 +255,7 @@ export function SetlistReadOnlyView({
     } catch (err) {
       console.error("Failed to update lyrics view preference:", err);
     }
-  }, [displayMode, isDefaultMode]);
+  }, [displayMode, isDefaultMode, isRehearsalMode]);
 
   const handleToggleSong = useCallback((songId: string) => {
     setExpandedSongIds((prev) => {
@@ -595,7 +597,8 @@ export function SetlistReadOnlyView({
             </div>
 
             <div className="flex items-center gap-2">
-              {/* Display All / Retract All */}
+              {/* Display All / Retract All (not in rehearsal mode, which is always fully expanded) */}
+              {!isRehearsalMode && (
               <button
                 onClick={handleToggleAll}
                 className="text-xs px-3 py-1.5 border border-neutral-300 dark:border-neutral-700 rounded-md hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors"
@@ -603,6 +606,7 @@ export function SetlistReadOnlyView({
               >
                 {displayMode === "all" ? t("setlist.retractAll") : t("setlist.displayAll")}
               </button>
+              )}
 
               {/* Global Options Toggle */}
               {isDefaultMode && (
