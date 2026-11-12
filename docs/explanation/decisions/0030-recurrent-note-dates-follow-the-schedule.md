@@ -45,6 +45,14 @@ Periodic behavior is not part of the rule.
 - Existing recurrent items in a setlist get the same select. A saved date that no longer matches
   the rule is shown in red so the editor can see it.
 
+### Note page and manual editor
+
+- The date picker on the note page (`/notes/<id>`) and in the manual text editor
+  (`/notes/<id>/manual`) is the shared `RecurrentDateSelect` month calendar. Only allowed dates are
+  clickable; other days are shown greyed out and cannot be selected.
+- If the date in the URL or the stored date is not allowed, the component moves to the nearest
+  allowed date (on or after the stored date, otherwise the last one before it).
+
 ### Server validation
 
 - `POST /api/setlists` and `PUT /api/setlists` reject a recurrent-note item whose date the note does
@@ -87,7 +95,8 @@ Periodic behavior is not part of the rule.
 - `src/lib/note-schedule.ts` (rule, `selectableNoteDates`, `addDaysIso`, `describeNoteRecurrence`)
 - `src/lib/setlist-items.ts` (`validateRecurrentNoteDates`)
 - `src/app/api/setlists/route.ts` (create, update and version-edit paths)
+- `src/components/RecurrentDateSelect.tsx` (note page and manual editor month calendar)
 - `src/components/SetlistEditor.tsx` (`datesForNote`, date selects), `src/components/NoteForm.tsx`
   (`SCHEDULES_BY_TYPE`)
 - `src/lib/i18n/locales/{en,fr,es}.ts` (`setlist.dateNotAllowed`)
-- Tests: `tests/unit/lib/note-schedule.test.ts`, `tests/unit/lib/setlist-recurrent-dates.test.ts`
+- Tests: `tests/unit/lib/note-schedule.test.ts`, `tests/unit/lib/setlist-recurrent-dates.test.ts`, `tests/components/RecurrentDateSelect.test.tsx`

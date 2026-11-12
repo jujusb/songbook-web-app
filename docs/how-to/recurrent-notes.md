@@ -13,6 +13,10 @@
 
 ### Date rules
 
+The date picker on the note page and in the manual text editor is a month calendar. Only the dates
+the note's schedule allows are clickable; other days are greyed out. Use the arrows to move between
+months. If a saved date is not allowed, the calendar moves to the nearest allowed date.
+
 A recurrent note can only be placed on dates its schedule allows. The server rejects a setlist
 that places a note on any other date, and the same rule applies to every recurrent item in the
 setlist when it is saved. Setlists saved before this rule still open and save unless an item's

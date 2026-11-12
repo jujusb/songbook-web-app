@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { languageLabelFor } from "@/lib/i18n/labels";
+import { RecurrentDateSelect } from "@/components/RecurrentDateSelect";
 import {
   noteManualSectionKey,
   type NoteManualPeriod,
@@ -194,18 +195,16 @@ export function NoteManualEditor({
 
       <div>
         <label className="block text-sm font-medium mb-1">Date</label>
-        <input
-          type="date"
+        <RecurrentDateSelect
+          note={note}
           value={selectedDate}
-          onChange={(e) => {
-            const next = e.target.value;
-            if (!next) return;
+          onChange={(next) => {
+            if (!next || next === selectedDate) return;
             setSelectedDate(next);
             const url = new URL(window.location.href);
             url.searchParams.set("date", next);
             window.history.replaceState(null, "", url.toString());
           }}
-          className="px-3 py-2 border border-neutral-300 dark:border-neutral-700 rounded-md bg-white dark:bg-neutral-900 text-sm"
         />
       </div>
 

@@ -7,6 +7,7 @@ import { MarkdownView } from "@/components/MarkdownView";
 import { useTranslation } from "@/lib/i18n";
 import { AutoScrollControl } from "@/components/AutoScrollControl";
 import { notesApi, NoteMetadata, noteManualSectionKey, resolveNoteLanguage, type NoteManualPeriod } from "@/lib/notes";
+import { RecurrentDateSelect } from "@/components/RecurrentDateSelect";
 
 interface NoteViewProps {
   noteId: string;
@@ -182,12 +183,7 @@ export function NoteView({ noteId, autoScrollSpeed }: NoteViewProps) {
 
       <div>
         <label className="block text-sm font-medium mb-1">Date</label>
-        <input
-          type="date"
-          value={selectedDate}
-          onChange={(e) => setSelectedDate(e.target.value)}
-          className="px-3 py-2 border border-neutral-300 dark:border-neutral-700 rounded-md bg-white dark:bg-neutral-900 text-sm"
-        />
+        <RecurrentDateSelect note={note} value={selectedDate} onChange={setSelectedDate} />
       </div>
 
       {previewLoading ? (
