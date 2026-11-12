@@ -6,7 +6,7 @@
    - **Current**: Include the note as it exists today
    - **Specific date**: Select any date the note has been saved for
    - **Calendar**: Pick a date from the calendar interface
-6. Select the desired date
+6. Select the desired date. Any calendar date is allowed, even one with no setlist version yet; dates already in the setlist history are offered as suggestions.
 7. The note will be added to the setlist with the selected date's version
 8. Save the setlist
 
@@ -83,3 +83,8 @@ Nothing is written under `data/notes/<noteId>/manual/` any more.
 - New saves do not keep earlier versions. Re-saving a date overwrites its files; back up the `<date>/` folder first if you need the old text.
 
 When a recurrent note is rendered in a setlist, manual sections use the content saved for that date (falling back to the section's base text), while API sections are fetched for that date.
+
+## Back links
+
+The note editor and the setlist editor have a **Back** link at the top that returns to the page they were opened from (the note, the notes list, the setlist, or the setlists list).
+

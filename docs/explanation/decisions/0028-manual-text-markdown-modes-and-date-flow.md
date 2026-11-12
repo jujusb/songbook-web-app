@@ -8,6 +8,8 @@ Accepted; in part supersedes [0024](./0024-setlist-modes-and-history.md) (defaul
 
 2026-11-11
 
+See also [0029](./0029-chords-publication-wrapping-and-current-version.md) for the later chord, wrapping and current-version decisions.
+
 ## Context
 
 Several behaviours had drifted from what users expected:

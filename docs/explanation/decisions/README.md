@@ -1,6 +1,6 @@
 # Architecture decision records
 
-Twenty-eight decisions that explain why the app looks the way it does. Each is written from the
+Twenty-nine decisions that explain why the app looks the way it does. Each is written from the
 repository's own history: the commits are real, the dates are real, and where a decision was later
 partly undone — or never aligned with the plan — the ADR says so.
 
@@ -47,6 +47,7 @@ Each record has:
 | [0026](./0026-notes-language-and-content-enhancements.md) | Notes language and content enhancements | Accepted | 2026-11-03 |
 | [0027](./0027-setlist-link-first-creation.md) | Setlist link-first creation and dated editing | Proposed | — |
 | [0028](./0028-manual-text-markdown-modes-and-date-flow.md) | Manual text as markdown, setlist modes and the dated-setlist flow | Accepted; partly supersedes 0024 | 2026-11-11 |
+| [0029](./0029-chords-publication-wrapping-and-current-version.md) | Chord publication, wrapped chord lines, current version and date rules | Accepted; extends 0028 | 2026-11-12 |
 
 ## The decisions that were reversed or never landed
 

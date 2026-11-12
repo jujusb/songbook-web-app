@@ -60,6 +60,10 @@ Example:
 - **New** opens the editor for a new dated version: choose the event date, image and song list, optionally copying them from the current setlist or a previous date, then confirm with **Create date setlist**. The current setlist is always the most recent dated version: a new date later than the current one becomes current, while an older date is stored in history without changing it.
 - Restoring and creating dated versions require `admin`/`reviewer`, or a `setlist_creator` who owns the setlist. In read-only deployments all history writes are disabled.
 
+#### Current version
+
+The current setlist is always the most recent dated version. Creating a date later than the current one makes it current; an older date is stored in history without changing the current setlist. A date equal to the current setlist's date is refused, with a message asking for another date.
+
 ### Statistics
 
 The **Statistics** page at `/setlists/stats` shows which songs were used across dated setlist events.

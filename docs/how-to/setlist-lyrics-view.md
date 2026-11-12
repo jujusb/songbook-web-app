@@ -126,3 +126,12 @@ The `getSetlist(id)` function automatically merges reference setlists with their
 - When a user removes a reference, their user ID is removed from original's `subscribers`
 - `listSetlists({ userId })` includes reference setlists owned by that user
 - `canViewSetlist()` checks `isSubscriber` flag for reference access
+
+## Chords only when published
+
+Chords are shown for a song only when its chords are published for the song's language (**Publish chords** on the song). For an unpublished song the lyrics are shown without chords in every mode, including guitarist and default with chords on.
+
+## Long lines on small screens
+
+Each line is split into chord-over-lyric segments at its chords. On a narrow screen a long line wraps between segments, so the reading order is chord, lyric, chord, lyric. A segment is never split inside a word: a chord placed inside a word sits over the start of that word. Chords take no width, so they do not add spaces between words; a long chord can extend into the space beside its lyric.
+
