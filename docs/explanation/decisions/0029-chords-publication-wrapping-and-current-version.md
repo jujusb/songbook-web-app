@@ -2,7 +2,7 @@
 
 ## Status
 
-Accepted; extends [0028](./0028-manual-text-markdown-modes-and-date-flow.md).
+Accepted; extends [0028](./0028-manual-text-markdown-modes-and-date-flow.md). The recurrent-note date rule in this record is superseded by [0030](./0030-recurrent-note-dates-follow-the-schedule.md).
 
 ## Date
 
@@ -44,9 +44,9 @@ Accepted; extends [0028](./0028-manual-text-markdown-modes-and-date-flow.md).
 
 - The new-date editor refuses a date equal to the current setlist's date before sending the request. The server keeps the same rule.
 
-### Recurrent notes on any date
+### Recurrent notes on any date (superseded by ADR-0030)
 
-- Adding a recurrent note to a setlist accepts any calendar date. Dates from the setlist history are suggestions only. The server already accepted any `YYYY-MM-DD`.
+- Originally: adding a recurrent note to a setlist accepted any calendar date, with history dates as suggestions. This was reversed on 2026-11-12: dates now follow the note's recurrence rule. See [ADR-0030](./0030-recurrent-note-dates-follow-the-schedule.md).
 
 ### Back links
 

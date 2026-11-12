@@ -6,6 +6,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { languageLabelFor } from "@/lib/i18n/labels";
 import { useTranslation } from "@/lib/i18n";
+import { SCHEDULES_BY_TYPE, type RecurrentType } from "@/lib/note-schedule";
 import { notesApi, NoteMetadata, NoteSection, NoteOrderedField, extractApiSectionText, getApiResultKeys, getNestedValue, resolveNoteLanguage, noteApplicableLanguages } from "@/lib/notes";
 
 const RECURRENT_TYPES = [
@@ -474,7 +475,13 @@ export function NoteForm({ initialNote, isNew = true, noteId, languages: languag
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
             <label className="block text-sm font-medium mb-1">Recurrent type</label>
-            <select value={recurrentType} onChange={(e) => setRecurrentType(e.target.value as "weekly" | "monthly" | "specific-dates" | "daily")} className="w-full px-3 py-2 border rounded-md text-sm">
+            <select value={recurrentType} onChange={(e) => {
+              const next = e.target.value as RecurrentType;
+              setRecurrentType(next);
+              // Keep the schedule valid for the new type.
+              const allowed = SCHEDULES_BY_TYPE[next];
+              if (allowed.length > 0 && !allowed.includes(recurrentSchedule)) setRecurrentSchedule(allowed[0]);
+            }} className="w-full px-3 py-2 border rounded-md text-sm">
               {RECURRENT_TYPES.map((t) => <option key={t.value} value={t.value}>{t.label}</option>)}
             </select>
           </div>
@@ -482,8 +489,15 @@ export function NoteForm({ initialNote, isNew = true, noteId, languages: languag
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
             <label className="block text-sm font-medium mb-1">Recurrent schedule</label>
-            <select value={recurrentSchedule} onChange={(e) => setRecurrentSchedule(e.target.value)} className="w-full px-3 py-2 border rounded-md text-sm">
-              {SCHEDULES.map((s) => <option key={s.value} value={s.value}>{s.label}</option>)}
+            <select
+              value={recurrentSchedule}
+              onChange={(e) => setRecurrentSchedule(e.target.value)}
+              disabled={SCHEDULES_BY_TYPE[recurrentType as RecurrentType].length === 0}
+              className="w-full px-3 py-2 border rounded-md text-sm disabled:opacity-50"
+            >
+              {SCHEDULES.filter((s) => SCHEDULES_BY_TYPE[recurrentType as RecurrentType].includes(s.value)).map((s) => (
+                <option key={s.value} value={s.value}>{s.label}</option>
+              ))}
             </select>
           </div>
           <div>

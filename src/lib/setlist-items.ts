@@ -3,7 +3,9 @@ import { canCreateSetlist } from "@/lib/auth";
 import { getShareBaseUrl } from "@/lib/content";
 import { getSetlistLinkAllowedHosts, getSetlistLinkAllowHttp, getSetlistMaxSongs } from "@/lib/config";
 import { validateLinkUrl } from "@/lib/setlist-links";
-import { SetlistItemSchema, isSongItem, isLinkItem, type SetlistItem } from "@/lib/content/schemas";
+import { SetlistItemSchema, isSongItem, isLinkItem, isRecurrentNoteItem, type SetlistItem } from "@/lib/content/schemas";
+import { getNote } from "@/lib/content/notes";
+import { isSelectableNoteDate, describeNoteRecurrence } from "@/lib/note-schedule";
 
 export type ParseSetlistItemsResult =
   | { items: SetlistItem[] }
@@ -58,4 +60,30 @@ export async function parseSetlistItems(
     return { error: `Maximum ${maxSongs * 2} items per setlist` };
   }
   return { items };
+}
+
+/**
+ * Reject recurrent-note items whose date the note does not allow. Only items
+ * that are new or changed compared to `previousItems` are checked, so setlists
+ * saved before the rule existed can still be edited.
+ */
+export async function validateRecurrentNoteDates(
+  items: SetlistItem[],
+  previousItems: SetlistItem[] = [],
+): Promise<{ error: string } | null> {
+  const previous = new Set(
+    previousItems.filter(isRecurrentNoteItem).map((i) => `${i.id}|${i.noteId}|${i.date}`),
+  );
+  for (const item of items.filter(isRecurrentNoteItem)) {
+    if (previous.has(`${item.id}|${item.noteId}|${item.date}`)) continue;
+    const note = await getNote(item.noteId).catch(() => null);
+    // Unknown notes are not validated here; rendering already handles them.
+    if (!note) continue;
+    if (!isSelectableNoteDate(note, item.date)) {
+      return {
+        error: `Date ${item.date} is not allowed for recurrent note "${note.title}" (${describeNoteRecurrence(note)})`,
+      };
+    }
+  }
+  return null;
 }

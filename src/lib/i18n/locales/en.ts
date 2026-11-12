@@ -201,6 +201,7 @@ const en = {
     addRecurrentNoteConfirm: 'Add',
     noSetlistDate: 'No setlist saved for that date',
     itemRecurrentNote: 'Recurrent note',
+    dateNotAllowed: "Date not allowed by this note's schedule",
     addLink: 'Add link',
     noteLabel: 'Note (Markdown)',
     linkUrl: 'URL (https://…)',

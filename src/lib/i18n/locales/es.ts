@@ -203,6 +203,7 @@ const es: Translations = {
     addRecurrentNoteConfirm: 'Añadir',
     noSetlistDate: 'No hay un setlist guardado para esa fecha',
     itemRecurrentNote: 'Nota recurrente',
+    dateNotAllowed: 'Fecha no permitida para el calendario de esta nota',
     addLink: 'Añadir enlace',
     noteLabel: 'Nota (Markdown)',
     linkUrl: 'URL (https://…)',

@@ -8,7 +8,7 @@ import { isReadOnlyFor } from "@/lib/readonly";
 import { generateSetlistVoiceShares } from "@/lib/navidrome/setlist-shares";
 import { getSetlistsDir } from "@/lib/content/paths";
 import { isReservedSetlistId, isSongItem, type Setlist, type SetlistItem } from "@/lib/content/schemas";
-import { parseSetlistItems } from "@/lib/setlist-items";
+import { parseSetlistItems, validateRecurrentNoteDates } from "@/lib/setlist-items";
 
 export async function GET() {
   const all = await listSetlists();
@@ -72,6 +72,8 @@ export async function POST(request: Request) {
     if ('error' in parsedItems) {
       return NextResponse.json({ error: parsedItems.error }, { status: parsedItems.status ?? 400 });
     }
+    const dateError = await validateRecurrentNoteDates(parsedItems.items);
+    if (dateError) return NextResponse.json(dateError, { status: 400 });
 
     const id = data.title
       .toLowerCase()
@@ -147,6 +149,8 @@ export async function PUT(request: Request) {
        try {
          const existingVersion = await getSetlistVersion(data.id, editingVersion);
          const itemsVersion = parsedItems.items;
+         const versionDateError = await validateRecurrentNoteDates(itemsVersion, existingVersion.songs);
+         if (versionDateError) return NextResponse.json(versionDateError, { status: 400 });
          const updatedVersion: Setlist = {
            ...existingVersion,
            title: data.title,
@@ -174,6 +178,9 @@ export async function PUT(request: Request) {
     if (!isOwner && !canEditAll) {
       return NextResponse.json({ error: "Forbidden: not the owner" }, { status: 403 });
     }
+
+    const dateError = await validateRecurrentNoteDates(parsedItems.items, existing?.songs);
+    if (dateError) return NextResponse.json(dateError, { status: 400 });
 
     const newSongs = parsedItems.items;
     const oldSongs = existing?.songs;

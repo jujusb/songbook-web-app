@@ -6,7 +6,8 @@ import { useRouter } from "next/navigation";
 import { useTranslation } from "@/lib/i18n";
 import { getSetlistMaxSongs } from "@/lib/config";
 import { validateLinkUrl } from "@/lib/setlist-links";
-import { notesApi } from "@/lib/notes";
+import { notesApi, type NoteMetadata } from "@/lib/notes";
+import { addDaysIso, describeNoteRecurrence, isSelectableNoteDate, selectableNoteDates } from "@/lib/note-schedule";
 import {
   isHttpUrl,
   isSongItem,
@@ -92,15 +93,15 @@ export function SetlistEditor({
   const [error, setError] = useState<string | null>(null);
   const [dragIndex, setDragIndex] = useState<number | null>(null);
   const [showRecurrent, setShowRecurrent] = useState(false);
-  const [recurrentNotes, setRecurrentNotes] = useState<Array<{ id: string; title: string }>>([]);
+  const [recurrentNotes, setRecurrentNotes] = useState<NoteMetadata[]>([]);
   const [pickNoteId, setPickNoteId] = useState("");
-  const [pickDate, setPickDate] = useState(() => new Date().toISOString().slice(0, 10));
+  const [pickChoice, setPickChoice] = useState("");
   const [availableHistoryDates, setAvailableHistoryDates] = useState<string[]>([]);
 
   useEffect(() => {
     let cancelled = false;
     notesApi.fetchNotes().then((notes) => {
-      if (!cancelled) setRecurrentNotes(notes.map((n) => ({ id: n.id, title: n.title })));
+      if (!cancelled) setRecurrentNotes(notes);
     });
     return () => {
       cancelled = true;
@@ -136,6 +137,31 @@ export function SetlistEditor({
   }, [initialSetlist?.id, initialSetlist?.date]);
   const noteTitle = (noteId: string) => recurrentNotes.find((n) => n.id === noteId)?.title || noteId;
 
+  // Dates a recurrent note may be used on: its rule applied to a window around
+  // today, plus any history date that matches the rule.
+  const datesForNote = useCallback(
+    (noteId: string): string[] => {
+      const note = recurrentNotes.find((n) => n.id === noteId);
+      if (!note) return [];
+      const today = new Date().toISOString().slice(0, 10);
+      const dates = new Set<string>([
+        ...selectableNoteDates(note, addDaysIso(today, -365), addDaysIso(today, 365)),
+        ...availableHistoryDates.filter((d) => isSelectableNoteDate(note, d)),
+      ]);
+      return [...dates].sort();
+    },
+    [recurrentNotes, availableHistoryDates],
+  );
+
+  const pickOptions = useMemo(() => datesForNote(pickNoteId), [datesForNote, pickNoteId]);
+  const pickDate = useMemo(() => {
+    if (pickOptions.length === 0) return "";
+    if (pickOptions.includes(pickChoice)) return pickChoice;
+    const today = new Date().toISOString().slice(0, 10);
+    return pickOptions.find((d) => d >= today) ?? pickOptions[pickOptions.length - 1];
+  }, [pickOptions, pickChoice]);
+  const pickedNote = recurrentNotes.find((n) => n.id === pickNoteId);
+
 
   const songCount = songs.filter(isSongItem).length;
   const songMap = useMemo(() => new Map(availableSongs.map((s) => [s.id, s])), [availableSongs]);
@@ -163,21 +189,15 @@ export function SetlistEditor({
     setSongs((prev) => [...prev, { type: "link", id: newItemId(), url: "", title: "" }]);
   }, []);
 
-  const availableDates = availableHistoryDates.includes(date)
-    ? availableHistoryDates
-    : date
-      ? [...availableHistoryDates, date]
-      : availableHistoryDates;
-
-  // Any calendar date is allowed: the note is rendered for that date even when
-  // no setlist version exists for it yet. Known dates are only suggestions.
+  // Only dates allowed by the note's recurrence rule can be added.
   const addRecurrentNote = useCallback(() => {
-    if (!pickNoteId || !/^\d{4}-\d{2}-\d{2}$/.test(pickDate)) return;
+    if (!pickNoteId || !pickDate || !pickOptions.includes(pickDate)) return;
     setSongs((prev) => [...prev, { type: "recurrent-note", id: newItemId(), noteId: pickNoteId, date: pickDate }]);
     setShowRecurrent(false);
     setPickNoteId("");
+    setPickChoice("");
     setError(null);
-  }, [pickNoteId, pickDate]);
+  }, [pickNoteId, pickDate, pickOptions]);
 
   const uploadSetlistImage = useCallback(async (file: File) => {
     const form = new FormData();
@@ -531,12 +551,26 @@ export function SetlistEditor({
                   ) : isRecurrentNoteItem(item) ? (
                     <div className="flex-1 min-w-0 flex items-center gap-2">
                       <span className="text-sm font-medium truncate">{noteTitle(item.noteId)}</span>
-                      <input
-                        type="date"
-                        value={item.date}
-                        onChange={(e) => updateItem(index, { date: e.target.value })}
-                        className="px-2 py-1 border border-neutral-300 dark:border-neutral-700 rounded bg-white dark:bg-neutral-900 text-xs"
-                      />
+                      {(() => {
+                        const options = datesForNote(item.noteId);
+                        const allowed = options.includes(item.date);
+                        const shown = allowed ? options : [item.date, ...options];
+                        return (
+                          <select
+                            value={item.date}
+                            onChange={(e) => updateItem(index, { date: e.target.value })}
+                            className={`px-2 py-1 border rounded bg-white dark:bg-neutral-900 text-xs ${
+                              allowed ? "border-neutral-300 dark:border-neutral-700" : "border-red-500 text-red-600"
+                            }`}
+                            title={allowed ? undefined : t("setlist.dateNotAllowed")}
+                            data-testid="setlist-recurrent-item-date"
+                          >
+                            {shown.map((option) => (
+                              <option key={option} value={option}>{option}</option>
+                            ))}
+                          </select>
+                        );
+                      })()}
                     </div>
                   ) : isLinkItem(item) ? (
                     <div className="flex-1 min-w-0 space-y-1">
@@ -683,18 +717,21 @@ export function SetlistEditor({
               ))}
             </select>
             <label className="text-xs text-neutral-500">{t("setlist.noteDate")}</label>
-            <input
-              type="date"
-              list="setlist-dates"
+            {pickedNote && (
+              <span className="text-xs text-neutral-500">({describeNoteRecurrence(pickedNote)})</span>
+            )}
+            <select
               value={pickDate}
-              onChange={(e) => setPickDate(e.target.value)}
+              onChange={(e) => setPickChoice(e.target.value)}
+              disabled={!pickNoteId || pickOptions.length === 0}
+              aria-label={t("setlist.noteDate")}
               className="px-2 py-1.5 border border-neutral-300 dark:border-neutral-700 rounded bg-white dark:bg-neutral-900 text-sm"
-            />
-            <datalist id="setlist-dates">
-              {availableDates.map((availableDate) => (
-                <option key={availableDate} value={availableDate} />
+              data-testid="setlist-recurrent-date"
+            >
+              {pickOptions.map((option) => (
+                <option key={option} value={option}>{option}</option>
               ))}
-            </datalist>
+            </select>
             <button
               type="button"
               onClick={addRecurrentNote}

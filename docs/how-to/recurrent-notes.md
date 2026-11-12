@@ -2,13 +2,21 @@
 2. Click the **Add note** button in the setlist editor
 3. Browse available notes or use the search bar
 4. Select a note from the list
-5. A date selector will appear showing:
-   - **Current**: Include the note as it exists today
-   - **Specific date**: Select any date the note has been saved for
-   - **Calendar**: Pick a date from the calendar interface
-6. Select the desired date. Any calendar date is allowed, even one with no setlist version yet; dates already in the setlist history are offered as suggestions.
+5. A date select appears. It lists only the dates the note's schedule allows:
+   - **daily** notes: every day
+   - **weekly** notes: every date with the chosen weekday (for example every Sunday)
+   - **monthly** notes: the first Sunday, the first and second Sundays, or the last day of the month
+   - **specific-dates** notes: only the dates published for the note
+6. Select the desired date. The rule is shown next to the select. Dates outside the window (one year back to one year ahead) are not offered.
 7. The note will be added to the setlist with the selected date's version
 8. Save the setlist
+
+### Date rules
+
+A recurrent note can only be placed on dates its schedule allows. The server rejects a setlist
+that places a note on any other date, and the same rule applies to every recurrent item in the
+setlist when it is saved. Setlists saved before this rule still open and save unless an item's
+date is changed. See [ADR-0030](../explanation/decisions/0030-recurrent-note-dates-follow-the-schedule.md).
 
 ### Note Structure
 
@@ -31,8 +39,8 @@ When creating or editing a note:
    - **Title**: "Sunday Service"
    - **Language**: "en,es"
    - **Recurrent type**: weekly
-   - **Recurrent type**: daily
    - **Recurrent schedule**: sunday
+   - (The schedule list only offers values that fit the chosen type.)
    - **Sections**: Click "Add section" multiple times
      - **Section 1**: Type "api", Name "gospel-api", API URL "https://liturgical-api.example.com/gospel?lang=\${LANG}", Result Section "text"
      - **Section 2**: Type "manual", Markdown "Opening prayer: May your word be a lamp to our feet and a light for our path."
