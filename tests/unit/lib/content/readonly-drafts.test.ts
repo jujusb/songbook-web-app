@@ -15,7 +15,7 @@ describe('content/index.ts — drafts in read-only mode', () => {
     tempDir = await createTempContentDir();
     content = await import('@/lib/content');
 
-    await content.createSong('test-song', 'Test Song', 'en');
+    await content.createSong('test-song', 'Test Song', 'en-US');
     await content.saveSongTranslation(
       'test-song',
       'en',

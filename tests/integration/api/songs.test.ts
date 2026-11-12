@@ -53,8 +53,8 @@ describe('API /api/songs', () => {
 
     it('returns all songs for admin with all=true', async () => {
       const { createSong } = await import('@/lib/content');
-      await createSong('song1', 'Song 1', 'en');
-      await createSong('song2', 'Song 2', 'en');
+      await createSong('song1', 'Song 1', 'en-US');
+      await createSong('song2', 'Song 2', 'en-US');
       
       mockAuth(adminToken);
       const req = createMockRequest('GET', undefined, 'http://localhost/api/songs?all=true');
@@ -75,14 +75,14 @@ describe('API /api/songs', () => {
 
     it('returns published songs for public users', async () => {
       const { createSong, saveSongTranslation } = await import('@/lib/content');
-      await createSong('published-song', 'Published Song', 'en');
-      await createSong('draft-song', 'Draft Song', 'en');
+      await createSong('published-song', 'Published Song', 'en-US');
+      await createSong('draft-song', 'Draft Song', 'en-US');
       
-      await saveSongTranslation('published-song', 'en', {
+      await saveSongTranslation('published-song', 'en-US', {
         language: 'en', status: 'final', published: true, chordsPublished: false
       }, '{title: Published}\nContent');
       
-      await saveSongTranslation('draft-song', 'en', {
+      await saveSongTranslation('draft-song', 'en-US', {
         language: 'en', status: 'draft', published: false, chordsPublished: false
       }, '{title: Draft}\nContent');
       
@@ -98,9 +98,9 @@ describe('API /api/songs', () => {
     it('hides the draft translations in read-only mode', async () => {
       vi.stubEnv('SONGBOOK_READONLY', '1');
       const { createSong, saveSongTranslation } = await import('@/lib/content');
-      await createSong('published-song', 'Published Song', 'en');
+      await createSong('published-song', 'Published Song', 'en-US');
 
-      await saveSongTranslation('published-song', 'en', {
+      await saveSongTranslation('published-song', 'en-US', {
         language: 'en', status: 'final', published: true, chordsPublished: false
       }, '{title: Published}\nContent');
 
@@ -192,7 +192,7 @@ describe('API /api/songs', () => {
       expect(response.status).toBe(201);
       
       const { getSongTranslation } = await import('@/lib/content');
-      const { body } = await getSongTranslation('chordpro-song', 'en');
+      const { body } = await getSongTranslation('chordpro-song', 'en-US');
       expect(body).toContain('[C]Content [G]here');
     });
   });
@@ -200,7 +200,7 @@ describe('API /api/songs', () => {
   describe('DELETE /api/songs', () => {
     it('deletes existing song', async () => {
       const { createSong } = await import('@/lib/content');
-      await createSong('song-to-delete', 'Song to Delete', 'en');
+      await createSong('song-to-delete', 'Song to Delete', 'en-US');
       
       mockAuth(adminToken);
       const req = createMockRequest('DELETE', undefined, 'http://localhost/api/songs?id=song-to-delete');
@@ -234,7 +234,7 @@ describe('API /api/songs', () => {
 
     it('returns 403 for non-admin users', async () => {
       const { createSong } = await import('@/lib/content');
-      await createSong('protected-song', 'Protected Song', 'en');
+      await createSong('protected-song', 'Protected Song', 'en-US');
       
       mockAuth(reviewerToken);
       const req = createMockRequest('DELETE', undefined, 'http://localhost/api/songs?id=protected-song');

@@ -42,7 +42,7 @@ describe('content/index.ts', () => {
 
   describe('createSong', () => {
     it('creates song in no-album by default', async () => {
-      await createSong()('amazing-grace', 'Amazing Grace', 'en');
+      await createSong()('amazing-grace', 'Amazing Grace', 'en-US');
       
       const song = await getSong()('amazing-grace');
       expect(song.id).toBe('amazing-grace');
@@ -55,7 +55,7 @@ describe('content/index.ts', () => {
     it('creates song in specified album', async () => {
       await createAlbum()('hymns-2024', 'Hymns 2024', 'various-artists');
       
-      await createSong()('amazing-grace', 'Amazing Grace', 'en', 'hymns-2024');
+      await createSong()('amazing-grace', 'Amazing Grace', 'en-US', 'hymns-2024');
       
       const song = await getSong()('amazing-grace');
       expect(song.id).toBe('amazing-grace');
@@ -63,25 +63,25 @@ describe('content/index.ts', () => {
     });
 
     it('overwrites existing song on duplicate ID', async () => {
-      await createSong()('test-song', 'Test Song', 'en');
+      await createSong()('test-song', 'Test Song', 'en-US');
       // createSong doesn't throw on duplicate, it overwrites
-      await createSong()('test-song', 'Another Song', 'en');
+      await createSong()('test-song', 'Another Song', 'en-US');
       
       const song = await getSong()('test-song');
       expect(song.title).toBe('Another Song');
     });
 
     it('accepts custom body content', async () => {
-      await createSong()('custom-song', 'Custom Song', 'en', 'no-album', '{title: Custom}\n\nMy custom content');
+      await createSong()('custom-song', 'Custom Song', 'en-US', 'no-album', '{title: Custom}\n\nMy custom content');
       
-      const { body } = await getSongTranslation()('custom-song', 'en');
+      const { body } = await getSongTranslation()('custom-song', 'en-US');
       expect(body).toContain('My custom content');
     });
   });
 
   describe('saveSongTranslation', () => {
     beforeEach(async () => {
-      await createSong()('test-song', 'Test Song', 'en');
+      await createSong()('test-song', 'Test Song', 'en-US');
     });
 
     it('saves translation with frontmatter', async () => {
@@ -101,16 +101,16 @@ describe('content/index.ts', () => {
     });
 
     it('creates revision snapshot before overwrite', async () => {
-      await saveSongTranslation()('test-song', 'en', {
+      await saveSongTranslation()('test-song', 'en-US', {
         language: 'en', status: 'draft', published: false, chordsPublished: false
       }, '{title: Original}\nVerse 1');
       
-      await saveSongTranslation()('test-song', 'en', {
+      await saveSongTranslation()('test-song', 'en-US', {
         language: 'en', status: 'final', published: true, chordsPublished: false
       }, '{title: Updated}\nVerse 1\nVerse 2');
       
       const { listRevisions } = await import('@/lib/content/revisions');
-      const revisions = await listRevisions('test-song', 'en');
+      const revisions = await listRevisions('test-song', 'en-US');
       // First save in beforeEach creates the file, then two saves in test create 2 revisions
       expect(revisions.length).toBe(2);
     });
@@ -118,14 +118,14 @@ describe('content/index.ts', () => {
 
   describe('listSongs', () => {
     beforeEach(async () => {
-      await createSong()('published-song', 'Published Song', 'en');
-      await createSong()('draft-song', 'Draft Song', 'en');
+      await createSong()('published-song', 'Published Song', 'en-US');
+      await createSong()('draft-song', 'Draft Song', 'en-US');
       
-      await saveSongTranslation()('published-song', 'en', {
+      await saveSongTranslation()('published-song', 'en-US', {
         language: 'en', status: 'final', published: true, chordsPublished: false
       }, '{title: Published}\nContent');
       
-      await saveSongTranslation()('draft-song', 'en', {
+      await saveSongTranslation()('draft-song', 'en-US', {
         language: 'en', status: 'draft', published: false, chordsPublished: false
       }, '{title: Draft}\nContent');
     });
@@ -160,7 +160,7 @@ describe('content/index.ts', () => {
   describe('deleteSong', () => {
     it('removes song and updates album', async () => {
       await createAlbum()('test-album', 'Test Album', 'various-artists');
-      await createSong()('song-to-delete', 'Song to Delete', 'en', 'test-album');
+      await createSong()('song-to-delete', 'Song to Delete', 'en-US', 'test-album');
       
       await deleteSong()('song-to-delete');
       
@@ -169,7 +169,7 @@ describe('content/index.ts', () => {
     });
 
     it('removes song from no-album', async () => {
-      await createSong()('no-album-song', 'No Album Song', 'en');
+      await createSong()('no-album-song', 'No Album Song', 'en-US');
       await deleteSong()('no-album-song');
       
       await expect(getSong()('no-album-song')).rejects.toThrow('Song not found');
@@ -238,7 +238,7 @@ describe('content/index.ts', () => {
 
   describe('Translation operations', () => {
     beforeEach(async () => {
-      await createSong()('trans-song', 'Translation Song', 'en');
+      await createSong()('trans-song', 'Translation Song', 'en-US');
     });
 
     it('gets song translations', async () => {
@@ -268,7 +268,7 @@ describe('content/index.ts', () => {
     });
 
     it('throws when adding existing translation', async () => {
-      await expect(addSongTranslation()('trans-song', 'en')).rejects.toThrow('TRANSLATION_EXISTS');
+      await expect(addSongTranslation()('trans-song', 'en-US')).rejects.toThrow('TRANSLATION_EXISTS');
     });
 
     it('deletes translation but keeps at least one', async () => {
@@ -281,14 +281,14 @@ describe('content/index.ts', () => {
     });
 
     it('throws when deleting last translation', async () => {
-      await createSong()('solo-song', 'Solo Song', 'en');
+      await createSong()('solo-song', 'Solo Song', 'en-US');
       await expect(deleteSongTranslation()('solo-song', 'en-US')).rejects.toThrow('LAST_TRANSLATION');
     });
   });
 
   describe('Song metadata', () => {
     it('saves song meta', async () => {
-      await createSong()('meta-song', 'Meta Song', 'en');
+      await createSong()('meta-song', 'Meta Song', 'en-US');
       
       await saveSongMeta()('meta-song', {
         id: 'meta-song',
@@ -316,7 +316,7 @@ describe('content/index.ts', () => {
   describe('Rename operations', () => {
     it('renames song and updates references', async () => {
       await createAlbum()('rename-album', 'Rename Album', 'various-artists');
-      await createSong()('old-id', 'Old Title', 'en', 'rename-album');
+      await createSong()('old-id', 'Old Title', 'en-US', 'rename-album');
       
       // Create a setlist referencing the song
       const { saveSetlist } = await import('@/lib/content');
@@ -344,7 +344,7 @@ describe('content/index.ts', () => {
     it('moves song between albums', async () => {
       await createAlbum()('album-a', 'Album A', 'various-artists');
       await createAlbum()('album-b', 'Album B', 'various-artists');
-      await createSong()('move-song', 'Move Song', 'en', 'album-a');
+      await createSong()('move-song', 'Move Song', 'en-US', 'album-a');
       
       await changeSongAlbum()('move-song', 'album-b');
       
@@ -359,7 +359,7 @@ describe('content/index.ts', () => {
 
     it('moves song to no-album', async () => {
       await createAlbum()('album-c', 'Album C', 'various-artists');
-      await createSong()('to-no-album', 'To No Album', 'en', 'album-c');
+      await createSong()('to-no-album', 'To No Album', 'en-US', 'album-c');
       
       await changeSongAlbum()('to-no-album', NO_ALBUM_ID());
       

@@ -33,7 +33,7 @@ describe('API /api/songs/[id]/revisions/[timestamp]/revert', () => {
     await createUser('public', 'publicpass', 'public');
     publicToken = await createSession({ id: 'public', username: 'public', role: 'public' });
 
-    await createSong('rev-song', 'Rev Song', 'en');
+    await createSong('rev-song', 'Rev Song', 'en-US');
     await tempDir.writeFile(
       'library/no-album/rev-song/en.cho',
       '---\nlanguage: en\ntitle: Original Title\ntranslator: null\nstatus: draft\npublished: false\nmodifiedBy: admin\nlastModified: !!str 2026-01-01T00:00:00.000Z\n---\n{title: Original}\nVerse 1\n'
@@ -44,7 +44,7 @@ describe('API /api/songs/[id]/revisions/[timestamp]/revert', () => {
       { language: 'en', title: 'Second Title', translator: null, modifiedBy: 'admin', status: 'draft', published: false, chordsPublished: false },
       '{title: Original}\nVerse 1\nVerse 2'
     );
-    const revisions = await listRevisions('rev-song', 'en');
+    const revisions = await listRevisions('rev-song', 'en-US');
     timestamp = revisions[0].timestamp;
   });
 
