@@ -1,9 +1,7 @@
-import { toFileCode } from '@/lib/language-codes';
 import { NextResponse } from "next/server";
-import path from "path";
 import { getSession, canEdit, canEditSong, getCurrentUser } from "@/lib/auth";
 import { isReadOnlyFor } from "@/lib/readonly";
-import { findSongPath, saveSongTranslation, getSongTranslation, timestampToRevisionFile } from "@/lib/content";
+import { findSongPath, saveSongTranslation, getSongTranslation, timestampToRevisionFile, translationFilePath } from "@/lib/content";
 import { getRevision, saveRevision as saveRevisionLib } from "@/lib/content/revisions";
 
 export async function POST(
@@ -48,7 +46,7 @@ export async function POST(
     const body = parsed.content.trim();
 
     // Save current version as revision first
-    await saveRevisionLib(id, lang, path.join(songPath, `${toFileCode(lang)}.cho`));
+    await saveRevisionLib(id, lang, translationFilePath(songPath, lang));
     
     // Apply the revision as current
     await saveSongTranslation(id, lang, frontmatter, body);

@@ -2,6 +2,7 @@
 language: es
 translator: null
 status: published
+published: true
 ---
 {title: Sublime Gracia}
 {key: G}

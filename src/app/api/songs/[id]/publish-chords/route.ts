@@ -1,8 +1,7 @@
-import { toFileCode } from '@/lib/language-codes';
 import { NextResponse } from "next/server";
 import { getSession, canEdit, canEditSong, getCurrentUser } from "@/lib/auth";
 import { isReadOnlyFor } from "@/lib/readonly";
-import { findSongPath, saveSongTranslation, saveRevision, getSongTranslation } from "@/lib/content";
+import { findSongPath, saveSongTranslation, saveRevision, getSongTranslation, translationFilePath } from "@/lib/content";
 
 export async function POST(
   request: Request,
@@ -41,7 +40,7 @@ export async function POST(
     };
 
     // Save revision before updating
-    await saveRevision(id, lang, songPath + `/${toFileCode(lang)}.cho`);
+    await saveRevision(id, lang, translationFilePath(songPath, lang));
 
     // Save updated translation
     await saveSongTranslation(id, lang, updatedMeta, body);
@@ -96,7 +95,7 @@ export async function DELETE(
     };
 
     // Save revision before updating
-    await saveRevision(id, lang, songPath + `/${toFileCode(lang)}.cho`);
+    await saveRevision(id, lang, translationFilePath(songPath, lang));
 
     // Save updated translation
     await saveSongTranslation(id, lang, updatedMeta, body);

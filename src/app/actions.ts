@@ -1,11 +1,9 @@
 "use server";
 
-import { toFileCode } from '@/lib/language-codes';
-import { saveSongTranslation, saveSongMeta, createSong, getSong, getSongTranslation, getSiteConfig, extractBodyTitle, addSongTranslation, deleteSongTranslation, renameSong, renameAlbum, changeSongAlbum, getSetlist, saveSetlist, listSongs, getAlbum, saveAlbum, createAlbum, getLanguagesConfig, NO_ALBUM_ID, getAlbumsForSong, findSongPath, getRevision, saveRevision as saveRevisionLib, timestampToRevisionFile } from "@/lib/content";
+import { saveSongTranslation, saveSongMeta, createSong, getSong, getSongTranslation, getSiteConfig, extractBodyTitle, addSongTranslation, deleteSongTranslation, renameSong, renameAlbum, changeSongAlbum, getSetlist, saveSetlist, listSongs, getAlbum, saveAlbum, createAlbum, getLanguagesConfig, NO_ALBUM_ID, getAlbumsForSong, findSongPath, getRevision, saveRevision as saveRevisionLib, timestampToRevisionFile, translationFilePath } from "@/lib/content";
 import { SongTranslationFrontmatterSchema, type Reference, type Partition, type Album, type SetlistInput } from "@/lib/content/schemas";
 import { revalidatePath } from "next/cache";
 import matter from "gray-matter";
-import path from "path";
 import { isReadOnly, isReadOnlyFor } from "@/lib/readonly";
 import { getSession, canEdit, canAdmin, canCreateSetlist, canManageSetlistShares, getCurrentUser, canEditSong, saveUser } from "@/lib/auth";
 import { songIdFromTitle, slugifySongId, uniqueSongId } from "@/lib/song-ids";
@@ -38,9 +36,9 @@ async function syncSongTitle(songId: string, lang: string, title: string) {
   const meta = await getSong(songId);
   const titles = { ...(meta.titles ?? {}) };
   if (title.trim()) {
-    titles[toFileCode(lang)] = title.trim();
+    titles[lang] = title.trim();
   } else {
-    delete titles[toFileCode(lang)];
+    delete titles[lang];
   }
 
   const titlesChanged = JSON.stringify(titles) !== JSON.stringify(meta.titles ?? {});
@@ -215,7 +213,7 @@ export async function revertSongToRevisionAction(songId: string, lang: string, t
     const body = parsed.content.trim();
 
     // Save current version as revision first
-    await saveRevisionLib(songId, lang, path.join(songPath, `${toFileCode(lang)}.cho`));
+    await saveRevisionLib(songId, lang, translationFilePath(songPath, lang));
     
     // Apply the revision as current
     await saveSongTranslation(songId, lang, frontmatter, body);

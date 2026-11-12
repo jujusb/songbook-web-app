@@ -1,4 +1,3 @@
-import { toFileCode } from '@/lib/language-codes';
 import { mkdir, writeFile } from "fs/promises";
 import { existsSync } from "fs";
 import path from "path";
@@ -95,14 +94,14 @@ export async function syncSongToMusicDir(
 
   if (targetDirs.size === 0) {
     // Fallback: <music-dir>/<songId>/<lang>/
-    targetDirs.add(path.join(root, songId, toFileCode(lang)));
+    targetDirs.add(path.join(root, songId, lang));
   }
 
   const lyrics = extractLyricsFromChordPro(body);
 
   for (const dir of targetDirs) {
     await mkdir(dir, { recursive: true });
-    await writeFile(path.join(dir, `${toFileCode(lang)}.cho`), body, "utf-8");
-    await writeFile(path.join(dir, `${toFileCode(lang)}.txt`), lyrics, "utf-8");
+    await writeFile(path.join(dir, `${lang}.cho`), body, "utf-8");
+    await writeFile(path.join(dir, `${lang}.txt`), lyrics, "utf-8");
   }
 }
