@@ -139,9 +139,9 @@ describe('API /setlists/[setlistId]/history', () => {
     expect(version.image).toBe('/api/images/easter.jpg');
     expect(version.songs).toEqual([{ type: 'song', songId: 'song-a', lang: 'en' }]);
 
-    // The working setlist is not replaced by the new dated snapshot.
+    // A newer date becomes the current setlist.
     const current = await getSetlist('sunday');
-    expect(current.date).toBe('2026-01-11');
+    expect(current.date).toBe('2026-02-08');
   });
 
   it('rejects new-date by a public user', async () => {

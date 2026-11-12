@@ -61,6 +61,7 @@ export function SetlistEditor({
    versionLabel,
    newDate = false,
    previousVersions = [],
+   currentDate = "",
    allowedLinkHosts = [],
   allowHttpLinks = false,
 }: {
@@ -75,6 +76,8 @@ export function SetlistEditor({
   newDate?: boolean;
   /** Dated versions that can be copied into the new date. */
   previousVersions?: PreviousVersion[];
+  /** Date of the current setlist; a new date may not reuse it. */
+  currentDate?: string;
 }) {
   const router = useRouter();
   const { languageLabel, t } = useTranslation();
@@ -270,6 +273,10 @@ export function SetlistEditor({
     }
     if (newDate && !date.trim()) {
       setError("Date is required");
+      return;
+    }
+    if (newDate && currentDate && date.trim() === currentDate) {
+      setError(`A setlist already uses the date ${currentDate}. Choose another date.`);
       return;
     }
     for (const s of songs) {

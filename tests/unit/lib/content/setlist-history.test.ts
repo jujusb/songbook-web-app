@@ -142,8 +142,23 @@ describe('content/index.ts — setlist history', () => {
     expect(version.image).toBe('https://example.com/easter.jpg');
     expect(version.songs).toEqual([song('song-b')]);
 
+    // A newer date becomes the current setlist (content and date).
     const current = await content.getSetlist('sunday');
-    expect(current.title).toBe('Sunday service');
+    expect(current.date).toBe('2026-02-01');
+    expect(current.songs).toEqual([song('song-b')]);
+  });
+
+  it('keeps the current setlist when a dated version is older', async () => {
+    await content.saveSetlist({
+      id: 'sunday',
+      title: 'Sunday service',
+      date: '2026-01-11',
+      songs: [song('song-a')],
+      ownerId: 'creator',
+    });
+    await content.createSetlistDateVersion('sunday', '2026-01-04', true);
+
+    const current = await content.getSetlist('sunday');
     expect(current.date).toBe('2026-01-11');
     expect(current.songs).toEqual([song('song-a')]);
   });

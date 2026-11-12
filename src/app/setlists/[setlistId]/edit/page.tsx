@@ -102,6 +102,7 @@ export default async function SetlistEditPage({
         isNew={false}
         newDate={isNewDate}
         previousVersions={previousVersions}
+        currentDate={isNewDate ? setlist.date || "" : ""}
         versionLabel={!isNewDate && versionParam && versionParam !== 'current' ? versionParam : undefined}
       />
     </div>

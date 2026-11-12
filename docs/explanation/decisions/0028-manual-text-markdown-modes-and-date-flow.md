@@ -30,7 +30,7 @@ Several behaviours had drifted from what users expected:
 
 ### Dated setlists
 
-- **New** (history browser) opens the editor in new-date mode. The new date's content can start from the current setlist, an empty setlist, or a previous date. The current setlist is left untouched.
+- **New** (history browser) opens the editor in new-date mode. The new date's content can start from the current setlist, an empty setlist, or a previous date. The current setlist is always the most recent dated version: a later date becomes current, an older date does not change it. Creating a date whose folder name is already taken by different content (a timestamped label) does not move the current pointer.
 - After creation, and after choosing a date in the history dropdown, the browser navigates to `?version=<label>`. The dropdown's value is derived from that URL, so it always matches the version on screen.
 
 ### Recurrent-note manual text

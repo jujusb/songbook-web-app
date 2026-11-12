@@ -697,6 +697,18 @@ export async function createSetlistDateVersion(
     yaml.dump(version, { lineWidth: -1 }),
     'utf-8',
   );
+
+  // The current setlist is always the most recent dated version. A date that
+  // is later than the current one becomes current; older dates leave it as is.
+  if (label === date && (!isSetlistDate(current.date) || date > current.date)) {
+    const rootRaw = await readFile(filePath, 'utf-8');
+    const root = SetlistSchema.parse(yaml.load(rootRaw));
+    await writeFile(
+      filePath,
+      yaml.dump({ ...root, date, modified: new Date().toISOString() }, { lineWidth: -1 }),
+      'utf-8',
+    );
+  }
   return label;
 }
 
