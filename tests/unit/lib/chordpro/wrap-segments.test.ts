@@ -34,3 +34,17 @@ describe('renderVisualChordSheet wrapSegments', () => {
     expect(html).toContain('<mark class="vce-ref-select">wor</mark>');
   });
 });
+
+describe('renderVisualChordSheet wrapSegments word boundaries', () => {
+  it('does not split a word when a chord sits inside it', () => {
+    const html = renderVisualChordSheet('ex[A]ample of [G]text', { wrapSegments: true });
+    expect(html).toContain('<div class="vce-lyrics-text">example of </div>');
+    expect(html).not.toContain('>ex</div>');
+  });
+
+  it('keeps a chord at a word boundary where it was', () => {
+    const html = renderVisualChordSheet('Hello [G]world', { wrapSegments: true });
+    expect(html).toContain('<div class="vce-lyrics-text">Hello </div>');
+    expect(html).toContain('<div class="vce-lyrics-text">world</div>');
+  });
+});

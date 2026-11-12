@@ -50,7 +50,13 @@ function splitSegments(lyrics: string, chords: { position: number; chord: string
   const starts: { start: number; chord: string }[] = [];
   if (sorted.length === 0 || sorted[0].position > 0) starts.push({ start: 0, chord: "" });
   for (const cp of sorted) {
-    starts.push({ start: Math.min(Math.max(cp.position, 0), lyrics.length), chord: cp.chord });
+    let start = Math.min(Math.max(cp.position, 0), lyrics.length);
+    // Never split a word: when the chord sits inside a word, the segment
+    // starts at the beginning of that word (the chord moves back with it).
+    while (start > 0 && start < lyrics.length && !/\s/.test(lyrics[start - 1]) && !/\s/.test(lyrics[start])) {
+      start--;
+    }
+    starts.push({ start, chord: cp.chord });
   }
   return starts.map((seg, i) => ({
     chord: seg.chord,

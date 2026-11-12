@@ -475,32 +475,47 @@ a.ref-marker:hover {
   border-bottom-color: transparent;
 }
 
-/* Chord-over-lyric segments: each chord travels with its lyric part and the
-   line wraps between segments (narrow screens). */
+/* Chord-over-lyric segments: each chord travels with its lyric part. Segments
+   are inline-blocks, so a long line wraps between segments (never between a
+   chord and its lyric) and keeps the chord above its own text on mobile. */
 .visual-chord-sheet .vce-line.wrap {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: flex-start;
+  display: block;
   width: 100%;
   min-width: 0;
-  column-gap: 0;
+  text-align: left;
+  white-space: normal;
 }
 
 .visual-chord-sheet .vce-seg {
-  display: flex;
-  flex-direction: column;
+  display: inline-block;
+  vertical-align: top;
   max-width: 100%;
   min-width: 0;
+  white-space: normal;
 }
 
 .visual-chord-sheet .vce-seg .vce-chord-row {
-  white-space: pre;
+  /* Zero width: a chord never widens its segment, so it adds no space
+     between lyric words. Long chords extend to the right instead. */
+  width: 0;
+  white-space: nowrap;
+  overflow: visible;
+}
+
+.visual-chord-sheet .vce-seg .vce-chord-row .vce-chord {
+  margin-right: 0.4em;
+}
+
+.visual-chord-sheet .vce-seg .vce-lyrics-row {
+  display: block;
 }
 
 .visual-chord-sheet .vce-seg .vce-lyrics-text {
+  display: block;
   white-space: pre-wrap;
-  word-break: break-word;
-  overflow-wrap: anywhere;
+  /* Break inside a word only when a single word is wider than the screen. */
+  word-break: normal;
+  overflow-wrap: break-word;
 }
 
 /* Highlighted lyric span in the reference visual picker */
