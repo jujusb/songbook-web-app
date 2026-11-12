@@ -3,7 +3,7 @@ import {
   directiveLabel,
   isContentLine,
 } from "./visual-parse";
-import { SECTION_TYPES, splitSectionAliases } from "./chord-utils";
+import { SECTION_TYPES, splitSectionAliases, mapSectionDirective } from "./chord-utils";
 
 const SECTION_TYPES_RE = SECTION_TYPES.join("|");
 
@@ -113,6 +113,8 @@ export function renderVisualChordSheet(
   const lines = parseChordProSource(source);
   const out: string[] = ['<div class="vce-lines">'];
   let contentLine = 0;
+  // Whether the lines being emitted belong to a chorus (rendered bold).
+  let inChorus = false;
 
   // Repeat support mirroring ChordPro's `{chorus}` shorthand: capture the HTML
   // emitted for each verse, chorus, and instrumental section so a repeat
@@ -244,6 +246,14 @@ const labeledRepeat = raw.match(
         "i"
       ).test(raw);
       const isEndOfInstrumental = /^\{(?:end_of_|e)instrumental\}$/i.test(raw);
+
+      // Track chorus state: a section start sets it from its name, an end clears it.
+      if (isEndOfSection) {
+        inChorus = false;
+      } else if (sectionLabel || labeledRepeat || bareRepeat || startType) {
+        const nameMatch = raw.match(/^\{(?:start_of_|s)?([a-z]+)/i);
+        inChorus = nameMatch ? mapSectionDirective(nameMatch[1]) === "chorus" : false;
+      }
 
       if (labeledRepeat) {
         finalizeAll();
@@ -457,7 +467,11 @@ const labeledRepeat = raw.match(
       }
     }
     const lineAttr = dataContentLine ? ` data-content-line="${contentLine}"` : "";
-    if (wrapSegments) {
+    const chorusClass = inChorus ? " vce-chorus" : "";
+    // Chorus lines always use the segment layout: their lyrics are bold, so
+    // character-count chord spacing would drift. Segments place each chord
+    // directly above its own text, whatever the glyph widths are.
+    if (wrapSegments || inChorus) {
       const text = line.lyrics || "\u00A0";
       const segments = splitSegments(text, line.chords);
       const segHtml = segments
@@ -484,12 +498,12 @@ const labeledRepeat = raw.match(
           return `<span class="vce-seg">${chordHtml}<span class="vce-lyrics-text">${body || "&nbsp;"}</span></span>`;
         })
         .join("");
-      emit(`  <div class="vce-line wrap"${lineAttr}>${segHtml}</div>`);
+      emit(`  <div class="vce-line wrap${chorusClass}"${lineAttr}>${segHtml}</div>`);
       if (isContentLine(line)) contentLine++;
       continue;
     }
     emit(
-      `  <div class="vce-line"${lineAttr}>` +
+      `  <div class="vce-line${chorusClass}"${lineAttr}>` +
         `${showChords ? `    <div class="vce-chord-row">${chordParts.join("")}</div>` : ""}` +
         `    <div class="vce-lyrics-row"><div class="vce-lyrics-text">${lyricsHtml}</div></div>` +
         "  </div>"

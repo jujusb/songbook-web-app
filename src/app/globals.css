@@ -396,6 +396,11 @@ a.ref-marker:hover {
   padding: 0 1px;
 }
 
+/* Chorus lines are shown in bold. */
+.vce-line.vce-chorus .vce-lyrics-text {
+  font-weight: 700;
+}
+
 .vce-lyrics-text:focus {
   border-bottom-color: #3b82f6;
 }
