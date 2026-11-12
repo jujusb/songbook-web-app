@@ -2,7 +2,7 @@
 
 ## Status
 
-Accepted
+Accepted; partly superseded by [0028](./0028-manual-text-markdown-modes-and-date-flow.md) (default mode, fixed modes, legacy mode names).
 
 ## Date
 

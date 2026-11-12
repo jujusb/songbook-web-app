@@ -54,22 +54,32 @@ Manual sections can either stay the same every period or change for each date:
 2. Set its **Periodic behavior** to **Different text per period**.
 3. Save the note.
 4. From the note view, click **Edit manual text** (or open `/notes/<noteId>/manual`).
-5. Pick the date, fill in the manual section text (one textarea per configured language), and click **Save for this date**.
+5. Pick the date, fill in the manual section text, and click **Save for this date**.
 
-The recurrent note editor only manages the note structure and API sections. The manual editor manages the text that changes from one occurrence to the next. API sections are always fetched live for the selected date, so changing the API URL in the note editor affects every date immediately.
+The date in the URL follows the date picker, so reloading or using back returns to the date you were editing.
 
-Each date is stored independently:
+#### Languages
+
+The manual editor offers the note's **API applicable languages** (the multi-select in the note editor, restricted to the configured site languages). When no language is selected there, every configured language is offered. The note editor's manual text fields follow the same rule.
+
+#### Where the text is stored
+
+Each saved date is written as one markdown file per section and language:
 
 ```
-data/notes/<noteId>/manual/<date>.yaml
+data/notes/<noteId>/<date>/<lang>/<section>.md
 ```
 
-Every save that changes the text archives the previous content:
+- `<lang>` is the short code (`en`, `es`, `fr`, `pt`), matching the `.cho` convention.
+- `<section>` is the section id (or `section-<index>` for sections without one).
+- A section's text for the note's own language is also used as its default when no per-language file exists.
+- Languages removed from a section have their files deleted on the next save.
 
-```
-data/notes/<noteId>/manual/<date>/<timestamp>.yaml
-```
+Nothing is written under `data/notes/<noteId>/manual/` any more.
 
-Identical saves do not create duplicate versions. In the manual editor you can open an earlier version and restore it; restoring also archives the current content first, so nothing is lost.
+#### Read-only fallback and history
+
+- Content saved before this change in `data/notes/<noteId>/manual/<date>.yaml` is still read when a date has no `.md` files yet, and older `manual/<date>/<timestamp>.yaml` versions are still listed and restorable. Nothing new is written there.
+- New saves do not keep earlier versions. Re-saving a date overwrites its files; back up the `<date>/` folder first if you need the old text.
 
 When a recurrent note is rendered in a setlist, manual sections use the content saved for that date (falling back to the section's base text), while API sections are fetched for that date.

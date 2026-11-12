@@ -1,6 +1,6 @@
 # Architecture decision records
 
-Seventeen decisions that explain why the app looks the way it does. Each is written from the
+Twenty-eight decisions that explain why the app looks the way it does. Each is written from the
 repository's own history: the commits are real, the dates are real, and where a decision was later
 partly undone — or never aligned with the plan — the ADR says so.
 
@@ -40,6 +40,13 @@ Each record has:
 | [0019](./0019-setlist-references-and-subscribers.md) | Setlist references and subscribers | Accepted | 2026-10-24 |
 | [0020](./0020-setlist-lyrics-view-and-preferences.md) | Setlist lyrics view and user preferences | Accepted | 2026-10-24 |
 | [0021](./0021-setlist-song-limit-and-voice-playlists.md) | Setlist song limit and language-dependent voice playlists | Accepted | 2026-10-24 |
+| [0022](./0022-setlist-notes-and-links.md) | Setlist notes and links | Accepted | 2026-10-25 |
+| [0023](./0023-federation-between-instances.md) | Federation between instances | Accepted | 2026-11-01 |
+| [0024](./0024-setlist-modes-and-history.md) | Setlist modes and dated history | Accepted; partly superseded by 0028 | 2026-11-01 |
+| [0025](./0025-recurrent-notes.md) | Recurrent notes | Accepted | 2026-11-01 |
+| [0026](./0026-notes-language-and-content-enhancements.md) | Notes language and content enhancements | Accepted | 2026-11-03 |
+| [0027](./0027-setlist-link-first-creation.md) | Setlist link-first creation and dated editing | Proposed | — |
+| [0028](./0028-manual-text-markdown-modes-and-date-flow.md) | Manual text as markdown, setlist modes and the dated-setlist flow | Accepted; partly supersedes 0024 | 2026-11-11 |
 
 ## The decisions that were reversed or never landed
 
