@@ -45,10 +45,6 @@ function safeVersionLabel(label: string): string {
   return label;
 }
 
-function manualContentKey(period: Pick<NoteManualPeriod, 'sections'>): string {
-  return JSON.stringify(period.sections);
-}
-
 function normalizeManualSections(input: unknown): Record<string, NoteManualSectionContent> {
   if (!input || typeof input !== 'object' || Array.isArray(input)) return {};
   const result: Record<string, NoteManualSectionContent> = {};
@@ -111,45 +107,75 @@ async function readManualVersion(
   );
 }
 
-async function uniqueManualVersionLabel(noteId: string, date: string): Promise<string> {
-  const dir = manualVersionsDir(noteId, date);
-  const base = new Date().toISOString().replace(/[:.]/g, '-');
-  let label = base;
-  let counter = 2;
-  while (existsSync(path.join(dir, `${label}.yaml`))) {
-    label = `${base}-${counter++}`;
-  }
-  return label;
+/** Folder code for a language inside a date folder (en-US -> en). */
+function manualLangFolder(lang: string): string {
+  return sanitizeId(lang.split('-')[0]);
 }
 
-async function findManualVersionWithKey(
-  noteId: string,
-  date: string,
-  key: string,
-): Promise<string | null> {
-  const dir = manualVersionsDir(noteId, date);
+/** `<note>/<date>/`: holds `<lang>/<section>.md` files, the current manual text. */
+function manualDateDir(noteId: string, date: string): string {
+  return path.join(getNoteDir(sanitizeId(noteId)), date);
+}
+
+/** Read the current manual text of a date from its `<lang>/<section>.md` files. */
+async function readManualMarkdown(noteId: string, date: string): Promise<NoteManualPeriod | null> {
+  const dir = manualDateDir(noteId, date);
   if (!existsSync(dir)) return null;
-  const entries = await readdir(dir);
-  for (const entry of entries) {
-    if (!entry.endsWith('.yaml')) continue;
-    const label = entry.slice(0, -'.yaml'.length);
-    const period = await readManualVersion(noteId, date, label);
-    if (period && manualContentKey(period) === key) return label;
+  const note = await getNote(noteId);
+  const sections: Record<string, NoteManualSectionContent> = {};
+  let found = false;
+  for (const langEntry of await readdir(dir, { withFileTypes: true })) {
+    if (!langEntry.isDirectory() || !/^[a-z]{2,3}$/.test(langEntry.name)) continue;
+    const lang = toAppCode(langEntry.name);
+    for (const file of await readdir(path.join(dir, langEntry.name))) {
+      if (!file.endsWith('.md')) continue;
+      const key = file.slice(0, -'.md'.length);
+      if (!sanitizeId(key) || sanitizeId(key) !== key) continue;
+      const text = await readFile(path.join(dir, langEntry.name, file), 'utf-8');
+      found = true;
+      const section = (sections[key] ??= {});
+      section.mdByLanguage = { ...(section.mdByLanguage ?? {}), [lang]: text };
+      if (lang === note?.language) section.md = text;
+    }
   }
-  return null;
+  return found ? { date, sections, modified: undefined } : null;
 }
 
-async function archiveManualPeriod(
-  noteId: string,
-  date: string,
-  period: NoteManualPeriod,
-): Promise<void> {
-  const key = manualContentKey(period);
-  if (await findManualVersionWithKey(noteId, date, key)) return;
-  const label = await uniqueManualVersionLabel(noteId, date);
-  const dir = manualVersionsDir(noteId, date);
-  await mkdir(dir, { recursive: true });
-  await writeFile(path.join(dir, `${label}.yaml`), yaml.dump(period, { noRefs: true }), 'utf-8');
+/**
+ * Write the manual text of a date as `<note>/<date>/<lang>/<section>.md`.
+ * Files for languages that were removed from a section are deleted.
+ */
+async function writeManualMarkdown(noteId: string, date: string, period: NoteManualPeriod): Promise<void> {
+  const id = sanitizeId(noteId);
+  const note = await getNote(id);
+  const noteLang = note?.language;
+  const dir = manualDateDir(id, date);
+  const wanted = new Map<string, Set<string>>(); // lang folder -> section file names
+  for (const [sectionKey, content] of Object.entries(period.sections)) {
+    const safeSection = sanitizeId(sectionKey);
+    if (!safeSection) continue;
+    const byLang: Record<string, string> = { ...(content.mdByLanguage ?? {}) };
+    if (content.md && noteLang && byLang[noteLang] === undefined) byLang[noteLang] = content.md;
+    for (const [lang, text] of Object.entries(byLang)) {
+      const fileLang = manualLangFolder(lang);
+      if (!fileLang) continue;
+      const langDir = path.join(dir, fileLang);
+      await mkdir(langDir, { recursive: true });
+      await writeFile(path.join(langDir, `${safeSection}.md`), text, 'utf-8');
+      if (!wanted.has(fileLang)) wanted.set(fileLang, new Set());
+      wanted.get(fileLang)!.add(`${safeSection}.md`);
+    }
+  }
+  if (!existsSync(dir)) return;
+  for (const langEntry of await readdir(dir, { withFileTypes: true })) {
+    if (!langEntry.isDirectory() || !/^[a-z]{2,3}$/.test(langEntry.name)) continue;
+    const keep = wanted.get(langEntry.name) ?? new Set<string>();
+    for (const file of await readdir(path.join(dir, langEntry.name))) {
+      if (file.endsWith('.md') && !keep.has(file)) {
+        await rm(path.join(dir, langEntry.name, file), { force: true });
+      }
+    }
+  }
 }
 
 export async function getNoteManualPeriod(
@@ -157,20 +183,35 @@ export async function getNoteManualPeriod(
   date: string,
 ): Promise<NoteManualPeriod | null> {
   if (!isManualDate(date)) return null;
+  const current = await readManualMarkdown(noteId, date);
+  if (current) return current;
+  // Read-only fallback for content saved before manual text moved to .md files.
   return readManualPeriodFile(manualPeriodPath(sanitizeId(noteId), date), date);
 }
 
 export async function listNoteManualDates(noteId: string): Promise<string[]> {
-  const dir = getNoteManualDir(sanitizeId(noteId));
-  if (!existsSync(dir)) return [];
-  const entries = await readdir(dir);
-  return entries
-    .filter((entry) => entry.endsWith('.yaml'))
-    .map((entry) => entry.slice(0, -'.yaml'.length))
-    .filter(isManualDate)
-    .sort((a, b) => b.localeCompare(a));
+  const id = sanitizeId(noteId);
+  const dates = new Set<string>();
+  const noteDir = getNoteDir(id);
+  if (existsSync(noteDir)) {
+    for (const entry of await readdir(noteDir, { withFileTypes: true })) {
+      if (entry.isDirectory() && isManualDate(entry.name) && (await readManualMarkdown(id, entry.name))) {
+        dates.add(entry.name);
+      }
+    }
+  }
+  const legacyDir = getNoteManualDir(id);
+  if (existsSync(legacyDir)) {
+    for (const entry of await readdir(legacyDir)) {
+      if (entry.endsWith('.yaml') && isManualDate(entry.slice(0, -'.yaml'.length))) {
+        dates.add(entry.slice(0, -'.yaml'.length));
+      }
+    }
+  }
+  return [...dates].sort((a, b) => b.localeCompare(a));
 }
 
+/** Legacy YAML history (read-only): new edits no longer create versions. */
 export async function listNoteManualVersions(
   noteId: string,
   date: string,
@@ -189,6 +230,7 @@ export async function listNoteManualVersions(
   return versions.sort((a, b) => b.label.localeCompare(a.label));
 }
 
+/** Legacy YAML version (read-only). */
 export async function getNoteManualVersion(
   noteId: string,
   date: string,
@@ -198,30 +240,6 @@ export async function getNoteManualVersion(
   const period = await readManualVersion(sanitizeId(noteId), date, label);
   if (!period) throw new Error('Version not found');
   return period;
-}
-
-/**
- * Mirror the current manual text of a date into plain markdown files:
- * `<note>/<date>/<lang>/<section>.md` (lang uses the file code, e.g. `en`).
- */
-async function writeManualMarkdown(noteId: string, date: string, period: NoteManualPeriod): Promise<void> {
-  const id = sanitizeId(noteId);
-  const note = await getNote(id);
-  const noteLang = note?.language;
-  for (const [sectionKey, content] of Object.entries(period.sections)) {
-    const safeSection = sanitizeId(sectionKey);
-    if (!safeSection) continue;
-    const byLang: Record<string, string> = { ...(content.mdByLanguage ?? {}) };
-    if (content.md && noteLang && byLang[noteLang] === undefined) byLang[noteLang] = content.md;
-    for (const [lang, text] of Object.entries(byLang)) {
-      // Folder code is the short language (en-US -> en), like the .cho files.
-      const fileLang = sanitizeId(lang.split('-')[0]);
-      if (!fileLang) continue;
-      const dir = path.join(getNoteDir(id), date, fileLang);
-      await mkdir(dir, { recursive: true });
-      await writeFile(path.join(dir, `${safeSection}.md`), text, 'utf-8');
-    }
-  }
 }
 
 export async function saveNoteManualPeriod(
@@ -238,13 +256,6 @@ export async function saveNoteManualPeriod(
     sections: normalizeManualSections(sections),
     modified: new Date().toISOString(),
   };
-  const current = await readManualPeriodFile(manualPeriodPath(id, date), date);
-  if (current && manualContentKey(current) !== manualContentKey(next)) {
-    await archiveManualPeriod(id, date, current);
-  }
-
-  await mkdir(getNoteManualDir(id), { recursive: true });
-  await writeFile(manualPeriodPath(id, date), yaml.dump(next, { noRefs: true }), 'utf-8');
   await writeManualMarkdown(id, date, next);
   return next;
 }
@@ -257,12 +268,6 @@ export async function restoreNoteManualVersion(
   if (!isManualDate(date)) throw new Error('Invalid date');
   const id = sanitizeId(noteId);
   const target = await getNoteManualVersion(id, date, label);
-  const current = await readManualPeriodFile(manualPeriodPath(id, date), date);
-  if (current && manualContentKey(current) !== manualContentKey(target)) {
-    await archiveManualPeriod(id, date, current);
-  }
-  await mkdir(getNoteManualDir(id), { recursive: true });
-  await writeFile(manualPeriodPath(id, date), yaml.dump(target, { noRefs: true }), 'utf-8');
   await writeManualMarkdown(id, date, target);
   return target;
 }

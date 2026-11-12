@@ -89,30 +89,13 @@ describe('API /api/notes/[noteId]/manual', () => {
       { params: Promise.resolve({ noteId: 'weekly-note', date: '2026-01-04' }) },
     );
     const listed = await listRes.json();
-    expect(listed.versions).toHaveLength(1);
-
-    const loadRes = await versionGET(
-      createMockRequest(
-        `http://localhost/api/notes/weekly-note/manual/2026-01-04?label=${encodeURIComponent(listed.versions[0].label)}`,
-        'GET',
-      ),
-      { params: Promise.resolve({ noteId: 'weekly-note', date: '2026-01-04' }) },
-    );
-    expect((await loadRes.json()).content.sections['section-0'].md).toBe('First version');
-
-    const restoreRes = await versionPOST(
-      createMockRequest('http://localhost/api/notes/weekly-note/manual/2026-01-04', 'POST', {
-        label: listed.versions[0].label,
-      }),
-      { params: Promise.resolve({ noteId: 'weekly-note', date: '2026-01-04' }) },
-    );
-    expect(restoreRes.status).toBe(200);
+    expect(listed.versions).toHaveLength(0);
 
     const currentRes = await manualGET(
       createMockRequest('http://localhost/api/notes/weekly-note/manual?date=2026-01-04', 'GET'),
       { params: Promise.resolve({ noteId: 'weekly-note' }) },
     );
-    expect((await currentRes.json()).content.sections['section-0'].md).toBe('First version');
+    expect((await currentRes.json()).content.sections['section-0'].md).toBe('Second version');
   });
 
   it('rejects malformed save payloads', async () => {

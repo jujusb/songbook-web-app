@@ -41,6 +41,7 @@ describe('content/notes.ts — manual text written as markdown files', () => {
     expect(await readFile(`${base}/en/intro.md`, 'utf-8')).toBe('Hello');
     expect(await readFile(`${base}/es/intro.md`, 'utf-8')).toBe('Hola');
     expect(existsSync(`${base}/fr`)).toBe(false);
+    expect(existsSync(`${tempDir.path}/data/notes/weekly-note/manual`)).toBe(false);
   });
 
   it('falls back to the default text for the note language', async () => {

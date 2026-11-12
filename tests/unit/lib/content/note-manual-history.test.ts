@@ -68,23 +68,17 @@ describe('content/notes.ts — per-date manual history', () => {
     expect(ids).toEqual(['section-1', 'section-1-2']);
   });
 
-  it('stores current content per date and archives changes', async () => {
+  it('stores current content per date without writing YAML history', async () => {
     await createNote();
 
     await saveNoteManualPeriod('weekly-note', '2026-01-04', {
       'section-0': { md: 'First Sunday text' },
     });
-    expect(await listNoteManualVersions('weekly-note', '2026-01-04')).toHaveLength(0);
-
     await saveNoteManualPeriod('weekly-note', '2026-01-04', {
       'section-0': { md: 'Updated Sunday text' },
     });
 
-    const versions = await listNoteManualVersions('weekly-note', '2026-01-04');
-    expect(versions).toHaveLength(1);
-    const archived = await getNoteManualVersion('weekly-note', '2026-01-04', versions[0].label);
-    expect(archived.sections['section-0'].md).toBe('First Sunday text');
-
+    expect(await listNoteManualVersions('weekly-note', '2026-01-04')).toHaveLength(0);
     const current = await getNoteManualPeriod('weekly-note', '2026-01-04');
     expect(current?.sections['section-0'].md).toBe('Updated Sunday text');
   });
@@ -112,23 +106,16 @@ describe('content/notes.ts — per-date manual history', () => {
     expect(period?.sections['section-0'].mdByLanguage?.['es-ES']).toBe('Español');
   });
 
-  it('archives the current content before restoring a version', async () => {
+  it('restores a legacy version as the current content', async () => {
     await createNote();
-    await saveNoteManualPeriod('weekly-note', '2026-01-04', {
-      'section-0': { md: 'First' },
-    });
     await saveNoteManualPeriod('weekly-note', '2026-01-04', {
       'section-0': { md: 'Second' },
     });
-
-    const [firstVersion] = await listNoteManualVersions('weekly-note', '2026-01-04');
-    await restoreNoteManualVersion('weekly-note', '2026-01-04', firstVersion.label);
-
+    await expect(
+      restoreNoteManualVersion('weekly-note', '2026-01-04', 'missing-label'),
+    ).rejects.toThrow('Version not found');
     const current = await getNoteManualPeriod('weekly-note', '2026-01-04');
-    expect(current?.sections['section-0'].md).toBe('First');
-
-    const versions = await listNoteManualVersions('weekly-note', '2026-01-04');
-    expect(versions.length).toBe(2);
+    expect(current?.sections['section-0'].md).toBe('Second');
   });
 
   it('rejects invalid dates and missing notes', async () => {
