@@ -7,6 +7,7 @@ const song = {
   lang: 'en',
   title: 'Test Song',
   translations: ['en'],
+  chordsPublished: true,
   body: '{start_of_verse}\n[C]Hello [G]world\n{end_of_verse}',
 };
 
@@ -19,10 +20,10 @@ const basePreferences = {
   setlistTranspose: {},
 };
 
-function renderMode(mode: string, preferences = basePreferences) {
+function renderMode(mode: string, preferences = basePreferences, songOverride: Partial<typeof song> = {}) {
   return renderWithProviders(
     <SetlistReadOnlyView
-      songs={[song]}
+      songs={[{ ...song, ...songOverride }]}
       userPreferences={preferences}
       songBodies={{}}
       isReference={false}
@@ -81,6 +82,25 @@ describe('SetlistReadOnlyView modes', () => {
     });
 
     expect(screen.getByText(/Hello world/)).toBeInTheDocument();
+    expect(container.querySelector('.visual-chord-sheet')).not.toHaveClass('hide-chords');
+  });
+
+  it('hides chords for a song whose chords are not published, even in guitarist mode', () => {
+    const { container } = renderMode(
+      'guitarist',
+      { ...basePreferences, showChords: true, setlistLyricsView: 'all' },
+      { chordsPublished: false },
+    );
+    expect(screen.getByText(/Hello world/)).toBeInTheDocument();
+    expect(container.querySelector('.visual-chord-sheet')).toHaveClass('hide-chords');
+  });
+
+  it('shows chords for a song whose chords are published in guitarist mode', () => {
+    const { container } = renderMode(
+      'guitarist',
+      { ...basePreferences, showChords: true, setlistLyricsView: 'all' },
+      { chordsPublished: true },
+    );
     expect(container.querySelector('.visual-chord-sheet')).not.toHaveClass('hide-chords');
   });
 });

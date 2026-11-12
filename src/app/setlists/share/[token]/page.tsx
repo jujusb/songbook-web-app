@@ -104,7 +104,7 @@ export default async function SetlistSharePage({
       try {
         const meta = await getSong(item.songId);
         const translations = await getSongTranslations(item.songId);
-        const { body } = await getSongTranslation(item.songId, item.lang);
+        const { meta: translationMeta, body } = await getSongTranslation(item.songId, item.lang);
         const originalLang = Object.keys(meta.titles ?? {})[0] || item.lang;
         return {
           ...item,
@@ -112,6 +112,7 @@ export default async function SetlistSharePage({
           key: meta.key,
           translations,
           body,
+          chordsPublished: translationMeta.chordsPublished === true,
           spotify: meta.spotify?.song,
           youtube: meta.youtube,
           originalLang,
@@ -123,6 +124,7 @@ export default async function SetlistSharePage({
           key: undefined,
           translations: [] as string[],
           body: '',
+          chordsPublished: false,
           spotify: undefined,
           youtube: undefined,
           originalLang: item.lang,

@@ -26,6 +26,8 @@ export interface SetlistReadOnlySong {
   key?: string;
   translations: string[];
   published?: boolean;
+  /** Chords are published for this translation (chords are hidden otherwise). */
+  chordsPublished?: boolean;
   body?: string;
   spotify?: string;
   youtube?: string;
@@ -300,15 +302,16 @@ export function SetlistReadOnlyView({
     if (!body) return null;
     const semitones = transposeMap.get(songId) ?? 0;
     const transposed = semitones !== 0 ? transpose(body, semitones) : body;
+    const song = songs.find((s) => s.songId === songId);
+    const showChords = globalOptions.showChords && song?.chordsPublished === true;
     let rendered = renderVisualChordSheet(transposed, {
-      showChords: globalOptions.showChords,
+      showChords,
       repeatChorus: globalOptions.showRepeats,
       inlineChords: globalOptions.inlineChords,
       hideInstrumentals: false,
     });
-    if (globalOptions.chordNotation !== "letters" && globalOptions.showChords) {
+    if (globalOptions.chordNotation !== "letters" && showChords) {
       // Roman/Nashville are relative to the key, so use the transposed key
-      const song = songs.find((s) => s.songId === songId);
       const keyRoot = getKey(transposed) ?? song?.key ?? null;
       const notation = globalOptions.chordNotation;
       rendered = rendered.replace(
@@ -476,7 +479,7 @@ export function SetlistReadOnlyView({
             </div>
             <div className="px-4 py-3">
               <div
-                className={`visual-chord-sheet ${!globalOptions.showChords ? "hide-chords" : ""}`}
+                className={`visual-chord-sheet ${!(globalOptions.showChords && song.chordsPublished === true) ? "hide-chords" : ""}`}
                 dangerouslySetInnerHTML={{ __html: renderLyrics(song.songId) || "" }}
               />
               {voiceLoading && (

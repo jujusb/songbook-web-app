@@ -138,6 +138,7 @@ export default async function SetlistPage({
           key: meta.key, 
           translations,
           published: translationMeta.published,
+          chordsPublished: translationMeta.chordsPublished === true,
           body,
           spotify: meta.spotify?.song,
           youtube: meta.youtube,
