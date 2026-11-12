@@ -272,4 +272,4 @@ Set `OIDC_AUTO_REDIRECT=true` to skip the login form and send users directly to 
 
 ## License
 
-See [LICENSE](LICENSE) if present.
+This project is licensed under the [GNU Affero General Public License v3.0](LICENSE). If you run a modified version as a network service, you must offer its source code to its users under the same license.
