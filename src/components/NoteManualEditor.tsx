@@ -133,7 +133,7 @@ export function NoteManualEditor({
       if (!res.ok) throw new Error(data?.error || `HTTP ${res.status}`);
       setVersions(Array.isArray(data.versions) ? data.versions : []);
       setSelectedVersion(null);
-      setMessage("Saved");
+      setMessage(t("common.saved"));
     } catch (err) {
       setError(err instanceof Error ? err.message : t("notes.saveFailed"));
     } finally {
@@ -172,7 +172,7 @@ export function NoteManualEditor({
       if (!res.ok) throw new Error(data?.error || `HTTP ${res.status}`);
       setVersions(Array.isArray(data.versions) ? data.versions : []);
       setSelectedVersion(null);
-      setMessage("Version restored");
+      setMessage(t("noteManual.versionRestored"));
     } catch (err) {
       setError(err instanceof Error ? err.message : t("notes.saveFailed"));
     } finally {
@@ -212,9 +212,9 @@ export function NoteManualEditor({
 
       {manualSections.length === 0 ? (
         <p className="text-sm text-neutral-500">
-          This note has no manual parts that change per period. Add one in the{" "}
+          {t("noteManual.noManualParts")}
           <Link href={`/notes/${noteId}/edit`} className="text-blue-600 hover:underline dark:text-blue-400">
-            note editor
+            {t("noteManual.noteEditor")}
           </Link>.
         </p>
       ) : loading ? (
@@ -225,12 +225,12 @@ export function NoteManualEditor({
             <div key={key} className="border rounded-md p-4 space-y-3">
               <div className="flex items-center justify-between gap-2">
                 <h2 className="font-medium">
-                  {section.name || `Manual part ${position + 1}`}
+                  {section.name || t("noteManual.manualPart", { number: position + 1 })}
                 </h2>
                 <span className="text-xs text-neutral-500">
                   {(section.periodic_behavior ?? note.periodic_behavior) === "different_per_period"
-                    ? "changes per date"
-                    : `position ${index + 1}`}
+                    ? t("noteManual.changesPerDate")
+                    : t("noteManual.position", { number: index + 1 })}
                 </span>
               </div>
               {languages.map((lang) => {
@@ -241,7 +241,7 @@ export function NoteManualEditor({
                 return (
                   <div key={lang} className="space-y-1">
                     <label className="block text-sm font-medium">
-                      Text — {languageLabelFor(lang)}
+                      {t("noteForm.textFor", { language: languageLabelFor(lang) })}
                     </label>
                     <textarea
                       value={value}
@@ -270,14 +270,14 @@ export function NoteManualEditor({
                 disabled={saving}
                 className="px-3 py-1.5 text-sm bg-amber-600 text-white rounded-md disabled:opacity-50"
               >
-                Restore this version
+                {t("noteManual.restoreVersion")}
               </button>
               <button
                 type="button"
                 onClick={() => void loadDate(selectedDate)}
                 className="px-3 py-1.5 text-sm border rounded-md"
               >
-                Cancel
+                {t("common.cancel")}
               </button>
             </div>
           )}

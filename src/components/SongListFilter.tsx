@@ -119,7 +119,7 @@ export function SongListFilter({
           onChange={(e) => setFilterAlbum(e.target.value)}
           className="px-3 py-2 border border-neutral-300 dark:border-neutral-700 rounded-lg bg-white dark:bg-neutral-900 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
         >
-          <option value="">All Albums</option>
+          <option value="">{t('songFilter.allAlbums')}</option>
           {albums.map((a) => (
             <option key={a.id} value={a.id}>
               {a.title}
@@ -131,7 +131,7 @@ export function SongListFilter({
           onChange={(e) => setFilterArtist(e.target.value)}
           className="px-3 py-2 border border-neutral-300 dark:border-neutral-700 rounded-lg bg-white dark:bg-neutral-900 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
         >
-          <option value="">All Artists</option>
+          <option value="">{t('songFilter.allArtists')}</option>
           {artists.map((a) => (
             <option key={a.id} value={a.id}>
               {a.name}
@@ -166,7 +166,7 @@ export function SongListFilter({
                 ))}
               </span>
               {song.published && Object.values(song.published).some(v => v === false) && (
-                <span className="text-red-500 whitespace-nowrap" title="Partially published">
+                <span className="text-red-500 whitespace-nowrap" title={t('songFilter.partiallyPublished')}>
                   ⚠
                 </span>
               )}

@@ -51,7 +51,7 @@ export const NotesSearch: React.FC<NotesSearchProps> = ({
           className="bg-blue-500 text-white p-2 rounded"
           onClick={() => setQuery('')}
         >
-          Clear
+          {t('notesSearch.clear')}
         </button>
       </div>
       
@@ -80,7 +80,7 @@ export const NotesSearch: React.FC<NotesSearchProps> = ({
         </select>
         
         <button className="bg-blue-500 text-white p-2 rounded" onClick={handleSearch}>
-          Search
+          {t('common.search')}
         </button>
       </div>
       

@@ -5,14 +5,17 @@ import { getSession, canViewSetlistStats } from "@/lib/auth";
 import { getSetlist } from "@/lib/content";
 import { collectSetlistUsage, type SetlistStatsPeriod } from "@/lib/setlist-stats";
 import { T } from "@/components/Translate";
+import { cookies } from "next/headers";
+import { getLocale, createT } from "@/lib/i18n/server";
 
 export async function generateMetadata({ params }: { params: Promise<{ setlistId: string }> }): Promise<Metadata> {
   const { setlistId } = await params;
+  const t = createT(getLocale(await cookies()));
   try {
     const setlist = await getSetlist(setlistId);
-    return { title: `${setlist.title} – Statistics` };
+    return { title: t("setlistApp.detailStatsTitle", { title: setlist.title }) };
   } catch {
-    return { title: "Setlist statistics" };
+    return { title: t("setlistApp.statsTitle") };
   }
 }
 

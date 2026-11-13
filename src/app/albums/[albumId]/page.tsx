@@ -2,7 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { cookies } from "next/headers";
 import { getAlbum, getAlbumTitle, getArtist, getSong, getSongTranslation, getSongTranslations, getSongTitle, getLanguagesConfig, shouldShowSongInLanguage } from "@/lib/content";
-import { getLocale } from "@/lib/i18n/server";
+import { getLocale, createT } from "@/lib/i18n/server";
 import { languageLabelFor } from "@/lib/i18n/labels";
 import { getSession, canEdit, canAdmin } from "@/lib/auth";
 import { DeleteButton } from "@/components/DeleteButton";
@@ -53,6 +53,7 @@ export default async function AlbumPage({
   const cookieStore = await cookies();
   const langConfig = await getLanguagesConfig();
   const uiLocale = getLocale(cookieStore, langConfig.default);
+  const t = createT(uiLocale);
   const langLabel = languageLabelFor;
   const displayLang = lang || uiLocale;
 
@@ -121,7 +122,7 @@ export default async function AlbumPage({
           href="/albums"
           className="text-sm text-blue-600 dark:text-blue-400 hover:underline mb-2 inline-block"
         >
-          &larr; All Albums
+          &larr; {t('albumsApp.allAlbums')}
         </Link>
         <h1 className="text-3xl font-bold">{localizedAlbumTitle}</h1>
         <div className="flex items-center gap-3 mt-1 text-sm text-neutral-500">
@@ -139,7 +140,9 @@ export default async function AlbumPage({
           )}
           <span>&middot;</span>
           <span>
-            {validSongs.length} song{validSongs.length !== 1 ? "s" : ""}
+            {validSongs.length === 1
+              ? t('albumsApp.songOne', { n: validSongs.length })
+              : t('albumsApp.songMany', { n: validSongs.length })}
           </span>
         </div>
         {album.description && (
@@ -167,7 +170,7 @@ export default async function AlbumPage({
                   href={`/albums/${albumId}/edit`}
                   className="text-sm px-3 py-1.5 border border-neutral-300 dark:border-neutral-700 rounded-md hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors"
                 >
-                  Edit Album
+                  {t('album.editAlbum')}
                 </Link>
                 <ChangeAlbumIdButton albumId={albumId} />
               </>
@@ -176,7 +179,7 @@ export default async function AlbumPage({
               href={`/pdf?scope=album&id=${albumId}`}
               className="text-sm px-3 py-1.5 border border-neutral-300 dark:border-neutral-700 rounded-md hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors"
             >
-              Export PDF
+              {t('albumsApp.exportPdf')}
             </Link>
             {isOriginalLanguage && album.spotify ? (
               <SpotifyPlayer
@@ -203,7 +206,7 @@ export default async function AlbumPage({
                 href={`/songs/new?album=${albumId}`}
                 className="text-sm px-3 py-1.5 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
               >
-                + Add Song
+                {t('albumsApp.addSong')}
               </Link>
             )}
             {showDeleteActions && (
@@ -222,12 +225,12 @@ export default async function AlbumPage({
       <div className="border border-neutral-200 dark:border-neutral-800 rounded-lg overflow-hidden">
         <div className="px-4 py-2 bg-neutral-50 dark:bg-neutral-900 border-b border-neutral-200 dark:border-neutral-800">
           <span className="text-xs font-medium text-neutral-500 uppercase tracking-wide">
-            Tracklist
+            {t('albumsApp.tracklist')}
           </span>
         </div>
         {validSongs.length === 0 ? (
           <div className="p-4 text-neutral-500 text-sm">
-            No songs in this album yet.
+            {t('albumsApp.noSongs')}
           </div>
         ) : (
           <ol className="divide-y divide-neutral-200 dark:divide-neutral-800">
@@ -248,7 +251,7 @@ export default async function AlbumPage({
                       <span className="font-medium block truncate">{song.title}</span>
                       {song.key && (
                         <span className="text-xs text-neutral-400">
-                          Key: {song.key}
+                          {t('common.key')}: {song.key}
                         </span>
                       )}
                     </div>

@@ -133,7 +133,7 @@ export function NoteView({ noteId, autoScrollSpeed, initialDate }: NoteViewProps
         }
       } catch (err) {
         chunks.push(
-          `[${section.name || "api"}] ${err instanceof Error ? err.message : "error"}`
+          `[${section.name || "api"}] ${err instanceof Error ? err.message : t("noteView.error")}`
         );
       }
     }
@@ -147,10 +147,10 @@ export function NoteView({ noteId, autoScrollSpeed, initialDate }: NoteViewProps
     return () => {
       cancelled = true;
     };
-  }, [note, selectedDate, effectiveLanguage, locale, noteId, manualPeriod]);
+  }, [note, selectedDate, effectiveLanguage, locale, noteId, manualPeriod, t]);
 
   const handleDelete = async () => {
-    if (!confirm("Delete this note?")) return;
+    if (!confirm(t("notes.confirmDelete"))) return;
     await notesApi.deleteNote(noteId);
     router.push("/notes");
   };

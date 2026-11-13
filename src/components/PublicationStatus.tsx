@@ -1,4 +1,6 @@
 import Link from 'next/link';
+import { cookies } from 'next/headers';
+import { getLocale, createT } from '@/lib/i18n/server';
 import type { SongListItem } from '@/lib/content';
 
 interface Props {
@@ -7,7 +9,7 @@ interface Props {
   defaultLanguage: string;
 }
 
-function statusCell(song: SongListItem, lang: string) {
+function statusCell(song: SongListItem, lang: string, t: (key: string) => string) {
   const translations = song.translations ?? [];
   const present = translations.includes(lang);
   const published = song.published?.[lang] === true;
@@ -19,7 +21,7 @@ function statusCell(song: SongListItem, lang: string) {
       <>
         <td key={`${lang}-song`} className="px-3 py-2 text-center text-xs">
           <Link href={editHref} className="text-amber-600 hover:underline dark:text-amber-400">
-            missing
+            {t('publication.missing')}
           </Link>
         </td>
         <td key={`${lang}-chords`} className="px-3 py-2 text-center text-xs text-neutral-400">—</td>
@@ -31,40 +33,41 @@ function statusCell(song: SongListItem, lang: string) {
     <>
       <td key={`${lang}-song`} className="px-3 py-2 text-center text-xs">
         <Link href={editHref} className={published ? 'text-green-600 dark:text-green-400' : 'text-neutral-500 hover:underline'}>
-          {published ? 'ok' : 'no'}
+          {published ? t('publication.ok') : t('publication.no')}
         </Link>
       </td>
       <td key={`${lang}-chords`} className="px-3 py-2 text-center text-xs">
         <Link href={editHref} className={chords ? 'text-green-600 dark:text-green-400' : 'text-neutral-500 hover:underline'}>
-          {chords ? 'yes' : 'no'}
+          {chords ? t('publication.yes') : t('publication.no')}
         </Link>
       </td>
     </>
   );
 }
 
-export function PublicationStatus({ songs, languages, defaultLanguage }: Props) {
+export async function PublicationStatus({ songs, languages, defaultLanguage }: Props) {
+  const t = createT(getLocale(await cookies(), 'en-US'));
   const sortedSongs = [...songs].sort((a, b) => a.id.localeCompare(b.id));
 
   return (
     <div className="max-w-full mx-auto px-4 sm:px-6 lg:px-8 py-8">
-      <h1 className="text-2xl font-bold mb-2">Publication status</h1>
+      <h1 className="text-2xl font-bold mb-2">{t('publication.title')}</h1>
       <p className="text-sm text-neutral-500 mb-6">
-        Per-language publication matrix for songs and chords. Click a cell to open the editor.
+        {t('publication.description')}
       </p>
 
       <div className="overflow-x-auto rounded-lg border border-neutral-200 dark:border-neutral-800">
         <table className="min-w-full text-sm">
           <thead className="bg-neutral-50 text-left text-xs uppercase tracking-wide text-neutral-500 dark:bg-neutral-900">
             <tr>
-              <th className="px-4 py-3 font-medium sticky left-0 bg-neutral-50 dark:bg-neutral-900">Song</th>
+              <th className="px-4 py-3 font-medium sticky left-0 bg-neutral-50 dark:bg-neutral-900">{t('publication.song')}</th>
               {languages.map((lang) => (
                 <>
                   <th key={`${lang}-song-h`} className="px-3 py-3 font-medium text-center">
-                    {lang}<br />song
+                    {lang}<br />{t('publication.colSong')}
                   </th>
                   <th key={`${lang}-acc-h`} className="px-3 py-3 font-medium text-center">
-                    {lang}<br />accords
+                    {lang}<br />{t('publication.colChords')}
                   </th>
                 </>
               ))}
@@ -82,7 +85,7 @@ export function PublicationStatus({ songs, languages, defaultLanguage }: Props) 
                   </Link>
                   <div className="text-xs text-neutral-500 truncate max-w-[18rem]">{song.title}</div>
                 </td>
-                {languages.map((lang) => statusCell(song, lang))}
+                {languages.map((lang) => statusCell(song, lang, t))}
               </tr>
             ))}
           </tbody>

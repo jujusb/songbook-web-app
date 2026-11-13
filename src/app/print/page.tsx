@@ -1,4 +1,6 @@
 import { listAlbums, getLanguagesConfig, listArtists } from "@/lib/content";
+import { cookies } from "next/headers";
+import { getLocale, createT } from "@/lib/i18n/server";
 import { PrintConfigForm } from "@/components/PrintConfigForm";
 
 export default async function PrintConfigPage({
@@ -12,6 +14,7 @@ export default async function PrintConfigPage({
     getLanguagesConfig(),
     listArtists(),
   ]);
+  const t = createT(getLocale(await cookies(), langConfig.default));
 
   const artistMap = new Map(artists.map((a) => [a.id, a.name]));
 
@@ -30,7 +33,7 @@ export default async function PrintConfigPage({
 
   return (
     <div className="max-w-full mx-auto px-4 sm:px-6 lg:px-8 py-8">
-      <h1 className="text-2xl font-bold mb-6">Print Songbook</h1>
+      <h1 className="text-2xl font-bold mb-6">{t("print.printSongbook")}</h1>
       <PrintConfigForm
         albums={albumOptions}
         languages={langConfig.languages}

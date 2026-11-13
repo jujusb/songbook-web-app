@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { PrintSongbook } from "@/components/PrintSongbook";
 import { languageLabelFor } from "@/lib/i18n/labels";
+import { useTranslation } from "@/lib/i18n";
 import type { PrintSong } from "@/lib/print/types";
 import type { Orientation } from "@/lib/chordpro/notation";
 
@@ -54,6 +55,7 @@ export function PrintPageClient({
   const [tocColumns] = useState<"1" | "2" | "3">(initialTocColumns);
   const router = useRouter();
   const searchParams = useSearchParams();
+  const { t } = useTranslation();
 
   const handleRepeatChorusChange = (checked: boolean) => {
     setRepeatChorus(checked);
@@ -92,10 +94,12 @@ export function PrintPageClient({
       toolbarChildren={
         <>
           <span className="text-sm text-neutral-500">
-            {printSongs.length} song{printSongs.length !== 1 ? "s" : ""}
+            {printSongs.length === 1
+              ? t('printPage.songOne', { n: printSongs.length })
+              : t('printPage.songMany', { n: printSongs.length })}
             {" · "}
             {languages.map(langLabel).join(", ")}
-            {showRefs && " · with references"}
+            {showRefs && ` · ${t('print.withReferences')}`}
           </span>
           <label className="flex items-center gap-2 ml-4 text-sm">
             <input
@@ -104,7 +108,7 @@ export function PrintPageClient({
               onChange={(e) => handleShowChordsChange(e.target.checked)}
               className="w-4 h-4 border border-neutral-300 dark:border-neutral-700 rounded text-blue-600 focus:ring-2 focus:ring-blue-500"
             />
-            <span className="text-neutral-500">Show chords</span>
+            <span className="text-neutral-500">{t('profile.chords')}</span>
           </label>
           <label className="flex items-center gap-2 ml-4 text-sm">
             <input
@@ -113,10 +117,10 @@ export function PrintPageClient({
               onChange={(e) => handleRepeatChorusChange(e.target.checked)}
               className="w-4 h-4 border border-neutral-300 dark:border-neutral-700 rounded text-blue-600 focus:ring-2 focus:ring-blue-500"
             />
-            <span className="text-neutral-500">Show repeated sections</span>
+            <span className="text-neutral-500">{t('profile.repeats')}</span>
           </label>
           <div className="flex items-center gap-1 ml-4">
-            <span className="text-xs text-neutral-400">Notation:</span>
+            <span className="text-xs text-neutral-400">{t('printPage.notation')}</span>
             {["letters", "solfege", "roman", "nashville"].map((n) => (
               <button
                 key={n}
@@ -128,7 +132,7 @@ export function PrintPageClient({
                     : "bg-neutral-100 text-neutral-600 hover:bg-neutral-200 dark:bg-neutral-800 dark:text-neutral-300"
                 }`}
               >
-                {n === "letters" ? "Letters" : n === "solfege" ? "Solfège" : n === "roman" ? "Roman" : "Nashville"}
+                {t(`printPage.notation_${n}`)}
               </button>
             ))}
           </div>

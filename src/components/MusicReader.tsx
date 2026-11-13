@@ -38,25 +38,25 @@ interface TrackGroup {
   files: AudioFileEntry[];
 }
 
-function groupTracks(files: AudioFileEntry[]): TrackGroup[] {
+function groupTracks(files: AudioFileEntry[], t: (key: string) => string): TrackGroup[] {
   const groups: TrackGroup[] = [];
 
   // "full" → Original
   const original = files.filter((f) => f.voice === "full");
   if (original.length > 0) {
-    groups.push({ id: "original", label: "Original", files: original });
+    groups.push({ id: "original", label: t('musicReader.original'), files: original });
   }
 
   // "all" → Full Mix
   const fullMix = files.filter((f) => f.voice === "all");
   if (fullMix.length > 0) {
-    groups.push({ id: "full", label: "Full Mix", files: fullMix });
+    groups.push({ id: "full", label: t('musicReader.fullMix'), files: fullMix });
   }
 
   // "guide" → Guide
   const guide = files.filter((f) => f.voice === "guide");
   if (guide.length > 0) {
-    groups.push({ id: "guide", label: "Voice Guide", files: guide });
+    groups.push({ id: "guide", label: t('musicReader.voiceGuide'), files: guide });
   }
 
   // feminine / masculine → Voices
@@ -65,14 +65,14 @@ function groupTracks(files: AudioFileEntry[]): TrackGroup[] {
 
   if (feminine.length > 0 || masculine.length > 0) {
     const voiceFiles: AudioFileEntry[] = [...feminine, ...masculine];
-    groups.push({ id: "voices", label: "Voices", files: voiceFiles });
+    groups.push({ id: "voices", label: t('musicReader.voices'), files: voiceFiles });
   }
 
   // Any remaining ungrouped
   const grouped = new Set(groups.flatMap((g) => g.files));
   const remaining = files.filter((f) => !grouped.has(f));
   if (remaining.length > 0) {
-    groups.push({ id: "other", label: "Other", files: remaining });
+    groups.push({ id: "other", label: t('musicReader.other'), files: remaining });
   }
 
   return groups;
@@ -90,7 +90,7 @@ export function MusicReader({
   songTitle?: string;
 }) {
   const audioRef = useRef<HTMLAudioElement>(null);
-  const { languageLabel } = useTranslation();
+  const { t, languageLabel } = useTranslation();
   const [current, setCurrent] = useState<string | null>(null);
   const [playing, setPlaying] = useState(false);
   const [duration, setDuration] = useState(0);
@@ -111,7 +111,7 @@ export function MusicReader({
   const activeLang = langs.length > 0 && langs.includes(userLang) ? userLang : (langs[0] || "");
 
   const visibleFiles = activeLang ? byLang[activeLang] || [] : [];
-  const groups = groupTracks(visibleFiles);
+  const groups = groupTracks(visibleFiles, t);
 
   // Update duration when metadata loads
   const handleMetadata = useCallback(() => {
@@ -192,7 +192,7 @@ export function MusicReader({
               <button
                 onClick={() => playTrack(current)}
                 className="w-7 h-7 flex items-center justify-center rounded-full bg-neutral-900 dark:bg-white text-white dark:text-neutral-900 hover:opacity-90 transition-opacity"
-                title={playing ? "Pause (Space)" : "Play (Space)"}
+                title={playing ? t('musicReader.pause') : t('musicReader.play')}
               >
                 {playing ? (
                   <svg width="12" height="12" viewBox="0 0 12 12" fill="currentColor">
@@ -213,7 +213,7 @@ export function MusicReader({
                 value={currentTime}
                 onChange={handleSeek}
                 className="w-24 h-1.5 accent-neutral-700 dark:accent-neutral-300 cursor-pointer"
-                aria-label="Seek"
+                aria-label={t('musicReader.seek')}
               />
               <span className="tabular-nums w-16 text-right">
                 {formatTime(currentTime)} / {formatTime(duration)}
@@ -230,7 +230,7 @@ export function MusicReader({
                   value={volume}
                   onChange={handleVolume}
                   className="w-14 h-1 accent-neutral-700 dark:accent-neutral-300 cursor-pointer"
-                  aria-label="Volume"
+                  aria-label={t('musicReader.volume')}
                 />
               </div>
             </div>
@@ -314,8 +314,9 @@ export function MusicReader({
                 const hasAlto = lowerLabel.includes("alta");
                 const hasBajo = lowerLabel.includes("baja");
                 let specificVoice = "";
-                if (hasAlto) specificVoice = "Alto";
-                else if (hasBajo) specificVoice = "Bajo";
+                if (hasAlto) specificVoice = "alto";
+                else if (hasBajo) specificVoice = "bass";
+                const specificVoiceLabel = specificVoice ? t(`voice.sections.${specificVoice}`) : "";
 
                 return (
                   <button
@@ -347,15 +348,15 @@ export function MusicReader({
                     <span className="flex-1 truncate">{label}</span>
 
                     {/* Voice tag */}
-                    {(specificVoice || voiceTag) && specificVoice !== label && (
+                    {(specificVoice || voiceTag) && specificVoiceLabel !== label && (
                       <span className={`text-[10px] px-1 py-0.5 rounded font-medium ${
-                        specificVoice === "Alto"
+                        specificVoice === "alto"
                           ? "bg-blue-50 dark:bg-blue-950 text-blue-500 dark:text-blue-400"
-                          : specificVoice === "Bajo"
+                          : specificVoice === "bass"
                           ? "bg-purple-50 dark:bg-purple-950 text-purple-500 dark:text-purple-400"
                           : "bg-neutral-100 dark:bg-neutral-800 text-neutral-400"
                       }`}>
-                        {specificVoice || voiceTag}
+                        {specificVoiceLabel || voiceTag}
                       </span>
                     )}
 
@@ -374,7 +375,7 @@ export function MusicReader({
 
         {groups.length === 0 && (
           <p className="text-xs text-neutral-400 text-center py-4">
-            No audio tracks available for this language.
+            {t('musicReader.noTracks')}
           </p>
         )}
       </div>

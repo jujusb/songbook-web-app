@@ -62,11 +62,11 @@ export function UserManagement() {
   const fetchUsers = async () => {
     try {
       const res = await fetch("/api/admin/users");
-      if (!res.ok) throw new Error("Failed to fetch users");
+      if (!res.ok) throw new Error(t('userMgmt.failedLoad'));
       const data = await res.json();
       setUsers(data);
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "Failed to load users");
+      setError(err instanceof Error ? err.message : t('userMgmt.failedLoad'));
     } finally {
       setLoading(false);
     }
@@ -145,11 +145,11 @@ export function UserManagement() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ userId: editingUser.id, permissions }),
       });
-      if (!res.ok) throw new Error("Failed to save permissions");
+      if (!res.ok) throw new Error(t('userMgmt.failedSavePerms'));
       await fetchUsers();
       closeEdit();
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "Failed to save");
+      setError(err instanceof Error ? err.message : t('userMgmt.failedSave'));
     }
   };
 
@@ -160,31 +160,31 @@ export function UserManagement() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ userId, role: newRole }),
       });
-      if (!res.ok) throw new Error("Failed to update role");
+      if (!res.ok) throw new Error(t('userMgmt.failedRole'));
       await fetchUsers();
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "Failed to update role");
+      setError(err instanceof Error ? err.message : t('userMgmt.failedRole'));
     }
   };
 
   const deleteUser = async (userId: string) => {
-    if (!confirm("Delete this user?")) return;
+    if (!confirm(t('userMgmt.confirmDelete'))) return;
     try {
       const res = await fetch(`/api/admin/users?id=${userId}`, { method: "DELETE" });
-      if (!res.ok) throw new Error("Failed to delete user");
+      if (!res.ok) throw new Error(t('userMgmt.failedDelete'));
       await fetchUsers();
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "Failed to delete");
+      setError(err instanceof Error ? err.message : t('userMgmt.failedDelete'));
     }
   };
 
   const createUser = async () => {
     if (!newUserForm.username || !newUserForm.password) {
-      setError("Username and password are required");
+      setError(t('userMgmt.required'));
       return;
     }
     if (newUserForm.password.length < 8) {
-      setError("Password must be at least 8 characters");
+      setError(t('auth.passwordMinLength'));
       return;
     }
     setNewUserLoading(true);
@@ -197,13 +197,13 @@ export function UserManagement() {
       });
       if (!res.ok) {
         const data = await res.json();
-        throw new Error(data.error || "Failed to create user");
+        throw new Error(data.error || t('userMgmt.failedCreate'));
       }
       setCreatingUser(false);
       setNewUserForm({ username: '', password: '', displayName: '', email: '', role: 'reviewer' });
       await fetchUsers();
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "Failed to create user");
+      setError(err instanceof Error ? err.message : t('userMgmt.failedCreate'));
     } finally {
       setNewUserLoading(false);
     }
@@ -224,7 +224,7 @@ export function UserManagement() {
     u.displayName?.toLowerCase().includes(searchUser.toLowerCase())
   );
 
-  if (loading) return <div className="text-center py-8">Loading...</div>;
+  if (loading) return <div className="text-center py-8">{t('common.loading')}</div>;
 
   return (
     <div className="max-w-6xl mx-auto px-4 py-8">

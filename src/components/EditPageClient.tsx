@@ -327,7 +327,7 @@ return (
                     : 'bg-neutral-100 text-neutral-700 dark:bg-neutral-800 dark:text-neutral-300 border-neutral-300 dark:border-neutral-700'
                 } hover:opacity-90 disabled:opacity-50`}
               >
-                {savingChordsPublished ? t('common.saving') : isChordsPublished ? 'Chords Published' : 'Chords Unpublished'}
+                {savingChordsPublished ? t('common.saving') : isChordsPublished ? t('editPage.chordsPublished') : t('editPage.chordsUnpublished')}
               </button>
             )}
             <button

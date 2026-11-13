@@ -42,7 +42,7 @@ export function MusicLinksEditor({
       setSaved(true);
       setTimeout(() => setSaved(false), 2000);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'FAILED');
+      setError(err instanceof Error ? err.message : t('musicLinks.failed'));
     } finally {
       setSaving(false);
     }

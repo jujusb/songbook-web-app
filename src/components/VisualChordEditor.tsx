@@ -7,6 +7,7 @@ import {
   linesToChordPro,
   type ParsedLine,
 } from "@/lib/chordpro/visual-parse";
+import { useTranslation } from "@/lib/i18n";
 
 type ChordRef = { chord: string; position: number };
 
@@ -65,6 +66,7 @@ export function VisualChordEditor({
   } | null>(null);
   const [addingChord, setAddingChord] = useState<number | null>(null); // lineIdx
   const [newChordName, setNewChordName] = useState("");
+  const { t } = useTranslation();
   const containerRef = useRef<HTMLDivElement>(null);
   const linesRef = useRef(lines);
 
@@ -221,7 +223,7 @@ export function VisualChordEditor({
       {/* Toolbar */}
       {selectedChord && (
         <div className="vce-toolbar">
-          <span className="vce-toolbar-label">Chord:</span>
+          <span className="vce-toolbar-label">{t('chordEditor.chordLabel')}</span>
           <input
             type="text"
             className="vce-chord-input"
@@ -234,33 +236,33 @@ export function VisualChordEditor({
           <button
             className="vce-btn"
             onMouseDown={(e) => { e.preventDefault(); moveChord(-1); }}
-            title="Move chord left"
+            title={t('chordEditor.moveLeft')}
           >
             &larr;
           </button>
           <button
             className="vce-btn"
             onMouseDown={(e) => { e.preventDefault(); moveChord(1); }}
-            title="Move chord right"
+            title={t('chordEditor.moveRight')}
           >
             &rarr;
           </button>
           <button
             className="vce-btn vce-btn-danger"
             onMouseDown={(e) => { e.preventDefault(); deleteChord(); }}
-            title="Delete chord"
+            title={t('chordEditor.deleteChord')}
           >
-            Delete
+            {t('common.delete')}
           </button>
           <span className="vce-toolbar-hint">
-            Arrow keys to move, Del to remove, Esc to deselect
+            {t('chordEditor.hint')}
           </span>
         </div>
       )}
 
       {!selectedChord && (
         <div className="vce-toolbar vce-toolbar-hint">
-          Click a chord to select it. Double-click lyrics to add a chord.
+          {t('chordEditor.clickHint')}
         </div>
       )}
 
@@ -337,6 +339,7 @@ function ContentLine({
   setNewChordName: (v: string) => void;
   setAddingChord: (v: number | null) => void;
 }) {
+  const { t } = useTranslation();
   const lyricsRef = useRef<HTMLDivElement>(null);
   const userEditingRef = useRef(false);
   const [addPos, setAddPos] = useState(0);
@@ -426,7 +429,7 @@ function ContentLine({
             e.stopPropagation();
             onSelectChord(origIdx);
           }}
-          title={`${cp.chord} at position ${cp.position}`}
+          title={t('chordEditor.chordAtPosition', { chord: cp.chord, position: cp.position })}
         >
           {cp.chord}
         </span>
@@ -436,7 +439,7 @@ function ContentLine({
     });
 
     return elements;
-  }, [sortedChords, chordOriginalIndices, selectedChord, lineIdx, onSelectChord]);
+  }, [sortedChords, chordOriginalIndices, selectedChord, lineIdx, onSelectChord, t]);
 
   // Handle double-click on lyrics to add a chord. The popup is positioned in
   // pixels from the real, rendered glyph advances (measured via canvas with the
@@ -531,7 +534,7 @@ function ContentLine({
               autoFocus
               type="text"
               className="vce-add-chord-input"
-              placeholder="e.g. Am"
+              placeholder={t('chordEditor.placeholder', { example: 'Am' })}
               value={newChordName}
               onChange={(e) => setNewChordName(e.target.value)}
               onKeyDown={(e) => {

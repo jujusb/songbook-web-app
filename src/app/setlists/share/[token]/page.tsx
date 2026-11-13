@@ -19,7 +19,7 @@ import {
   getSetlistVersion,
   listSetlistVersions,
 } from "@/lib/content";
-import { getLocale } from "@/lib/i18n/server";
+import { getLocale, createT, plural } from "@/lib/i18n/server";
 import { getSession, getCurrentUser } from "@/lib/auth";
 import { getSetlistVoiceShares } from "@/lib/navidrome/setlist-shares";
 import { isSongItem, isNoteItem, isLinkItem, isRecurrentNoteItem } from "@/lib/content/schemas";
@@ -42,8 +42,9 @@ export async function generateMetadata({
   params: Promise<{ token: string }>;
 }): Promise<Metadata> {
   const { token } = await params;
+  const t = createT(getLocale(await cookies()));
   const setlist = await findSetlistByShareToken(token);
-  if (!setlist) return { title: "Setlist" };
+  if (!setlist) return { title: t("setlistApp.setlistFallbackTitle") };
   const title = setlist.date ? `${setlist.title} - ${setlist.date}` : setlist.title;
   return {
     title,
@@ -80,6 +81,7 @@ export default async function SetlistSharePage({
 
   const langConfig = await getLanguagesConfig();
   const selectedLang = getLocale(await cookies(), langConfig.default);
+  const t = createT(selectedLang);
 
   // Determine source setlist (original for references)
   const isReference = !!setlist.sharedFrom;
@@ -215,7 +217,7 @@ export default async function SetlistSharePage({
         href="/setlists"
         className="text-sm text-blue-600 dark:text-blue-400 hover:underline mb-4 inline-block"
       >
-        &larr; All Setlists
+        &larr; {t("setlistApp.allSetlists")}
       </Link>
 
       <div className="flex items-center justify-between mb-6">
@@ -224,14 +226,14 @@ export default async function SetlistSharePage({
           <div className="flex items-center gap-3 mt-1 text-sm text-neutral-500">
             {setlist.date && <span>{setlist.date}</span>}
             <span>
-              {visible.length} song{visible.length !== 1 ? "s" : ""}
+              {plural(t("setlist.count", { n: visible.length }), visible.length)}
             </span>
           </div>
           {setlist.description && (
             <p className="text-neutral-500 mt-1 text-sm">{setlist.description}</p>
           )}
           {isReference && (
-            <p className="text-neutral-500 mt-1 text-sm">Saved from shared setlist</p>
+            <p className="text-neutral-500 mt-1 text-sm">{t("setlist.savedFromShared")}</p>
           )}
         </div>
         <div className="flex gap-2">
@@ -240,7 +242,7 @@ export default async function SetlistSharePage({
               href={presentHref}
               className="text-sm px-3 py-1.5 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
             >
-              Present
+              {t("setlist.present")}
             </Link>
           )}
           {setlist.songs.length > 0 && (
@@ -254,7 +256,7 @@ export default async function SetlistSharePage({
               onClick={handleSaveShared}
               className="text-sm px-3 py-1.5 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors"
             >
-              Save to My Library
+              {t("setlist.saveToMySetlists")}
             </button>
           )}
         </div>

@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import NotesList from '@/components/NotesList';
 import { isReadOnly } from '@/lib/readonly';
+import { getLocale, createT } from "@/lib/i18n/server";
 
 export default function NotesPage() {
   return (
@@ -9,4 +10,7 @@ export default function NotesPage() {
     </div>
   );
 }
-export const metadata: Metadata = { title: "Notes" };
+export async function generateMetadata(): Promise<Metadata> {
+  const t = createT(await getLocale());
+  return { title: t("notesApp.notesTitle") };
+}

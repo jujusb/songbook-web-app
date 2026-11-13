@@ -10,7 +10,7 @@ export function LocaleSwitcher({
   id?: string;
   className?: string;
 }) {
-  const { locale, setLocale, availableLocales } = useTranslation();
+  const { locale, setLocale, availableLocales, t } = useTranslation();
   const router = useRouter();
 
   const handleChange = (value: string) => {
@@ -33,7 +33,7 @@ export function LocaleSwitcher({
       value={locale}
       onChange={(e) => handleChange(e.target.value)}
       className={`shrink-0 text-xs bg-transparent border border-neutral-300 dark:border-neutral-700 rounded px-1.5 py-0.5 text-neutral-600 dark:text-neutral-400 hover:text-foreground transition-colors cursor-pointer outline-none ${className}`}
-      aria-label="UI Language"
+      aria-label={t('langSwitch.uiLanguage')}
     >
       {availableLocales.map((l) => (
         <option key={l.code} value={l.code}>

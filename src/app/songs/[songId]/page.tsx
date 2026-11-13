@@ -14,7 +14,7 @@ import {
   getSongBody,
   getSongIdsByLanguage,
 } from "@/lib/content";
-import { getLocale } from "@/lib/i18n/server";
+import { getLocale, createT } from "@/lib/i18n/server";
 import { getSession, getCurrentUser, canEdit, canAdmin } from "@/lib/auth";
 import { isReadOnly } from "@/lib/readonly";
 import { ChordSheet } from "@/components/ChordSheet";
@@ -98,6 +98,7 @@ export default async function SongPage({
 
   const langConfig = await getLanguagesConfig();
   const selectedLang = getLocale(await cookies(), langConfig.default);
+  const t = createT(selectedLang);
   const lang =
     langParam && translations.includes(langParam)
       ? langParam
@@ -150,30 +151,30 @@ export default async function SongPage({
   const primaryActions = [
     ...(hasNavigation ? [
       {
-        label: "Previous",
+        label: t('songsApp.previous'),
         href: `/songs/${prevSongId}?lang=${lang}`,
       },
       {
-        label: "Next",
+        label: t('songsApp.next'),
         href: `/songs/${nextSongId}?lang=${lang}`,
       },
     ] : []),
     ...(showEditActions ? [
       {
-        label: "Edit",
+        label: t('common.edit'),
         href: `/edit/${songId}/${lang}`,
       },
       {
-        label: "Edit References",
+        label: t('song.editReferences'),
         href: `/edit/${songId}/${lang}?references=1`,
       },
     ] : []),
     {
-      label: "Present",
+      label: t('song.present'),
       href: `/present/${songId}?lang=${lang}`,
     },
     {
-      label: "Compare",
+      label: t('song.compare'),
       href: `/compare/${songId}?langs=${translations.join(",")}`,
     },
   ];
@@ -181,13 +182,13 @@ export default async function SongPage({
   const secondaryActions = [];
   if (meta.audioFiles && meta.audioFiles.length > 0) {
     secondaryActions.push({
-      label: "Listen",
+      label: t('song.listen'),
       href: `/music/${songId}?lang=${lang}`,
     });
   }
   if (showNavidrome) {
     secondaryActions.push({
-      label: "Share via Navidrome",
+      label: t('songsApp.shareNavidrome'),
       onClick: () => {}, // NavidromeShareButton handles its own click
     });
   }
@@ -211,13 +212,13 @@ export default async function SongPage({
                     href={`/edit/${songId}/${lang}`}
                     className="text-sm px-3 py-1.5 border border-neutral-300 dark:border-neutral-700 rounded-md hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors hidden sm:inline-flex"
                   >
-                    Edit
+                    {t('common.edit')}
                   </Link>
                   <Link
                     href={`/edit/${songId}/${lang}?references=1`}
                     className="text-sm px-3 py-1.5 border border-neutral-300 dark:border-neutral-700 rounded-md hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors hidden sm:inline-flex"
                   >
-                    Edit References
+                    {t('song.editReferences')}
                   </Link>
                 </>
               )}
@@ -227,8 +228,8 @@ export default async function SongPage({
                   <Link
                     href={`/songs/${prevSongId}?lang=${lang}`}
                     className="p-2 border border-neutral-300 dark:border-neutral-700 rounded-md hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors hidden sm:inline-flex"
-                    aria-label="Previous song"
-                    title="Previous song"
+                    aria-label={t('song.previousSong')}
+                    title={t('song.previousSong')}
                   >
                     <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
@@ -237,8 +238,8 @@ export default async function SongPage({
                   <Link
                     href={`/songs/${nextSongId}?lang=${lang}`}
                     className="p-2 border border-neutral-300 dark:border-neutral-700 rounded-md hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors hidden sm:inline-flex"
-                    aria-label="Next song"
-                    title="Next song"
+                    aria-label={t('song.nextSong')}
+                    title={t('song.nextSong')}
                   >
                     <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
@@ -250,13 +251,13 @@ export default async function SongPage({
                 href={`/present/${songId}?lang=${lang}`}
                 className="text-sm px-3 py-1.5 border border-neutral-300 dark:border-neutral-700 rounded-md hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors hidden sm:inline-flex"
               >
-                Present
+                {t('song.present')}
               </Link>
               <Link
                 href={`/compare/${songId}?langs=${translations.join(",")}`}
                 className="text-sm px-3 py-1.5 border border-neutral-300 dark:border-neutral-700 rounded-md hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors hidden sm:inline-flex"
               >
-                Compare
+                {t('song.compare')}
               </Link>
 
               {/* Mobile: ActionMenu for primary actions */}
@@ -295,7 +296,7 @@ export default async function SongPage({
 
         {/* Collapsible Song Info - default closed on mobile, open on desktop */}
         <CollapsibleSection
-          title="Song Info"
+          title={t('songsApp.songInfo')}
           defaultOpen={false}
           className="md:hidden mb-4"
         >
@@ -312,7 +313,7 @@ export default async function SongPage({
               <span className="text-neutral-500">{artist.name}</span>
             )}
             {meta.key && (
-              <span className="text-neutral-500">Key: {meta.key}</span>
+              <span className="text-neutral-500">{t('common.key')}: {meta.key}</span>
             )}
             {albums.length > 0 && (
               <div className="flex items-center gap-1.5 flex-wrap">
@@ -344,7 +345,7 @@ export default async function SongPage({
             <span className="text-neutral-500">{artist.name}</span>
           )}
           {meta.key && (
-            <span className="text-neutral-500">Key: {meta.key}</span>
+            <span className="text-neutral-500">{t('common.key')}: {meta.key}</span>
           )}
           {albums.length > 0 && (
             <div className="flex items-center gap-1.5 flex-wrap">

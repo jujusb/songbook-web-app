@@ -144,21 +144,21 @@ export function AlbumsPageClient({
           onChange={(e) => setSortBy(e.target.value as typeof sortBy)}
           className="px-3 py-2 border border-neutral-300 dark:border-neutral-700 rounded-lg bg-white dark:bg-neutral-900 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
         >
-          <option value="title-asc">Title A → Z</option>
-          <option value="title-desc">Title Z → A</option>
-          <option value="year-asc">Year ↑</option>
-          <option value="year-desc">Year ↓</option>
-          <option value="number-asc">Number ↑</option>
-          <option value="number-desc">Number ↓</option>
-          <option value="id-asc">ID A → Z</option>
-          <option value="id-desc">ID Z → A</option>
+          <option value="title-asc">{t('albumsPage.sortTitleAsc')}</option>
+          <option value="title-desc">{t('albumsPage.sortTitleDesc')}</option>
+          <option value="year-asc">{t('albumsPage.sortYearAsc')}</option>
+          <option value="year-desc">{t('albumsPage.sortYearDesc')}</option>
+          <option value="number-asc">{t('albumsPage.sortNumberAsc')}</option>
+          <option value="number-desc">{t('albumsPage.sortNumberDesc')}</option>
+          <option value="id-asc">{t('albumsPage.sortIdAsc')}</option>
+          <option value="id-desc">{t('albumsPage.sortIdDesc')}</option>
         </select>
         <select
           value={filterArtist}
           onChange={(e) => setFilterArtist(e.target.value)}
           className="px-3 py-2 border border-neutral-300 dark:border-neutral-700 rounded-lg bg-white dark:bg-neutral-900 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
         >
-          <option value="">All Artists</option>
+          <option value="">{t('albumsPage.allArtists')}</option>
           {artists.map((a) => (
             <option key={a.id} value={a.id}>
               {a.name}
@@ -186,17 +186,18 @@ export function AlbumsPageClient({
               <div className="flex items-center gap-3 text-xs text-neutral-400 flex-wrap">
                 {album.number !== undefined && (
                   <span className="px-2 py-0.5 bg-blue-50 dark:bg-blue-950 text-blue-600 dark:text-blue-400 rounded text-xs font-mono">
-                    No. {album.number}
+                    {t('albumsPage.number', { n: album.number })}
                   </span>
                 )}
                 {album.year && <span>{album.year}</span>}
                 <span>
-                  {album.songCount} song
-                  {album.songCount !== 1 ? "s" : ""}
+                  {album.songCount === 1
+                    ? t('albumsPage.songOne', { n: album.songCount })
+                    : t('albumsPage.songMany', { n: album.songCount })}
                 </span>
                 {showEditActions && album.published !== undefined && (
-                  <span className={album.published ? 'text-green-500' : 'text-red-500'} title={album.published ? 'Published' : 'Unpublished'}>
-                    {album.published ? '✓ Published' : '✗ Unpublished'}
+                  <span className={album.published ? 'text-green-500' : 'text-red-500'} title={album.published ? t('song.published') : t('song.unpublished')}>
+                    {album.published ? `✓ ${t('song.published')}` : `✗ ${t('song.unpublished')}`}
                   </span>
                 )}
               </div>

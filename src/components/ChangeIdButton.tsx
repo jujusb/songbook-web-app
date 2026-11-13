@@ -3,6 +3,7 @@
 import { useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { changeSongIdAction } from "@/app/actions";
+import { useTranslation } from "@/lib/i18n";
 
 function slugify(value: string): string {
   return value.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
@@ -10,6 +11,7 @@ function slugify(value: string): string {
 
 export function ChangeIdButton({ songId, lang }: { songId: string; lang: string }) {
   const router = useRouter();
+  const { t } = useTranslation();
   const [editing, setEditing] = useState(false);
   const [value, setValue] = useState(songId);
   const [busy, setBusy] = useState(false);
@@ -18,7 +20,7 @@ export function ChangeIdButton({ songId, lang }: { songId: string; lang: string 
   const handleSave = useCallback(async () => {
     const newId = slugify(value);
     if (!newId) {
-      setError("ID cannot be empty");
+      setError(t('changeId.empty'));
       return;
     }
     if (newId === songId) {
@@ -30,17 +32,17 @@ export function ChangeIdButton({ songId, lang }: { songId: string; lang: string 
     try {
       const result = await changeSongIdAction(songId, newId);
       if (!result.ok) {
-        setError(result.error === "READ_ONLY" ? "Read-only mode" : result.error);
+        setError(result.error === "READ_ONLY" ? t('changeId.readOnly') : result.error);
         setBusy(false);
         return;
       }
       router.push(`/songs/${result.songId}?lang=${lang}`);
       router.refresh();
     } catch {
-      setError("Failed to change ID");
+      setError(t('changeId.failed'));
       setBusy(false);
     }
-  }, [value, songId, lang, router]);
+  }, [value, songId, lang, router, t]);
 
   if (!editing) {
     return (
@@ -52,9 +54,9 @@ export function ChangeIdButton({ songId, lang }: { songId: string; lang: string 
           setError(null);
         }}
         className="px-3 py-1.5 border border-neutral-300 dark:border-neutral-700 rounded-md text-sm hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors"
-        title="Change the song ID (URL slug). Album and setlist references are updated automatically."
+        title={t('changeId.songTitle')}
       >
-        Change ID
+        {t('changeId.button')}
       </button>
     );
   }
@@ -80,7 +82,7 @@ export function ChangeIdButton({ songId, lang }: { songId: string; lang: string 
         disabled={busy}
         className="text-sm px-3 py-1 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50"
       >
-        {busy ? "Saving..." : "Save"}
+        {busy ? t('common.saving') : t('common.save')}
       </button>
       <button
         type="button"
@@ -88,7 +90,7 @@ export function ChangeIdButton({ songId, lang }: { songId: string; lang: string 
         disabled={busy}
         className="text-sm px-3 py-1 border border-neutral-300 dark:border-neutral-700 rounded-md hover:bg-neutral-100 dark:hover:bg-neutral-800"
       >
-        Cancel
+        {t('common.cancel')}
       </button>
       {error && <span className="text-xs text-red-600 dark:text-red-400">{error}</span>}
     </div>

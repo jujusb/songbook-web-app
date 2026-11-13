@@ -33,7 +33,7 @@ export function PrintConfigForm({
   preselectedArtist?: string;
 }) {
   const router = useRouter();
-  const { locale, languageLabel } = useTranslation();
+  const { locale, languageLabel, t } = useTranslation();
   const [scope, setScope] = useState<"all" | "album" | "artist">(
     preselectedAlbum ? "album" : preselectedArtist ? "artist" : "all"
   );
@@ -85,7 +85,7 @@ export function PrintConfigForm({
     <div className="space-y-6">
       {/* Scope */}
       <div>
-        <label className="block text-sm font-medium mb-2">What to print</label>
+        <label className="block text-sm font-medium mb-2">{t('printConfig.whatToPrint')}</label>
         <div className="space-y-2">
           <label className="flex items-center gap-2 cursor-pointer">
             <input
@@ -94,7 +94,7 @@ export function PrintConfigForm({
               onChange={() => setScope("all")}
               className="accent-blue-600"
             />
-            <span className="text-sm">Full songbook</span>
+            <span className="text-sm">{t('pdf.scopeAll')}</span>
           </label>
           <label className="flex items-center gap-2 cursor-pointer">
             <input
@@ -103,7 +103,7 @@ export function PrintConfigForm({
               onChange={() => setScope("album")}
               className="accent-blue-600"
             />
-            <span className="text-sm">Single album</span>
+            <span className="text-sm">{t('pdf.scopeAlbum')}</span>
           </label>
           <label className="flex items-center gap-2 cursor-pointer">
             <input
@@ -112,7 +112,7 @@ export function PrintConfigForm({
               onChange={() => setScope("artist")}
               className="accent-blue-600"
             />
-            <span className="text-sm">Single artist</span>
+            <span className="text-sm">{t('pdf.scopeArtist')}</span>
           </label>
         </div>
         {scope === "album" && (
@@ -123,7 +123,7 @@ export function PrintConfigForm({
           >
             {albums.map((album) => (
               <option key={album.id} value={album.id}>
-                {album.titles?.[locale] || album.title} — {album.artist} ({album.songCount} songs)
+                {t('printConfig.albumOption', { title: album.titles?.[locale] || album.title, artist: album.artist, count: album.songCount })}
               </option>
             ))}
           </select>
@@ -146,13 +146,13 @@ export function PrintConfigForm({
       {/* Languages */}
       <div>
         <div className="flex items-center justify-between mb-2">
-          <label className="text-sm font-medium">Languages</label>
+          <label className="text-sm font-medium">{t('pdf.languages')}</label>
           <button
             type="button"
             onClick={selectAllLangs}
             className="text-xs text-blue-600 hover:text-blue-500"
           >
-            Select all
+            {t('pdf.selectAll')}
           </button>
         </div>
         <div className="flex flex-wrap gap-2">
@@ -176,13 +176,13 @@ export function PrintConfigForm({
           ))}
         </div>
         {selectedLangs.length === 0 && (
-          <p className="text-xs text-red-500 mt-1">Select at least one language</p>
+          <p className="text-xs text-red-500 mt-1">{t('printConfig.selectOneLanguage')}</p>
         )}
       </div>
 
       {/* Options */}
       <div>
-        <label className="text-sm font-medium mb-2 block">Options</label>
+        <label className="text-sm font-medium mb-2 block">{t('printConfig.options')}</label>
         <label className="flex items-center gap-2 cursor-pointer">
           <input
             type="checkbox"
@@ -190,7 +190,7 @@ export function PrintConfigForm({
             onChange={(e) => setIncludeRefs(e.target.checked)}
             className="accent-blue-600"
           />
-          <span className="text-sm">Include references under each song</span>
+          <span className="text-sm">{t('pdf.includeReferences')}</span>
         </label>
       </div>
 
@@ -201,12 +201,11 @@ export function PrintConfigForm({
         disabled={selectedLangs.length === 0}
         className="px-5 py-2.5 bg-blue-600 text-white rounded-md font-medium text-sm hover:bg-blue-700 disabled:opacity-50 transition-colors"
       >
-        Generate Print View
+        {t('printConfig.generate')}
       </button>
 
       <p className="text-xs text-neutral-400">
-        Opens a print-ready page. Use your browser&apos;s print function (Ctrl+P) or the
-        &ldquo;Print / Save as PDF&rdquo; button to save.
+        {t('printConfig.help')}
       </p>
     </div>
   );

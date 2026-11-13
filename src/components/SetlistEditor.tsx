@@ -360,7 +360,7 @@ export function SetlistEditor({
         );
 
       if (newDate) {
-        if (!initialSetlist?.id) throw new Error("Setlist not found");
+        if (!initialSetlist?.id) throw new Error(t("setlistEditor.setlistNotFound"));
         const res = await fetch(`/setlists/${initialSetlist.id}/history/new-date`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -375,7 +375,7 @@ export function SetlistEditor({
 
         if (!res.ok) {
           const data = await res.json().catch(() => ({}));
-          throw new Error(data.error || "Save failed");
+          throw new Error(data.error || t("setlistEditor.saveFailed"));
         }
 
         const saved = await res.json().catch(() => ({}));
@@ -404,7 +404,7 @@ export function SetlistEditor({
 
       if (!res.ok) {
         const data = await res.json();
-        throw new Error(data.error || "Save failed");
+        throw new Error(data.error || t("setlistEditor.saveFailed"));
       }
 
       const saved = await res.json();
@@ -412,7 +412,7 @@ export function SetlistEditor({
       router.push(`/setlists/${saved.id}${versionLabel ? `?version=${encodeURIComponent(versionLabel)}` : ""}`);
       router.refresh();
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "Save failed");
+      setError(err instanceof Error ? err.message : t("setlistEditor.saveFailed"));
     } finally {
       setSaving(false);
     }
@@ -457,19 +457,19 @@ export function SetlistEditor({
       {/* Metadata */}
       <div className="grid gap-4 sm:grid-cols-2">
         <div>
-          <label className="block text-sm font-medium mb-1">Title *</label>
+          <label className="block text-sm font-medium mb-1">{t("setlistEditor.titleLabel")}</label>
           <input
             type="text"
             value={title}
             onChange={(e) => setTitle(e.target.value)}
-            placeholder="Sunday Service"
+            placeholder={t("setlistEditor.titlePlaceholder")}
             className="w-full px-3 py-2 border border-neutral-300 dark:border-neutral-700 rounded-md bg-white dark:bg-neutral-900 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
             required
           />
         </div>
         {!linkOnly && (
           <div>
-            <label className="block text-sm font-medium mb-1">Date{newDate ? " *" : ""}</label>
+            <label className="block text-sm font-medium mb-1">{t("setlistEditor.dateLabel")}{newDate ? " *" : ""}</label>
             <DateCalendar
               value={date}
               isSelectable={() => true}
@@ -506,18 +506,18 @@ export function SetlistEditor({
           </div>
         )}
         <div className="sm:col-span-2">
-          <label className="block text-sm font-medium mb-1">Description</label>
+          <label className="block text-sm font-medium mb-1">{t("setlistEditor.descriptionLabel")}</label>
           <input
             type="text"
             value={description}
             onChange={(e) => setDescription(e.target.value)}
-            placeholder="Optional notes..."
+            placeholder={t("setlistEditor.descriptionPlaceholder")}
             className="w-full px-3 py-2 border border-neutral-300 dark:border-neutral-700 rounded-md bg-white dark:bg-neutral-900 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
           />
         </div>
         {!linkOnly && (
           <div className="sm:col-span-2">
-            <label className="block text-sm font-medium mb-1">Image URL (optional)</label>
+            <label className="block text-sm font-medium mb-1">{t("setlistEditor.imageUrlLabel")}</label>
           <input
             type="url"
             value={image}
@@ -534,9 +534,9 @@ export function SetlistEditor({
             }}
             className="mt-2 border-2 border-dashed border-neutral-300 dark:border-neutral-700 rounded-md p-4 text-center text-sm text-neutral-500"
           >
-            Drag & drop an image here or
+            {t("setlistEditor.dropImage")}
             <label className="ml-2 text-blue-600 dark:text-blue-400 cursor-pointer">
-              choose file
+              {t("setlistEditor.chooseFile")}
               <input
                 type="file"
                 accept="image/*"
@@ -550,7 +550,7 @@ export function SetlistEditor({
           </div>
           {image && (
             // eslint-disable-next-line @next/next/no-img-element
-            <img src={image} alt="Setlist image" className="mt-2 max-h-40 rounded" />
+            <img src={image} alt={t("setlistEditor.imageAlt")} className="mt-2 max-h-40 rounded" />
           )}
         </div>
         )}
@@ -560,7 +560,7 @@ export function SetlistEditor({
         <div>
           {/* Song list */}
         <h2 className="font-semibold mb-3 flex items-center gap-2">
-          Songs ({songCount} / {MAX_SONGS})
+          {t("setlistEditor.songsHeading", { count: songCount, max: MAX_SONGS })}
         </h2>
 
         {songs.length > 0 && (
@@ -646,7 +646,7 @@ export function SetlistEditor({
                     </span>
                     {meta?.key && (
                       <span className="text-xs text-neutral-400">
-                        Key: {meta.key}
+                        {t("setlistEditor.keyLabel", { key: meta.key })}
                       </span>
                     )}
                   </div>
@@ -682,7 +682,7 @@ export function SetlistEditor({
                       onClick={() => moveUp(index)}
                       disabled={index === 0}
                       className="text-neutral-400 hover:text-neutral-600 disabled:opacity-30 p-0.5"
-                      title="Move up"
+                      title={t("setlistEditor.moveUp")}
                     >
                       <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" />
@@ -693,7 +693,7 @@ export function SetlistEditor({
                       onClick={() => moveDown(index)}
                       disabled={index === songs.length - 1}
                       className="text-neutral-400 hover:text-neutral-600 disabled:opacity-30 p-0.5"
-                      title="Move down"
+                      title={t("setlistEditor.moveDown")}
                     >
                       <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
@@ -706,7 +706,7 @@ export function SetlistEditor({
                     type="button"
                     onClick={() => removeSong(index)}
                     className="text-neutral-400 hover:text-red-500 transition-colors p-0.5"
-                    title="Remove"
+                    title={t("setlistEditor.remove")}
                   >
                     &times;
                   </button>
@@ -784,7 +784,7 @@ export function SetlistEditor({
             type="text"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            placeholder={songCount >= MAX_SONGS ? t('setlist.maxSongsReached', { count: MAX_SONGS }) : "Search songs to add..."}
+            placeholder={songCount >= MAX_SONGS ? t('setlist.maxSongsReached', { count: MAX_SONGS }) : t("setlistEditor.searchSongs")}
             disabled={songCount >= MAX_SONGS}
             className="w-full px-3 py-2 border border-neutral-300 dark:border-neutral-700 rounded-md bg-white dark:bg-neutral-900 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
           />
@@ -832,7 +832,7 @@ export function SetlistEditor({
           disabled={saving}
           className="px-4 py-2 bg-blue-600 text-white rounded-md font-medium text-sm hover:bg-blue-700 disabled:opacity-50 transition-colors"
         >
-          {saving ? "Saving..." : isNew ? "Create Setlist" : newDate ? "Create date setlist" : "Save Changes"}
+          {saving ? t("common.saving") : isNew ? t("setlistEditor.createSetlist") : newDate ? t("setlistEditor.createDateSetlist") : t("setlistEditor.saveChanges")}
         </button>
         {!isNew && !newDate && initialSetlist?.id && (
           <button
@@ -840,7 +840,7 @@ export function SetlistEditor({
             onClick={() => navigate(`/setlists/${initialSetlist.id}/edit?newDate=1`)}
             className="px-4 py-2 bg-neutral-700 text-white rounded-md text-sm hover:bg-neutral-800 transition-colors"
           >
-            New date
+            {t("setlistEditor.newDate")}
           </button>
         )}
         <button
@@ -853,7 +853,7 @@ export function SetlistEditor({
           }}
           className="px-4 py-2 border border-neutral-300 dark:border-neutral-700 rounded-md text-sm hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors"
         >
-          Cancel
+          {t("common.cancel")}
         </button>
       </div>
     </div>

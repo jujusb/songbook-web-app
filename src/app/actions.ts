@@ -9,6 +9,12 @@ import { getSession, canEdit, canAdmin, canCreateSetlist, canManageSetlistShares
 import { songIdFromTitle, slugifySongId, uniqueSongId } from "@/lib/song-ids";
 import { normalizeAutoAdvanceSeconds, normalizeAutoScrollSpeed } from "@/lib/auto-speed";
 import { randomUUID } from "node:crypto";
+import { cookies } from "next/headers";
+import { createT, getLocale } from "@/lib/i18n/server";
+
+async function tr(key: string): Promise<string> {
+  return createT(getLocale(await cookies()))(key);
+}
 
 function assertWritable() {
   if (isReadOnly()) {
@@ -138,7 +144,7 @@ export async function toggleSongPublishedAction(songId: string, lang: string) {
   assertWritable();
   const session = await getSession();
   if (!canAdmin(session?.role ?? null)) {
-    return { ok: false as const, error: 'Admin required' };
+    return { ok: false as const, error: await tr("serverErrors.adminRequired") };
   }
   try {
     const { meta: frontmatter, body } = await getSongTranslation(songId, lang);
@@ -159,7 +165,7 @@ export async function toggleSongChordsPublishedAction(songId: string, lang: stri
   const session = await getSession();
   const user = await getCurrentUser();
   if (!canEdit(session?.role ?? null) && !canEditSong(user, songId, lang)) {
-    return { ok: false as const, error: 'Unauthorized' };
+    return { ok: false as const, error: await tr("serverErrors.unauthorized") };
   }
   try {
     const { meta: frontmatter, body } = await getSongTranslation(songId, lang);
@@ -187,12 +193,12 @@ export async function revertSongToRevisionAction(songId: string, lang: string, t
   const session = await getSession();
   const user = await getCurrentUser();
   if (!canEdit(session?.role ?? null) && !canEditSong(user, songId, lang)) {
-    return { ok: false as const, error: 'Unauthorized' };
+    return { ok: false as const, error: await tr("serverErrors.unauthorized") };
   }
   try {
     const songPath = await findSongPath(songId);
     if (!songPath) {
-      return { ok: false as const, error: 'Song not found' };
+      return { ok: false as const, error: await tr("serverErrors.songNotFound") };
     }
 
     // The timestamp is an ISO string; the snapshot file name is the same
@@ -223,7 +229,7 @@ export async function revertSongToRevisionAction(songId: string, lang: string, t
     revalidatePath("/songs");
     revalidatePath("/browse");
     
-    return { ok: true as const, message: "Reverted to revision" };
+    return { ok: true as const, message: await tr("serverErrors.revertedToRevision") };
   } catch (err) {
     return { ok: false as const, error: err instanceof Error ? err.message : 'FAILED' };
   }
@@ -234,12 +240,12 @@ export async function publishRevisionAction(songId: string, lang: string, timest
   const session = await getSession();
   const user = await getCurrentUser();
   if (!canEdit(session?.role ?? null) && !canEditSong(user, songId, lang)) {
-    return { ok: false as const, error: 'Unauthorized' };
+    return { ok: false as const, error: await tr("serverErrors.unauthorized") };
   }
   try {
     const songPath = await findSongPath(songId);
     if (!songPath) {
-      return { ok: false as const, error: 'Song not found' };
+      return { ok: false as const, error: await tr("serverErrors.songNotFound") };
     }
 
     // The timestamp is an ISO string; the snapshot file name is the same
@@ -267,7 +273,7 @@ export async function publishRevisionAction(songId: string, lang: string, timest
     revalidatePath("/songs");
     revalidatePath("/browse");
     
-    return { ok: true as const, message: "Published revision" };
+    return { ok: true as const, message: await tr("serverErrors.publishedRevision") };
   } catch (err) {
     return { ok: false as const, error: err instanceof Error ? err.message : 'FAILED' };
   }
@@ -279,7 +285,7 @@ export async function createSongAction(formData: FormData) {
   const lang = (formData.get("lang") as string) || "en-US";
 
   if (!title) {
-    throw new Error("Title is required");
+    throw new Error(await tr("serverErrors.titleRequired"));
   }
 
   // Generate slug from title (never empty: a non-Latin title would otherwise
@@ -395,7 +401,7 @@ export async function bulkImportSongsAction(
 ): Promise<BulkImportResult> {
   assertWritable();
   const session = await getSession();
-  if (!canEdit(session?.role ?? null)) throw new Error("Unauthorized");
+  if (!canEdit(session?.role ?? null)) throw new Error(await tr("serverErrors.unauthorized"));
   if (!Array.isArray(items) || items.length === 0) return { outcomes: [] };
   if (items.length > MAX_BULK_IMPORT_FILES) throw new Error("TOO_MANY_FILES");
 
@@ -722,7 +728,7 @@ export async function generateSetlistVoiceSharesAction(setlistId: string) {
   assertSetlistWrite();
   const session = await getSession();
   if (!canCreateSetlist(session?.role ?? null)) {
-    return { ok: false as const, error: "Unauthorized" };
+    return { ok: false as const, error: await tr("serverErrors.unauthorized") };
   }
   try {
     const setlist = await getSetlist(setlistId);
@@ -764,7 +770,7 @@ export async function setSetlistPublicAction(setlistId: string, isPublic: boolea
   assertSetlistShare();
   const session = await getSession();
   if (!canManageSetlistShares(session?.role ?? null)) {
-    return { ok: false as const, error: "Unauthorized" };
+    return { ok: false as const, error: await tr("serverErrors.unauthorized") };
   }
   try {
     const setlist = await getSetlist(setlistId);
@@ -795,7 +801,7 @@ export async function createSetlistShareAction(setlistId: string) {
   assertSetlistShare();
   const session = await getSession();
   if (!canManageSetlistShares(session?.role ?? null)) {
-    return { ok: false as const, error: "Unauthorized" };
+    return { ok: false as const, error: await tr("serverErrors.unauthorized") };
   }
   try {
     const setlist = await getSetlist(setlistId);
@@ -826,7 +832,7 @@ export async function deleteSetlistShareAction(setlistId: string) {
   assertSetlistShare();
   const session = await getSession();
   if (!canManageSetlistShares(session?.role ?? null)) {
-    return { ok: false as const, error: "Unauthorized" };
+    return { ok: false as const, error: await tr("serverErrors.unauthorized") };
   }
   try {
     const setlist = await getSetlist(setlistId);
@@ -859,7 +865,7 @@ export async function setSetlistShareSlugAction(setlistId: string, slug: string)
   assertSetlistShare();
   const session = await getSession();
   if (!canManageSetlistShares(session?.role ?? null)) {
-    return { ok: false as const, error: "Unauthorized" };
+    return { ok: false as const, error: await tr("serverErrors.unauthorized") };
   }
   const value = slug.trim();
   if (value && !SHARE_SLUG_PATTERN.test(value)) {
@@ -911,11 +917,11 @@ type VoiceSectionValue = (typeof VOICE_SECTIONS)[number];
 export async function updateMyVoicePreferenceAction(voice: string | null) {
   const session = await getSession();
   if (!session) {
-    return { ok: false as const, error: "Unauthorized" };
+    return { ok: false as const, error: await tr("serverErrors.unauthorized") };
   }
   const user = await getCurrentUser();
   if (!user) {
-    return { ok: false as const, error: "Unauthorized" };
+    return { ok: false as const, error: await tr("serverErrors.unauthorized") };
   }
   const value =
     voice === null
@@ -943,11 +949,11 @@ export async function updateMyVoicePreferenceAction(voice: string | null) {
 export async function updateMyChordsPreferenceAction(showChords: boolean | null) {
   const session = await getSession();
   if (!session) {
-    return { ok: false as const, error: "Unauthorized" };
+    return { ok: false as const, error: await tr("serverErrors.unauthorized") };
   }
   const user = await getCurrentUser();
   if (!user) {
-    return { ok: false as const, error: "Unauthorized" };
+    return { ok: false as const, error: await tr("serverErrors.unauthorized") };
   }
   const value = showChords === null ? undefined : showChords;
   try {
@@ -967,11 +973,11 @@ export async function updateMyChordsPreferenceAction(showChords: boolean | null)
 export async function updateMyChordNotationAction(notation: string | null) {
   const session = await getSession();
   if (!session) {
-    return { ok: false as const, error: "Unauthorized" };
+    return { ok: false as const, error: await tr("serverErrors.unauthorized") };
   }
   const user = await getCurrentUser();
   if (!user) {
-    return { ok: false as const, error: "Unauthorized" };
+    return { ok: false as const, error: await tr("serverErrors.unauthorized") };
   }
   const value =
     notation === null
@@ -999,11 +1005,11 @@ export async function updateMyChordNotationAction(notation: string | null) {
 export async function updateMyRepeatsPreferenceAction(showRepeats: boolean | null) {
   const session = await getSession();
   if (!session) {
-    return { ok: false as const, error: "Unauthorized" };
+    return { ok: false as const, error: await tr("serverErrors.unauthorized") };
   }
   const user = await getCurrentUser();
   if (!user) {
-    return { ok: false as const, error: "Unauthorized" };
+    return { ok: false as const, error: await tr("serverErrors.unauthorized") };
   }
   const value = showRepeats === null ? undefined : showRepeats;
   try {
@@ -1024,11 +1030,11 @@ export async function updateMyRepeatsPreferenceAction(showRepeats: boolean | nul
 export async function updateMyAutoAdvanceSpeedAction(seconds: number | null) {
   const session = await getSession();
   if (!session) {
-    return { ok: false as const, error: "Unauthorized" };
+    return { ok: false as const, error: await tr("serverErrors.unauthorized") };
   }
   const user = await getCurrentUser();
   if (!user) {
-    return { ok: false as const, error: "Unauthorized" };
+    return { ok: false as const, error: await tr("serverErrors.unauthorized") };
   }
   const value = seconds === null ? undefined : normalizeAutoAdvanceSeconds(seconds);
   if (seconds !== null && value === undefined) {
@@ -1052,11 +1058,11 @@ export async function updateMyAutoAdvanceSpeedAction(seconds: number | null) {
 export async function updateMyAutoScrollSpeedAction(speed: number | null) {
   const session = await getSession();
   if (!session) {
-    return { ok: false as const, error: "Unauthorized" };
+    return { ok: false as const, error: await tr("serverErrors.unauthorized") };
   }
   const user = await getCurrentUser();
   if (!user) {
-    return { ok: false as const, error: "Unauthorized" };
+    return { ok: false as const, error: await tr("serverErrors.unauthorized") };
   }
   const value = speed === null ? undefined : normalizeAutoScrollSpeed(speed);
   if (speed !== null && value === undefined) {
@@ -1079,11 +1085,11 @@ export async function updateMyAutoScrollSpeedAction(speed: number | null) {
 export async function updateMyPartitionInstrumentAction(instrument: string | null) {
   const session = await getSession();
   if (!session) {
-    return { ok: false as const, error: "Unauthorized" };
+    return { ok: false as const, error: await tr("serverErrors.unauthorized") };
   }
   const user = await getCurrentUser();
   if (!user) {
-    return { ok: false as const, error: "Unauthorized" };
+    return { ok: false as const, error: await tr("serverErrors.unauthorized") };
   }
   const value = instrument === null ? undefined : instrument;
   try {
@@ -1108,11 +1114,11 @@ export async function updateMyPdfLayoutAction(opts: {
 }) {
   const session = await getSession();
   if (!session) {
-    return { ok: false as const, error: "Unauthorized" };
+    return { ok: false as const, error: await tr("serverErrors.unauthorized") };
   }
   const user = await getCurrentUser();
   if (!user) {
-    return { ok: false as const, error: "Unauthorized" };
+    return { ok: false as const, error: await tr("serverErrors.unauthorized") };
   }
   try {
     await saveUser(
@@ -1149,13 +1155,13 @@ export async function saveSharedSetlistAction(shareToken: string) {
   const session = await getSession();
   const user = await getCurrentUser();
   if (!session || !user) {
-    return { ok: false as const, error: "Unauthorized" };
+    return { ok: false as const, error: await tr("serverErrors.unauthorized") };
   }
 
   try {
     const original = await findSetlistByShareToken(shareToken);
     if (!original) {
-      return { ok: false as const, error: "Setlist not found" };
+      return { ok: false as const, error: await tr("serverErrors.setlistNotFound") };
     }
 
     // Check if already subscribed
@@ -1233,13 +1239,13 @@ export async function removeSavedSetlistAction(setlistId: string) {
   const session = await getSession();
   const user = await getCurrentUser();
   if (!session || !user) {
-    return { ok: false as const, error: "Unauthorized" };
+    return { ok: false as const, error: await tr("serverErrors.unauthorized") };
   }
 
   try {
     const reference = await getSetlist(setlistId);
     if (!reference || !reference.sharedFrom) {
-      return { ok: false as const, error: "Not a saved shared setlist" };
+      return { ok: false as const, error: await tr("serverErrors.notSavedSharedSetlist") };
     }
     if (reference.ownerId !== user.id) {
       return { ok: false as const, error: "Forbidden" };
@@ -1274,11 +1280,11 @@ export async function removeSavedSetlistAction(setlistId: string) {
 export async function updateSetlistLyricsViewAction(mode: 'all' | 'list') {
   const session = await getSession();
   if (!session) {
-    return { ok: false as const, error: "Unauthorized" };
+    return { ok: false as const, error: await tr("serverErrors.unauthorized") };
   }
   const user = await getCurrentUser();
   if (!user) {
-    return { ok: false as const, error: "Unauthorized" };
+    return { ok: false as const, error: await tr("serverErrors.unauthorized") };
   }
   try {
     await saveUser({ ...user, setlistLyricsView: mode }, { allowReadOnly: true });
@@ -1302,11 +1308,11 @@ export async function updateSetlistGlobalOptionsAction(opts: {
 }) {
   const session = await getSession();
   if (!session) {
-    return { ok: false as const, error: "Unauthorized" };
+    return { ok: false as const, error: await tr("serverErrors.unauthorized") };
   }
   const user = await getCurrentUser();
   if (!user) {
-    return { ok: false as const, error: "Unauthorized" };
+    return { ok: false as const, error: await tr("serverErrors.unauthorized") };
   }
   try {
     await saveUser(
@@ -1339,11 +1345,11 @@ export async function updateSetlistTransposeAction(
 ) {
   const session = await getSession();
   if (!session) {
-    return { ok: false as const, error: "Unauthorized" };
+    return { ok: false as const, error: await tr("serverErrors.unauthorized") };
   }
   const user = await getCurrentUser();
   if (!user) {
-    return { ok: false as const, error: "Unauthorized" };
+    return { ok: false as const, error: await tr("serverErrors.unauthorized") };
   }
   try {
     const current = user.setlistTranspose?.[setlistId] ?? {};

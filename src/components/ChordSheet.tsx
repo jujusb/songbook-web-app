@@ -504,7 +504,7 @@ export function ChordSheet({
               type="button"
               onClick={() => setSemitones((s) => s - 1)}
               className="w-10 h-10 flex items-center justify-center border border-neutral-300 dark:border-neutral-700 rounded-md hover:bg-neutral-100 dark:hover:bg-neutral-800 text-base font-mono transition-colors touch-manipulation"
-              aria-label={t('common.transpose') + " down"}
+              aria-label={t('chordSheet.transposeDown')}
             >
               &minus;
             </button>
@@ -515,7 +515,7 @@ export function ChordSheet({
               type="button"
               onClick={() => setSemitones((s) => s + 1)}
               className="w-10 h-10 flex items-center justify-center border border-neutral-300 dark:border-neutral-700 rounded-md hover:bg-neutral-100 dark:hover:bg-neutral-800 text-base font-mono transition-colors touch-manipulation"
-              aria-label={t('common.transpose') + " up"}
+              aria-label={t('chordSheet.transposeUp')}
             >
               +
             </button>
@@ -535,7 +535,7 @@ export function ChordSheet({
             )}
             {songCapo !== undefined && songCapo !== null && songCapo > 0 && (
               <span className="text-sm text-neutral-400 ml-2 shrink-0">
-                Capo {songCapo}
+                {t('chordSheet.capo', { n: songCapo })}
               </span>
             )}
             <select
@@ -560,9 +560,9 @@ export function ChordSheet({
               ? "bg-blue-50 text-blue-700 dark:bg-blue-950 dark:text-blue-300"
               : "hover:bg-neutral-100 dark:hover:bg-neutral-800"
           }`}
-          title={localShowRepeats ? "Show repeated sections" : "Hide repeated sections"}
+          title={localShowRepeats ? t('profile.repeats') : t('chordSheet.hideRepeatedSections')}
         >
-          {localShowRepeats ? "Hide Repeats" : "Show Repeats"}
+          {localShowRepeats ? t('chordSheet.hideRepeats') : t('chordSheet.showRepeats')}
         </button>
       </div>
 
@@ -578,7 +578,7 @@ export function ChordSheet({
       {referenceGroups.length > 0 && (
         <div className="mt-6 pt-4 border-t border-neutral-200 dark:border-neutral-800">
           <div className="text-xs font-semibold text-neutral-400 uppercase tracking-wide mb-2">
-            References
+            {t('common.references')}
           </div>
           <ol className="space-y-2.5">
             {referenceGroups.map((group) => {
@@ -632,12 +632,12 @@ export function ChordSheet({
         >
           {footnotes.length === 0 && (
             <div className="text-xs font-semibold text-neutral-400 uppercase tracking-wide mb-2">
-              References
+              {t('common.references')}
             </div>
           )}
           {footnotes.length > 0 && (
             <div className="text-xs font-semibold text-neutral-400 uppercase tracking-wide mb-2 mt-3">
-              See Also
+              {t('chordSheet.seeAlso')}
             </div>
           )}
           <ul className="space-y-2">

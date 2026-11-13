@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
 import { notFound, redirect } from "next/navigation";
+import { cookies } from "next/headers";
+import { getLocale, createT } from "@/lib/i18n/server";
 import { listSongs, listArtists, getLanguagesConfig, ensureVariousArtists } from "@/lib/content";
 import { getSession, canEdit } from "@/lib/auth";
 import { isReadOnly } from "@/lib/readonly";
@@ -44,4 +46,7 @@ export default async function NewAlbumPage({
   );
 }
 
-export const metadata: Metadata = { title: "New Album" };
+export async function generateMetadata(): Promise<Metadata> {
+  const t = createT(getLocale(await cookies(), 'en-US'));
+  return { title: t('album.newAlbum') };
+}

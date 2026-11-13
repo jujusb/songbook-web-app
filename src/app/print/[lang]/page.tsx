@@ -1,7 +1,6 @@
-import {
-  getLanguagesConfig,
-  getSiteConfig,
-} from "@/lib/content";
+import { cookies } from "next/headers";
+import { getLanguagesConfig, getSiteConfig } from "@/lib/content";
+import { getLocale, createT } from "@/lib/i18n/server";
 import { getSession, canEdit } from "@/lib/auth";
 import { resolveScopeSongs } from "@/lib/export/song-scope";
 import { loadPrintSongs } from "@/lib/print/load";
@@ -92,6 +91,9 @@ export default async function PrintPage({
 
   const langLabel = languageLabelFor;
 
+  const uiLocale = getLocale(await cookies(), (await getLanguagesConfig()).default);
+  const t = createT(uiLocale);
+
   let siteTitle = "Songbook";
   try {
     const config = await getSiteConfig();
@@ -123,12 +125,12 @@ export default async function PrintPage({
       }
       backLabel={
         resolved.scope === "album"
-          ? "Back to Album"
+          ? t("printApp.backToAlbum")
           : resolved.scope === "artist"
-            ? "Back to Artist"
+            ? t("printApp.backToArtist")
             : resolved.scope === "song"
-              ? "Back to Song"
-              : "Back to Print Options"
+              ? t("printApp.backToSong")
+              : t("printApp.backToPrintOptions")
       }
       languages={languages}
       showRefs={showRefs}
@@ -139,7 +141,7 @@ export default async function PrintPage({
       columns={columns}
       tocColumns={tocColumns}
       primaryLang={primaryLang}
-      emptyText="No songs found for the selected language(s)."
+      emptyText={t("printApp.noSongs")}
     />
   );
 }

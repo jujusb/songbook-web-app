@@ -71,7 +71,7 @@ export const NotesList: React.FC<{ readOnly?: boolean }> = ({ readOnly = false }
             >
               <div className="font-medium">{note.title}</div>
               <p className="text-sm text-neutral-500 dark:text-neutral-400">
-                {note.language || 'N/A'} • {note.recurrent_type || 'manual'} • {note.periodic_behavior}
+                {note.language || t('notesList.na')} • {note.recurrent_type || 'manual'} • {note.periodic_behavior}
               </p>
               {!readOnly && (
                 <div className="mt-2 flex gap-2">
@@ -80,14 +80,14 @@ export const NotesList: React.FC<{ readOnly?: boolean }> = ({ readOnly = false }
                     onClick={(e) => { e.stopPropagation(); window.location.href = `/notes/${note.id}/edit`; }}
                     className="text-xs px-2 py-1 border rounded hover:bg-neutral-100 dark:hover:bg-neutral-800"
                   >
-                    Edit
+                    {t('notes.edit')}
                   </button>
                   <button
                     type="button"
                     onClick={(e) => handleDelete(note.id, e)}
                     className="text-xs px-2 py-1 border rounded text-red-600 hover:bg-red-50 dark:hover:bg-red-950"
                   >
-                    Delete
+                    {t('common.delete')}
                   </button>
                 </div>
               )}

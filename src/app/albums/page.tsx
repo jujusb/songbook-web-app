@@ -1,8 +1,8 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { cookies } from "next/headers";
+import { getLocale, createT } from "@/lib/i18n/server";
 import { listAlbums, listArtists, listSongs, getLanguagesConfig } from "@/lib/content";
-import { getLocale } from "@/lib/i18n/server";
 import { getSession, canEdit } from "@/lib/auth";
 import { AlbumsPageClient } from "@/components/AlbumsPageClient";
 import { T } from "@/components/Translate";
@@ -29,4 +29,7 @@ export default async function AlbumsPage() {
   );
 }
 
-export const metadata: Metadata = { title: "Albums" };
+export async function generateMetadata(): Promise<Metadata> {
+  const t = createT(getLocale(await cookies(), 'en-US'));
+  return { title: t('album.title') };
+}

@@ -1,4 +1,5 @@
-import { headers } from "next/headers";
+import { headers, cookies } from "next/headers";
+import { getLocale, createT, plural } from "@/lib/i18n/server";
 import { validateLinkUrl, safeHost } from "@/lib/setlist-links";
 import { getSetlistLinkAllowedHosts, getSetlistLinkAllowHttp, getSetlistDefaultMode, getSetlistModesAllowed } from "@/lib/config";
 import { notFound } from "next/navigation";
@@ -25,6 +26,7 @@ export async function generateMetadata({
 }): Promise<Metadata> {
   const { setlistId } = await params;
   const { version } = await searchParams;
+  const t = createT(getLocale(await cookies()));
   try {
     const setlist = await getSetlist(setlistId);
     const base = setlist.title;
@@ -35,7 +37,7 @@ export async function generateMetadata({
     }
     return { title: setlist.date ? `${base} - ${setlist.date}` : base };
   } catch {
-    return { title: "Setlist" };
+    return { title: t("setlistApp.setlistFallbackTitle") };
   }
 }
 
@@ -49,6 +51,7 @@ export default async function SetlistPage({
   const { setlistId } = await params;
   const { share, mode, version: versionParam } = await searchParams;
   const shareParam = typeof share === "string" ? share : undefined;
+  const t = createT(getLocale(await cookies()));
 
   let baseSetlist;
   try {
@@ -204,7 +207,7 @@ export default async function SetlistPage({
         href="/setlists"
         className="text-sm text-blue-600 dark:text-blue-400 hover:underline mb-4 inline-block"
       >
-        &larr; All Setlists
+        &larr; {t("setlistApp.allSetlists")}
       </Link>
 
       <SetlistHistoryBrowser
@@ -227,7 +230,7 @@ export default async function SetlistPage({
           <div className="flex items-center gap-3 mt-1 text-sm text-neutral-500">
             {setlist.date && <span>{setlist.date}</span>}
             <span>
-              {displayCount} song{displayCount !== 1 ? "s" : ""}
+              {plural(t("setlist.count", { n: displayCount }), displayCount)}
             </span>
           </div>
           {setlist.description && (
@@ -240,7 +243,7 @@ export default async function SetlistPage({
               href={presentHref}
               className="text-sm px-3 py-1.5 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
             >
-              Present
+              {t("setlist.present")}
             </Link>
           )}
           {canViewSetlistStats(role) && (
@@ -248,7 +251,7 @@ export default async function SetlistPage({
               href={`/setlists/${encodeURIComponent(sourceSetlistId)}/stats`}
               className="text-sm px-3 py-1.5 border border-neutral-300 dark:border-neutral-700 rounded-md font-medium hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors"
             >
-              Statistics
+              {t("nav.statistics")}
             </Link>
           )}
           {setlist.songs.length > 0 && (
@@ -262,7 +265,7 @@ export default async function SetlistPage({
                href={`/setlists/${setlistId}/edit${versionParam ? `?version=${encodeURIComponent(versionParam)}` : ""}`}
                className="text-sm px-3 py-1.5 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors"
              >
-               Edit
+               {t("common.edit")}
              </Link>
            )}
           {showDeleteActions && (

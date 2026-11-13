@@ -229,7 +229,7 @@ export function ReferenceEditor({
                     : 'text-neutral-500 hover:text-neutral-700 dark:hover:text-neutral-300'
                 }`}
               >
-                Form
+                {t('referenceEditor.form')}
               </button>
               <button
                 onClick={() => setMode('visual')}
@@ -292,19 +292,19 @@ export function ReferenceEditor({
               {/* Type + Label + Target */}
               <div className="grid grid-cols-3 gap-2">
                 <div>
-                  <label className="block text-xs text-neutral-500 mb-0.5">Type</label>
+                  <label className="block text-xs text-neutral-500 mb-0.5">{t('referenceEditor.type')}</label>
                   <select
                     value={ref.type}
                     onChange={(e) => updateRef(ri, 'type', e.target.value)}
                     className="w-full text-sm border border-neutral-300 dark:border-neutral-700 rounded px-2 py-1 bg-transparent"
                   >
-                    <option value="link">Link</option>
-                    <option value="song">Song</option>
-                    <option value="text">Text</option>
+                    <option value="link">{t('referenceEditor.typeLink')}</option>
+                    <option value="song">{t('referenceEditor.typeSong')}</option>
+                    <option value="text">{t('referenceEditor.typeText')}</option>
                   </select>
                 </div>
                 <div>
-                  <label className="block text-xs text-neutral-500 mb-0.5">{t('song.edit')} Label</label>
+                  <label className="block text-xs text-neutral-500 mb-0.5">{t('referenceEditor.label')}</label>
                   <input
                     type="text"
                     value={ref.label}
@@ -313,7 +313,7 @@ export function ReferenceEditor({
                   />
                 </div>
                 <div>
-                  <label className="block text-xs text-neutral-500 mb-0.5">Target</label>
+                  <label className="block text-xs text-neutral-500 mb-0.5">{t('referenceEditor.target')}</label>
                   <input
                     type="text"
                     value={ref.target}
@@ -325,7 +325,7 @@ export function ReferenceEditor({
 
               {/* Text (default) */}
               <div>
-                <label className="block text-xs text-neutral-500 mb-0.5">Text (default)</label>
+                <label className="block text-xs text-neutral-500 mb-0.5">{t('referenceEditor.textDefault')}</label>
                 <textarea
                   rows={2}
                   value={ref.text || ''}
@@ -337,7 +337,7 @@ export function ReferenceEditor({
               {/* Per-language texts */}
               {languages.length > 1 && (
                 <div>
-                  <label className="block text-xs text-neutral-500 mb-1">Text per language</label>
+                  <label className="block text-xs text-neutral-500 mb-1">{t('referenceEditor.textPerLanguage')}</label>
                   <div className="space-y-1">
                     {languages.map((lang) => (
                       <div key={lang} className="flex items-center gap-2">
@@ -356,7 +356,7 @@ export function ReferenceEditor({
 
               {/* Highlight (default) */}
               <div>
-                <label className="block text-xs text-neutral-500 mb-0.5">Highlight (default)</label>
+                <label className="block text-xs text-neutral-500 mb-0.5">{t('referenceEditor.highlightDefault')}</label>
                 <input
                   type="text"
                   value={ref.highlight || ''}
@@ -368,7 +368,7 @@ export function ReferenceEditor({
               {/* Per-language highlights */}
               {languages.length > 1 && (
                 <div>
-                  <label className="block text-xs text-neutral-500 mb-1">Highlight per language</label>
+                  <label className="block text-xs text-neutral-500 mb-1">{t('referenceEditor.highlightPerLanguage')}</label>
                   <div className="space-y-1">
                     {languages.map((lang) => (
                       <div key={lang} className="flex items-center gap-2">
@@ -388,12 +388,12 @@ export function ReferenceEditor({
               {/* Locations */}
               <div>
                 <div className="flex items-center justify-between mb-1">
-                  <span className="text-xs font-semibold text-neutral-500 uppercase tracking-wide">Locations</span>
+                  <span className="text-xs font-semibold text-neutral-500 uppercase tracking-wide">{t('referenceEditor.locations')}</span>
                   <button
                     onClick={() => addLocation(ri)}
                     className="text-xs text-blue-600 hover:text-blue-800 transition-colors"
                   >
-                    + Add
+                    {t('referenceEditor.add')}
                   </button>
                 </div>
                 {(ref.locations || []).map((loc, li) => (
@@ -407,12 +407,12 @@ export function ReferenceEditor({
                         onClick={() => removeLocation(ri, li)}
                         className="text-xs text-red-500 hover:text-red-700 transition-colors"
                       >
-                        Remove
+                        {t('referenceEditor.remove')}
                       </button>
                     </div>
                     <div className="grid grid-cols-3 gap-2">
                       <div>
-                        <label className="block text-xs text-neutral-500 mb-0.5">Verse</label>
+                        <label className="block text-xs text-neutral-500 mb-0.5">{t('referenceEditor.verse')}</label>
                         <input
                           type="text"
                           value={loc.verse || ''}
@@ -421,7 +421,7 @@ export function ReferenceEditor({
                         />
                       </div>
                       <div>
-                        <label className="block text-xs text-neutral-500 mb-0.5">Chorus</label>
+                        <label className="block text-xs text-neutral-500 mb-0.5">{t('referenceEditor.chorus')}</label>
                         <input
                           type="text"
                           value={loc.chorus || ''}
@@ -430,7 +430,7 @@ export function ReferenceEditor({
                         />
                       </div>
                       <div>
-                        <label className="block text-xs text-neutral-500 mb-0.5">Line</label>
+                        <label className="block text-xs text-neutral-500 mb-0.5">{t('referenceEditor.line')}</label>
                         <input
                           type="number"
                           value={loc.line ?? ''}
@@ -440,7 +440,7 @@ export function ReferenceEditor({
                       </div>
                     </div>
                     <div>
-                      <label className="block text-xs text-neutral-500 mb-0.5">Highlight (per location)</label>
+                      <label className="block text-xs text-neutral-500 mb-0.5">{t('referenceEditor.highlightPerLocation')}</label>
                       <input
                         type="text"
                         value={loc.highlight || ''}
@@ -450,7 +450,7 @@ export function ReferenceEditor({
                     </div>
                     {languages.length > 1 && (
                       <div>
-                        <label className="block text-xs text-neutral-500 mb-0.5">Highlight per language</label>
+                        <label className="block text-xs text-neutral-500 mb-0.5">{t('referenceEditor.highlightPerLanguage')}</label>
                         <div className="space-y-0.5">
                           {languages.map((lang) => (
                             <div key={lang} className="flex items-center gap-2">
@@ -477,7 +477,7 @@ export function ReferenceEditor({
             onClick={addRef}
             className="w-full py-2 border-2 border-dashed border-neutral-300 dark:border-neutral-700 rounded-lg text-sm text-neutral-500 hover:text-neutral-700 dark:hover:text-neutral-300 hover:border-neutral-400 transition-colors"
           >
-            + Add Reference
+            {t('referenceEditor.addReference')}
           </button>
         </div>
         )}

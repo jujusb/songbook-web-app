@@ -3,6 +3,7 @@ import type { Metadata } from "next";
 import { getNote } from "@/lib/content/notes";
 import { NoteView } from "@/components/NoteView";
 import { getCurrentUser } from "@/lib/auth";
+import { getLocale, createT } from "@/lib/i18n/server";
 
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 
@@ -21,7 +22,8 @@ export async function generateMetadata({
   const { date } = await searchParams;
   const note = await getNote(noteId);
   const when = dateParam(date);
-  const title = note?.title || "Note";
+  const t = createT(await getLocale());
+  const title = note?.title || t("notesApp.untitled");
   return { title: when ? `${title} - ${when}` : title };
 }
 

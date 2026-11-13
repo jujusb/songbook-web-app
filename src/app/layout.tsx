@@ -3,7 +3,7 @@ import { Geist, Geist_Mono } from "next/font/google";
 import { cookies } from "next/headers";
 import Link from "next/link";
 import { getSiteConfig, getLanguagesConfig } from "@/lib/content";
-import { getLocale } from "@/lib/i18n/server";
+import { getLocale, createT } from "@/lib/i18n/server";
 import { getSession, canEdit, canAdmin, canCreateSetlist, canViewSetlistStats } from "@/lib/auth";
 import { isReadOnly } from "@/lib/readonly";
 import { UserMenu } from "@/components/UserMenu";
@@ -70,6 +70,7 @@ export default async function RootLayout({
     // languages config not available yet
   }
   const uiLocale = getLocale(cookieStore, fallbackLocale);
+  const t = createT(uiLocale);
   try {
     const config = await getSiteConfig();
     enableArtistPages = config.enableArtistPages;
@@ -165,9 +166,9 @@ export default async function RootLayout({
               <Link
                 href="/pdf"
                 className={NAV_OUTLINE_CLASS}
-                title="Open the convert-to-PDF page to export as PDF"
+                title={t("layoutApp.convertToPdfTitle")}
               >
-                Convert to PDF
+                {t("layoutApp.convertToPdf")}
               </Link>
               <UserMenu variant="buttons" />
             </div>

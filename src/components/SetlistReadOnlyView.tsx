@@ -68,10 +68,10 @@ interface SetlistReadOnlyViewProps {
 }
 
 const CHORD_NOTATION_OPTIONS = [
-  { value: "letters", label: "Letters (A, B, C...)" },
-  { value: "solfege", label: "Solfege (Do, Re, Mi...)" },
-  { value: "roman", label: "Roman Numerals (I, II, III...)" },
-  { value: "nashville", label: "Nashville Numbers (1, 2, 3...)" },
+  { value: "letters", labelKey: "setlistView.notationLetters" },
+  { value: "solfege", labelKey: "setlistView.notationSolfege" },
+  { value: "roman", labelKey: "setlistView.notationRoman" },
+  { value: "nashville", labelKey: "setlistView.notationNashville" },
 ] as const;
 
 function ChevronDownIcon({ className = "w-4 h-4" }: { className?: string }) {
@@ -587,7 +587,7 @@ export function SetlistReadOnlyView({
           <div className="flex items-center justify-between gap-4 flex-wrap">
             <div className="flex items-center gap-3">
               <span className="text-xs font-medium text-neutral-500 uppercase tracking-wide">
-                Song Order
+                {t("setlistView.songOrder")}
               </span>
               {isReference ? (
                 <span className="text-xs px-2 py-0.5 bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300 rounded">
@@ -676,7 +676,7 @@ export function SetlistReadOnlyView({
                   className="px-2 py-1 border border-neutral-300 dark:border-neutral-700 rounded-md text-xs bg-white dark:bg-neutral-900"
                 >
                   {CHORD_NOTATION_OPTIONS.map((opt) => (
-                    <option key={opt.value} value={opt.value}>{opt.label}</option>
+                    <option key={opt.value} value={opt.value}>{t(opt.labelKey)}</option>
                   ))}
                 </select>
               </div>

@@ -19,7 +19,8 @@ export default async function LoginPage({
 
   const site = await getSiteConfig();
   const oidcEnabled = site.oidc?.enabled ?? false;
-  const oidcButtonLabel = site.oidc?.buttonLabel ?? "Sign in with SSO";
+  const t = createT(getLocale(await cookies(), 'en-US'));
+  const oidcButtonLabel = site.oidc?.buttonLabel ?? t('auth.signInWithSSO');
   const oidcAutoRedirect = site.oidc?.autoRedirect ?? false;
   const params = await searchParams;
 
@@ -31,10 +32,6 @@ export default async function LoginPage({
 
   const canRegister = !isReadOnlyFor('register');
   
-  const cookieStore = await cookies();
-  const uiLocale = getLocale(cookieStore, 'en-US');
-  const t = createT(uiLocale);
-
   return (
     <div className="max-w-sm mx-auto px-4 py-16">
       <h1 className="text-2xl font-bold mb-6 text-center">{t('auth.login')}</h1>

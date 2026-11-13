@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { notesApi, normalizeNote, NoteMetadata } from '@/lib/notes';
+import { useTranslation } from '@/lib/i18n';
 
 interface NotesEditorProps {
   noteId?: string;
@@ -14,6 +15,7 @@ export const NotesEditor: React.FC<NotesEditorProps> = ({
   onSave,
   isEdit = true
 }) => {
+  const { t } = useTranslation();
   const [note, setNote] = useState<NoteMetadata>({
     id: noteId || `note-${Date.now()}`,
     title: '',
@@ -49,10 +51,10 @@ export const NotesEditor: React.FC<NotesEditorProps> = ({
   return (
     <>
       <div className="p-6 max-w-2xl">
-        <h2 className="text-2xl font-bold mb-6">{noteId ? 'Edit Note' : 'New Note'}</h2>
+        <h2 className="text-2xl font-bold mb-6">{noteId ? t('noteForm.editNote') : t('notes.newNote')}</h2>
         <div className="space-y-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Title</label>
+            <label className="block text-sm font-medium text-gray-700 mb-2">{t('notesEditor.title')}</label>
             <input
               className="w-full p-2 border rounded focus:ring-2 focus:ring-blue-500"
               value={note.title}
@@ -62,56 +64,56 @@ export const NotesEditor: React.FC<NotesEditorProps> = ({
           
           <div className="grid grid-cols-2 gap-2">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Language</label>
+              <label className="block text-sm font-medium text-gray-700 mb-2">{t('common.language')}</label>
               <select
                 className="w-full p-2 border rounded focus:ring-2 focus:ring-blue-500"
                 value={note.language}
                 onChange={(e) => setNote({ ...note, language: e.target.value as 'en-US' | 'es-ES' | 'fr-FR' | 'de' })}
               >
-                <option value="en-US">English</option>
-                <option value="es-ES">Spanish</option>
-                <option value="fr-FR">French</option>
-                <option value="de">German</option>
+                <option value="en-US">{t('notes.langEnglish')}</option>
+                <option value="es-ES">{t('notes.langSpanish')}</option>
+                <option value="fr-FR">{t('notes.langFrench')}</option>
+                <option value="de">{t('notes.langGerman')}</option>
               </select>
             </div>
             
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Recurrent Type</label>
+              <label className="block text-sm font-medium text-gray-700 mb-2">{t('noteForm.recurrentType')}</label>
               <select
                 className="w-full p-2 border rounded focus:ring-2 focus-ring-blue-500"
                 value={note.recurrent_type}
                 onChange={(e) => setNote({ ...note, recurrent_type: e.target.value as 'weekly' | 'monthly' | 'specific-dates' | 'daily' })}
               >
-                <option value="weekly">Weekly</option>
-                <option value="monthly">Monthly</option>
-                <option value="specific-dates">Specific Dates</option>
-                <option value="daily">Daily</option>
+                <option value="weekly">{t('notes.typeWeekly')}</option>
+                <option value="monthly">{t('notes.typeMonthly')}</option>
+                <option value="specific-dates">{t('notes.typeSpecificDates')}</option>
+                <option value="daily">{t('notes.typeDaily')}</option>
               </select>
             </div>
             
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Recurrent Schedule</label>
+              <label className="block text-sm font-medium text-gray-700 mb-2">{t('noteForm.recurrentSchedule')}</label>
               <select
                 className="w-full p-2 border rounded focus:ring-2 focus-blue-500"
                 value={note.recurrent_schedule}
                 onChange={(e) => setNote({ ...note, recurrent_schedule: e.target.value })}
               >
-                <option value="sunday">Sunday</option>
-                <option value="monday">Monday</option>
-                <option value="tuesday">Tuesday</option>
-                <option value="wednesday">Wednesday</option>
-                <option value="thursday">Thursday</option>
-                <option value="friday">Friday</option>
-                <option value="saturday">Saturday</option>
-                <option value="first">First Sunday of Month</option>
-                <option value="first-second">First & Second Sunday</option>
-                <option value="last">Last of Month</option>
+                <option value="sunday">{t('noteForm.daySunday')}</option>
+                <option value="monday">{t('noteForm.dayMonday')}</option>
+                <option value="tuesday">{t('noteForm.dayTuesday')}</option>
+                <option value="wednesday">{t('noteForm.dayWednesday')}</option>
+                <option value="thursday">{t('noteForm.dayThursday')}</option>
+                <option value="friday">{t('noteForm.dayFriday')}</option>
+                <option value="saturday">{t('noteForm.daySaturday')}</option>
+                <option value="first">{t('noteForm.schedFirst')}</option>
+                <option value="first-second">{t('noteForm.schedFirstSecond')}</option>
+                <option value="last">{t('noteForm.schedLast')}</option>
               </select>
             </div>
           </div>
           
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Tags (comma-separated)</label>
+            <label className="block text-sm font-medium text-gray-700 mb-2">{t('noteForm.tagsLabel')}</label>
             <input
               className="w-full p-2 border rounded focus:ring-2 focus-blue-500"
               value={note.tags.join(', ')}
@@ -120,22 +122,22 @@ export const NotesEditor: React.FC<NotesEditorProps> = ({
           </div>
           
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">API Source</label>
+            <label className="block text-sm font-medium text-gray-700 mb-2">{t('notesEditor.apiSource')}</label>
             <select
               className="w-full p-2 border rounded focus:ring-2 focus-blue-500"
               value={note.api_source}
               onChange={(e) => setNote({ ...note, api_source: e.target.value as 'manual' | 'api' | 'custom' })}
             >
-              <option value="manual">Manual</option>
-              <option value="api">API</option>
-              <option value="custom">Custom</option>
+              <option value="manual">{t('notesEditor.sourceManual')}</option>
+              <option value="api">{t('notesEditor.sourceApi')}</option>
+              <option value="custom">{t('notesEditor.sourceCustom')}</option>
             </select>
           </div>
         </div>
         
         {note.api_source === 'api' && (
           <div className="mt-4 space-y-2">
-            <label className="block text-sm font-medium text-gray-700 mb-2">API Endpoint</label>
+            <label className="block text-sm font-medium text-gray-700 mb-2">{t('noteForm.apiEndpoint')}</label>
             <input
               className="w-full p-2 border rounded focus:ring-2 focus-blue-500"
               value={note.api_sources?.[0]?.api_url || ''}
@@ -152,7 +154,7 @@ export const NotesEditor: React.FC<NotesEditorProps> = ({
             />
             
             <div className="mt-2">
-              <label className="block text-sm font-medium text-gray-700 mb-2">Result Section</label>
+              <label className="block text-sm font-medium text-gray-700 mb-2">{t('noteForm.resultSection')}</label>
               <input
                 className="w-full p-2 border rounded focus:ring-2 focus-blue-500"
                 value={note.api_sources?.[0]?.resultSection || ''}
@@ -170,7 +172,7 @@ export const NotesEditor: React.FC<NotesEditorProps> = ({
         )}
         
         <div className="space-y-2">
-          <label className="block text-sm font-medium text-gray-700 mb-2">Tags</label>
+          <label className="block text-sm font-medium text-gray-700 mb-2">{t('notesEditor.tags')}</label>
           <input
             className="w-full p-2 border rounded focus:ring-2 focus-blue-500"
             value={note.tags.join(', ')}
@@ -179,7 +181,7 @@ export const NotesEditor: React.FC<NotesEditorProps> = ({
         </div>
         
         <div className="mt-4">
-          <label className="block text-sm font-medium text-gray-700 mb-2">Content (Markdown)</label>
+          <label className="block text-sm font-medium text-gray-700 mb-2">{t('notesEditor.contentMarkdown')}</label>
           <textarea
             className="w-full p-2 border rounded focus:ring-2 focus-blue-500 resize-h"
             rows={10}
@@ -201,13 +203,13 @@ export const NotesEditor: React.FC<NotesEditorProps> = ({
           className="bg-blue-500 text-white px-4 rounded"
           onClick={handleSave}
         >
-          Save Note
+          {t('noteForm.saveNote')}
         </button>
         <button
           className="bg-gray-200 ml-2 px-4 rounded"
           onClick={() => onSave(note)}
         >
-          Cancel
+          {t('common.cancel')}
         </button>
       </div>
     </>

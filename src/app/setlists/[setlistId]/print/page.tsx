@@ -4,7 +4,7 @@ import { getSetlist, getLanguagesConfig } from "@/lib/content";
 import { resolveScopeSongs } from "@/lib/export/song-scope";
 import { loadPrintSongs } from "@/lib/print/load";
 import { PrintSongbook } from "@/components/PrintSongbook";
-import { getLocale } from "@/lib/i18n/server";
+import { getLocale, createT, plural } from "@/lib/i18n/server";
 import { getSession, canEdit, canViewSetlist } from "@/lib/auth";
 
 export default async function SetlistPrintPage({
@@ -29,6 +29,7 @@ export default async function SetlistPrintPage({
 
   const langConfig = await getLanguagesConfig();
   const cookieLang = getLocale(await cookies(), langConfig.default);
+  const t = createT(cookieLang);
   const selectedLang =
     typeof lang === "string" &&
     (lang === langConfig.default || langConfig.languages.includes(lang))
@@ -63,16 +64,16 @@ export default async function SetlistPrintPage({
           )}
         </>
       }
-      tocTitle="Songs"
+      tocTitle={t("setlistApp.songs")}
       showLangLabels
       backHref={backHref}
-      backLabel="Back to Setlist"
+      backLabel={t("setlistDates.backToSetlist")}
       toolbarChildren={
         <span className="text-sm text-neutral-500">
-          {songCount} song{songCount !== 1 ? "s" : ""}
+          {plural(t("setlist.count", { n: songCount }), songCount)}
         </span>
       }
-      emptyText="No songs to print."
+      emptyText={t("setlistApp.noSongsToPrint")}
     />
   );
 }

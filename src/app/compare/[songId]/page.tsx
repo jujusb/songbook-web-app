@@ -1,6 +1,8 @@
 import { notFound } from "next/navigation";
-import { getSong, getSongTranslation, getSongTranslations, getSongTitle } from "@/lib/content";
+import { cookies } from "next/headers";
+import { getSong, getSongTranslation, getSongTranslations, getSongTitle, getLanguagesConfig } from "@/lib/content";
 import { languageLabelFor } from "@/lib/i18n/labels";
+import { getLocale, createT } from "@/lib/i18n/server";
 import { ChordSheet } from "@/components/ChordSheet";
 
 export default async function ComparePage({
@@ -14,6 +16,7 @@ export default async function ComparePage({
   const { langs: langsParam } = await searchParams;
 
   const langLabel = languageLabelFor;
+  const t = createT(getLocale(await cookies(), (await getLanguagesConfig()).default));
 
   let meta;
   try {
@@ -31,7 +34,7 @@ export default async function ComparePage({
     return (
       <div className="max-w-full mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <h1 className="text-2xl font-bold mb-4">{meta.title}</h1>
-        <p className="text-neutral-500">No translations to compare.</p>
+        <p className="text-neutral-500">{t("compareApp.noTranslations")}</p>
       </div>
     );
   }
@@ -50,7 +53,7 @@ export default async function ComparePage({
       <div className="mb-6">
         <h1 className="text-2xl font-bold">{headerTitle}</h1>
         <p className="text-sm text-neutral-500">
-          Comparing {requestedLangs.length} translations
+          {t("compareApp.comparing", { n: requestedLangs.length })}
         </p>
       </div>
       <div

@@ -3,7 +3,7 @@ import { isSongItem } from "@/lib/content/schemas";
 import Link from "next/link";
 import { cookies } from "next/headers";
 import { listSetlists, listSongs, getLanguagesConfig, resolveSongListTitle } from "@/lib/content";
-import { getLocale } from "@/lib/i18n/server";
+import { getLocale, createT, plural } from "@/lib/i18n/server";
 import { getSession, canEdit, canCreateSetlist, canViewSetlistStats, getCurrentUser } from "@/lib/auth";
 import { T } from "@/components/Translate";
 
@@ -20,6 +20,7 @@ export default async function SetlistsPage() {
   ]);
   const songMap = new Map(songs.map((s) => [s.id, s]));
   const selectedLang = getLocale(await cookies(), langConfig.default);
+  const t = createT(selectedLang);
 
   // Private setlists (the default) are only visible to editors.
   const visibleSetlists = showEditActions
@@ -107,8 +108,7 @@ export default async function SetlistsPage() {
                     )}
                     {setlist.date && <span>{setlist.date}</span>}
                     <span>
-                      {visibleSongs.length} song
-                      {visibleSongs.length !== 1 ? "s" : ""}
+                      {plural(t("setlist.count", { n: visibleSongs.length }), visibleSongs.length)}
                     </span>
                   </div>
                 </div>
@@ -122,7 +122,7 @@ export default async function SetlistsPage() {
                         return resolveSongListTitle(song, s.lang);
                       })
                       .join(" \u2022 ")}
-                    {visibleSongs.length > 5 && ` \u2026 +${visibleSongs.length - 5} more`}
+                    {visibleSongs.length > 5 && t("setlist.more", { n: visibleSongs.length - 5 })}
                   </div>
                 )}
               </Link>
@@ -133,4 +133,7 @@ export default async function SetlistsPage() {
     </div>
   );
 }
-export const metadata: Metadata = { title: "Setlists" };
+export async function generateMetadata(): Promise<Metadata> {
+  const t = createT(getLocale(await cookies()));
+  return { title: t("nav.setlists") };
+}

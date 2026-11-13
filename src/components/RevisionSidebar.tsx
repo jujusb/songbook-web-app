@@ -34,13 +34,13 @@ export function RevisionSidebar({ songId, lang }: RevisionSidebarProps) {
       const res = await fetch(
         `/api/songs/${songId}/revisions/${encodeURIComponent(timestamp)}?lang=${lang}`
       );
-      if (!res.ok) throw new Error("Failed to load revision");
+      if (!res.ok) throw new Error(t('revisionSidebar.loadRevisionFailed'));
       const data = await res.json();
       setRevisionContent(data.content);
       setSelectedRevision(timestamp);
       setShowContent(true);
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "Failed to load revision");
+      setError(err instanceof Error ? err.message : t('revisionSidebar.loadRevisionFailed'));
     }
   };
 
@@ -49,7 +49,7 @@ export function RevisionSidebar({ songId, lang }: RevisionSidebarProps) {
     (async () => {
       try {
         const res = await fetch(`/api/songs/${songId}/revisions?lang=${lang}`);
-        if (!res.ok) throw new Error("Failed to load revisions");
+        if (!res.ok) throw new Error(t('revisionSidebar.loadRevisionsFailed'));
         const data = await res.json();
         const list: Revision[] = data.revisions || [];
         if (cancelled) return;
@@ -58,7 +58,7 @@ export function RevisionSidebar({ songId, lang }: RevisionSidebarProps) {
           const contentRes = await fetch(
             `/api/songs/${songId}/revisions/${encodeURIComponent(list[0].timestamp)}?lang=${lang}`
           );
-          if (!contentRes.ok) throw new Error("Failed to load revision");
+          if (!contentRes.ok) throw new Error(t('revisionSidebar.loadRevisionFailed'));
           const contentData = await contentRes.json();
           if (cancelled) return;
           setRevisionContent(contentData.content);
@@ -67,7 +67,7 @@ export function RevisionSidebar({ songId, lang }: RevisionSidebarProps) {
         }
       } catch (err: unknown) {
         if (!cancelled) {
-          setError(err instanceof Error ? err.message : "Failed to load revisions");
+          setError(err instanceof Error ? err.message : t('revisionSidebar.loadRevisionsFailed'));
         }
       } finally {
         if (!cancelled) setLoading(false);
@@ -76,7 +76,7 @@ export function RevisionSidebar({ songId, lang }: RevisionSidebarProps) {
     return () => {
       cancelled = true;
     };
-  }, [songId, lang]);
+  }, [songId, lang, t]);
 
   const formatTimestamp = (ts: string) => {
     // ts is in ISO format like "2024-03-01T12:00:00.000Z"
@@ -101,7 +101,7 @@ export function RevisionSidebar({ songId, lang }: RevisionSidebarProps) {
       // Reload page to show updated content
       window.location.reload();
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "Revert failed");
+      setError(err instanceof Error ? err.message : t('revisionSidebar.revertFailed'));
     } finally {
       setBusy(null);
     }
@@ -118,13 +118,13 @@ export function RevisionSidebar({ songId, lang }: RevisionSidebarProps) {
       setSelectedRevision(null);
       window.location.reload();
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "Publish failed");
+      setError(err instanceof Error ? err.message : t('revisionSidebar.publishFailed'));
     } finally {
       setBusy(null);
     }
   };
 
-  if (loading) return <div className="p-4 text-center text-neutral-500">Loading revisions...</div>;
+  if (loading) return <div className="p-4 text-center text-neutral-500">{t('revisionSidebar.loading')}</div>;
 
   return (
     <div className="h-full flex flex-col">

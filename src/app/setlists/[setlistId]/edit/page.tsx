@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
 import { getSetlistLinkAllowedHosts, getSetlistLinkAllowHttp } from "@/lib/config";
+import { cookies } from "next/headers";
+import { getLocale, createT } from "@/lib/i18n/server";
 import { notFound, redirect } from "next/navigation";
 import { getSetlist, getSetlistVersion, listSongs, getSongTranslations, getShareBaseUrl, listSetlistVersionContents , parseSetlistVersionDate } from "@/lib/content";
 import { getSession, canEdit, canCreateSetlist, canManageSetlistShares, canManageSetlistHistory } from "@/lib/auth";
@@ -15,6 +17,7 @@ export async function generateMetadata({
 }): Promise<Metadata> {
   const { setlistId } = await params;
   const { version, newDate, date } = await searchParams;
+  const t = createT(getLocale(await cookies()));
   try {
     const setlist = await getSetlist(setlistId);
     const isNewDate = newDate === "1" || newDate === "true";
@@ -24,10 +27,12 @@ export async function generateMetadata({
       const dated = await getSetlistVersion(setlistId, version).catch(() => null);
       when = dated?.date || parseSetlistVersionDate(version) || when;
     }
-    const verb = isNewDate ? "New date" : "Edit";
-    return { title: when ? `${setlist.title} - ${verb} ${when}` : `${setlist.title} - ${verb}` };
+    if (isNewDate) {
+      return { title: when ? t("setlistApp.metaNewDateWhen", { title: setlist.title, when }) : t("setlistApp.metaNewDate", { title: setlist.title }) };
+    }
+    return { title: when ? t("setlistApp.metaEditWhen", { title: setlist.title, when }) : t("setlistApp.metaEdit", { title: setlist.title }) };
   } catch {
-    return { title: "Edit Setlist" };
+    return { title: t("setlist.editSetlist") };
   }
 }
 
@@ -54,6 +59,7 @@ export default async function SetlistEditPage({
     notFound();
   }
 
+  const t = createT(getLocale(await cookies()));
   const session = await getSession();
   if (!session) redirect("/login");
 
@@ -99,7 +105,7 @@ export default async function SetlistEditPage({
   return (
     <div className="max-w-full mx-auto px-4 sm:px-6 lg:px-8 py-8">
       <h1 className="text-2xl font-bold mb-6">
-        {isNewDate ? `New date: ${setlist.title}` : `Edit: ${setlist.title}`}
+        {isNewDate ? t("setlistApp.newDateHeading", { title: setlist.title }) : t("setlistApp.editHeading", { title: setlist.title })}
       </h1>
 
       {showShareControls && (

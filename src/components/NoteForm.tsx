@@ -10,26 +10,26 @@ import { SCHEDULES_BY_TYPE, type RecurrentType } from "@/lib/note-schedule";
 import { notesApi, NoteMetadata, NoteSection, NoteOrderedField, extractApiSectionText, getApiResultKeys, getNestedValue, resolveNoteLanguage, noteApplicableLanguages } from "@/lib/notes";
 
 const RECURRENT_TYPES = [
-  { value: "weekly", label: "Weekly" },
-  { value: "monthly", label: "Monthly" },
-  { value: "specific-dates", label: "Specific Dates" },
-  { value: "daily", label: "Daily" },
+  { value: "weekly", labelKey: "notes.typeWeekly" },
+  { value: "monthly", labelKey: "notes.typeMonthly" },
+  { value: "specific-dates", labelKey: "notes.typeSpecificDates" },
+  { value: "daily", labelKey: "notes.typeDaily" },
 ];
 const SCHEDULES = [
-  { value: "sunday", label: "Sunday" },
-  { value: "monday", label: "Monday" },
-  { value: "tuesday", label: "Tuesday" },
-  { value: "wednesday", label: "Wednesday" },
-  { value: "thursday", label: "Thursday" },
-  { value: "friday", label: "Friday" },
-  { value: "saturday", label: "Saturday" },
-  { value: "first", label: "First Sunday of Month" },
-  { value: "first-second", label: "First & Second Sunday" },
-  { value: "last", label: "Last of Month" },
+  { value: "sunday", labelKey: "noteForm.daySunday" },
+  { value: "monday", labelKey: "noteForm.dayMonday" },
+  { value: "tuesday", labelKey: "noteForm.dayTuesday" },
+  { value: "wednesday", labelKey: "noteForm.dayWednesday" },
+  { value: "thursday", labelKey: "noteForm.dayThursday" },
+  { value: "friday", labelKey: "noteForm.dayFriday" },
+  { value: "saturday", labelKey: "noteForm.daySaturday" },
+  { value: "first", labelKey: "noteForm.schedFirst" },
+  { value: "first-second", labelKey: "noteForm.schedFirstSecond" },
+  { value: "last", labelKey: "noteForm.schedLast" },
 ];
 const PERIODIC_BEHAVIORS = [
-  { value: "same", label: "Same text every period" },
-  { value: "different_per_period", label: "Different text per period" },
+  { value: "same", labelKey: "noteForm.sameEveryPeriod" },
+  { value: "different_per_period", labelKey: "noteForm.differentPerPeriod" },
 ];
 
 interface SectionPreview {
@@ -204,7 +204,7 @@ function emptySection(type: "manual" | "api"): NoteSection {
 
 export function NoteForm({ initialNote, isNew = true, noteId, languages: languagesProp, defaultLanguage }: NoteFormProps) {
   const LANGUAGES = (languagesProp && languagesProp.length ? languagesProp : ['en-US', 'es-ES', 'fr-FR']).map((code) => ({ value: code, label: languageLabelFor(code) }));
-  const { locale } = useTranslation();
+  const { t, locale } = useTranslation();
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(!isNew && !!noteId && !initialNote);
   const [saving, setSaving] = useState(false);
@@ -277,7 +277,7 @@ export function NoteForm({ initialNote, isNew = true, noteId, languages: languag
   const handlePreview = useCallback(async (index: number) => {
     const section = sections[index];
     if (!section || section.type !== "api" || !section.api_url?.trim()) {
-      setPreviews((p) => ({ ...p, [index]: { error: "API endpoint is required" } }));
+      setPreviews((p) => ({ ...p, [index]: { error: t("noteForm.apiRequired") } }));
       return;
     }
     setPreviews((p) => ({ ...p, [index]: { loading: true, error: null } }));
@@ -310,13 +310,13 @@ export function NoteForm({ initialNote, isNew = true, noteId, languages: languag
       });
       setPreviews((p) => ({ ...p, [index]: { loading: false, error: null, data, extracted } }));
     } catch (err) {
-      setPreviews((p) => ({ ...p, [index]: { loading: false, error: err instanceof Error ? err.message : "Preview failed" } }));
+      setPreviews((p) => ({ ...p, [index]: { loading: false, error: err instanceof Error ? err.message : t("noteForm.previewFailed") } }));
     }
-  }, [sections, language, exampleDate, locale]);
+  }, [sections, language, exampleDate, locale, t]);
 
   const handleSave = useCallback(async () => {
     if (!title.trim()) {
-      setError("Title is required");
+      setError(t("noteForm.titleRequired"));
       return;
     }
     setSaving(true);
@@ -427,14 +427,14 @@ export function NoteForm({ initialNote, isNew = true, noteId, languages: languag
       }
       router.refresh();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to save note");
+      setError(err instanceof Error ? err.message : t("noteForm.saveFailed"));
     } finally {
       setSaving(false);
     }
-  }, [title, language, locale, recurrentType, recurrentSchedule, periodicBehavior, tags, publishMode, publishedDates, sections, previews, isEdit, noteId, router]);
+  }, [title, language, locale, recurrentType, recurrentSchedule, periodicBehavior, tags, publishMode, publishedDates, sections, previews, isEdit, noteId, router, t]);
 
   if (notFoundFlag) notFound();
-  if (isLoading) return <div className="p-6 max-w-2xl"><p className="text-sm text-neutral-500">Loading note…</p></div>;
+  if (isLoading) return <div className="p-6 max-w-2xl"><p className="text-sm text-neutral-500">{t("notes.loading")}</p></div>;
 
   return (
     <div className="max-w-full mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -442,16 +442,16 @@ export function NoteForm({ initialNote, isNew = true, noteId, languages: languag
         href={isEdit && noteId ? `/notes/${noteId}` : "/notes"}
         className="text-sm text-blue-600 dark:text-blue-400 hover:underline mb-4 inline-block"
       >
-        &larr; {isEdit ? "Back to note" : "Back to notes"}
+        &larr; {isEdit ? t("notes.backToNote") : t("noteForm.backToNotes")}
       </Link>
-      <h1 className="text-2xl font-bold mb-6">{isEdit ? "Edit Note" : "New Recurrent Note"}</h1>
+      <h1 className="text-2xl font-bold mb-6">{isEdit ? t("noteForm.editNote") : t("noteForm.newRecurrentNote")}</h1>
       {error && <div className="mb-4 px-4 py-2 bg-red-50 dark:bg-red-950 border border-red-200 dark:border-red-800 rounded-md text-red-700 dark:text-red-300 text-sm">{error}</div>}
       <div className="space-y-4 mb-8">
         <div>
-          <label className="block text-sm font-medium mb-1">API applicable languages (multi-select; empty = all)</label>
+          <label className="block text-sm font-medium mb-1">{t("noteForm.apiLanguages")}</label>
           <div className="flex items-center gap-2 mb-1">
-            <button type="button" onClick={() => setSections((prev) => prev.map((s) => s.type === "api" ? { ...s, languages: LANGUAGES.map((l) => l.value) } : s))} className="text-xs px-2 py-1 border rounded hover:bg-neutral-100 dark:hover:bg-neutral-800">All</button>
-            <button type="button" onClick={() => setSections((prev) => prev.map((s) => s.type === "api" ? { ...s, languages: [] } : s))} className="text-xs px-2 py-1 border rounded hover:bg-neutral-100 dark:hover:bg-neutral-800">Clear</button>
+            <button type="button" onClick={() => setSections((prev) => prev.map((s) => s.type === "api" ? { ...s, languages: LANGUAGES.map((l) => l.value) } : s))} className="text-xs px-2 py-1 border rounded hover:bg-neutral-100 dark:hover:bg-neutral-800">{t("noteForm.all")}</button>
+            <button type="button" onClick={() => setSections((prev) => prev.map((s) => s.type === "api" ? { ...s, languages: [] } : s))} className="text-xs px-2 py-1 border rounded hover:bg-neutral-100 dark:hover:bg-neutral-800">{t("noteForm.clear")}</button>
           </div>
           <select
             multiple
@@ -469,12 +469,12 @@ export function NoteForm({ initialNote, isNew = true, noteId, languages: languag
       </div>
       <div className="space-y-4 mb-8">
         <div>
-          <label className="block text-sm font-medium mb-1">Title *</label>
-          <input type="text" value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Note title" className="w-full px-3 py-2 border rounded-md text-sm" />
+          <label className="block text-sm font-medium mb-1">{t("noteForm.titleLabel")}</label>
+          <input type="text" value={title} onChange={(e) => setTitle(e.target.value)} placeholder={t("noteForm.titlePlaceholder")} className="w-full px-3 py-2 border rounded-md text-sm" />
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
-            <label className="block text-sm font-medium mb-1">Recurrent type</label>
+            <label className="block text-sm font-medium mb-1">{t("noteForm.recurrentType")}</label>
             <select value={recurrentType} onChange={(e) => {
               const next = e.target.value as RecurrentType;
               setRecurrentType(next);
@@ -482,13 +482,13 @@ export function NoteForm({ initialNote, isNew = true, noteId, languages: languag
               const allowed = SCHEDULES_BY_TYPE[next];
               if (allowed.length > 0 && !allowed.includes(recurrentSchedule)) setRecurrentSchedule(allowed[0]);
             }} className="w-full px-3 py-2 border rounded-md text-sm">
-              {RECURRENT_TYPES.map((t) => <option key={t.value} value={t.value}>{t.label}</option>)}
+              {RECURRENT_TYPES.map((opt) => <option key={opt.value} value={opt.value}>{t(opt.labelKey)}</option>)}
             </select>
           </div>
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
-            <label className="block text-sm font-medium mb-1">Recurrent schedule</label>
+            <label className="block text-sm font-medium mb-1">{t("noteForm.recurrentSchedule")}</label>
             <select
               value={recurrentSchedule}
               onChange={(e) => setRecurrentSchedule(e.target.value)}
@@ -496,32 +496,32 @@ export function NoteForm({ initialNote, isNew = true, noteId, languages: languag
               className="w-full px-3 py-2 border rounded-md text-sm disabled:opacity-50"
             >
               {SCHEDULES.filter((s) => SCHEDULES_BY_TYPE[recurrentType as RecurrentType].includes(s.value)).map((s) => (
-                <option key={s.value} value={s.value}>{s.label}</option>
+                <option key={s.value} value={s.value}>{t(s.labelKey)}</option>
               ))}
             </select>
           </div>
           <div>
-            <label className="block text-sm font-medium mb-1">Periodic behavior</label>
+            <label className="block text-sm font-medium mb-1">{t("noteForm.periodicBehavior")}</label>
             <select value={periodicBehavior} onChange={(e) => setPeriodicBehavior(e.target.value as "same" | "different_per_period")} className="w-full px-3 py-2 border rounded-md text-sm">
-              {PERIODIC_BEHAVIORS.map((b) => <option key={b.value} value={b.value}>{b.label}</option>)}
+              {PERIODIC_BEHAVIORS.map((b) => <option key={b.value} value={b.value}>{t(b.labelKey)}</option>)}
             </select>
           </div>
         </div>
         <div>
-          <label className="block text-sm font-medium mb-1">Tags (comma-separated)</label>
+          <label className="block text-sm font-medium mb-1">{t("noteForm.tagsLabel")}</label>
           <input type="text" value={tags} onChange={(e) => setTags(e.target.value)} placeholder="gospel, lectionary, weekly" className="w-full px-3 py-2 border rounded-md text-sm" />
         </div>
         <div>
-          <label className="block text-sm font-medium mb-1">Publish to other users</label>
+          <label className="block text-sm font-medium mb-1">{t("noteForm.publish")}</label>
           <select value={publishMode} onChange={(e) => setPublishMode(e.target.value as "private" | "all" | "dates")} className="w-full px-3 py-2 border rounded-md text-sm">
-            <option value="private">Private (default)</option>
-            <option value="all">Published entirely</option>
-            <option value="dates">Published only on specific dates</option>
+            <option value="private">{t("noteForm.publishPrivate")}</option>
+            <option value="all">{t("noteForm.publishAll")}</option>
+            <option value="dates">{t("noteForm.publishDates")}</option>
           </select>
         </div>
         {publishMode === "dates" && (
           <div>
-            <label className="block text-sm font-medium mb-1">Published dates (comma-separated, YYYY-MM-DD)</label>
+            <label className="block text-sm font-medium mb-1">{t("noteForm.publishedDatesLabel")}</label>
             <input type="text" value={publishedDates} onChange={(e) => setPublishedDates(e.target.value)} placeholder="2026-11-08, 2026-11-15" className="w-full px-3 py-2 border rounded-md text-sm" />
           </div>
         )}
@@ -529,22 +529,20 @@ export function NoteForm({ initialNote, isNew = true, noteId, languages: languag
 
       <div className="border-t border-neutral-200 dark:border-neutral-800 pt-6">
         <div className="flex items-center justify-between mb-4">
-          <h2 className="text-lg font-semibold">Note sections</h2>
+          <h2 className="text-lg font-semibold">{t("noteForm.sections")}</h2>
           <div className="flex gap-2">
-            <button type="button" onClick={() => addSection("manual")} className="px-3 py-1.5 text-sm border rounded-md hover:bg-neutral-100 dark:hover:bg-neutral-800">+ Manual</button>
-            <button type="button" onClick={() => addSection("api")} className="px-3 py-1.5 text-sm border rounded-md hover:bg-neutral-100 dark:hover:bg-neutral-800">+ External API</button>
+            <button type="button" onClick={() => addSection("manual")} className="px-3 py-1.5 text-sm border rounded-md hover:bg-neutral-100 dark:hover:bg-neutral-800">{t("noteForm.addManual")}</button>
+            <button type="button" onClick={() => addSection("api")} className="px-3 py-1.5 text-sm border rounded-md hover:bg-neutral-100 dark:hover:bg-neutral-800">{t("noteForm.addApi")}</button>
           </div>
         </div>
         <p className="text-xs text-neutral-500 mb-4">
-          A note is an ordered list of parts. Each part is either manual text or a call to an external API.
-          Use {"${LANG}"}/$LANG (app language, e.g. fr-FR), {"${LANG_SHORT}"}/$LANG_SHORT (short code, e.g. fr) for the language and $DATE/$DATE(format) for the date in API URLs.
-          The same language placeholders work in the Result section and in field mapping paths, e.g. variants[0].texts.$LANG.text.
+          {t("noteForm.sectionsHelp")} {t("noteForm.placeholdersHelp")} {t("noteForm.placeholdersHelp2")}
         </p>
 
         <div className="space-y-4">
           {exampleDate && null}
           <div className="flex items-center gap-3">
-            <label className="text-sm font-medium">Example date for previews</label>
+            <label className="text-sm font-medium">{t("noteForm.exampleDate")}</label>
             <input type="date" value={exampleDate} onChange={(e) => setExampleDate(e.target.value)} className="px-3 py-2 border rounded-md text-sm" />
           </div>
           {sections.map((section, index) => (
@@ -558,40 +556,40 @@ export function NoteForm({ initialNote, isNew = true, noteId, languages: languag
                   }}
                   className="px-3 py-2 border rounded-md text-sm"
                 >
-                  <option value="manual">Manual text</option>
-                  <option value="api">External API</option>
+                  <option value="manual">{t("noteForm.manualText")}</option>
+                  <option value="api">{t("noteForm.externalApi")}</option>
                 </select>
                 <div className="flex gap-2">
                   <button type="button" onClick={() => moveSection(index, -1)} className="px-2 py-1 text-xs border rounded">↑</button>
                   <button type="button" onClick={() => moveSection(index, 1)} className="px-2 py-1 text-xs border rounded">↓</button>
-                  <button type="button" onClick={() => removeSection(index)} className="px-2 py-1 text-xs border rounded text-red-600">Remove</button>
+                  <button type="button" onClick={() => removeSection(index)} className="px-2 py-1 text-xs border rounded text-red-600">{t("noteForm.remove")}</button>
                 </div>
               </div>
 
               {section.type === "manual" ? (
                 <div className="space-y-2">
                   <div>
-                    <label className="block text-sm font-medium mb-1">Periodic behavior</label>
+                    <label className="block text-sm font-medium mb-1">{t("noteForm.periodicBehavior")}</label>
                     <select
                       value={section.periodic_behavior || "same"}
                       onChange={(e) => updateSection(index, { periodic_behavior: e.target.value as "same" | "different_per_period" })}
                       className="w-full px-3 py-2 border rounded-md text-sm"
                     >
-                      <option value="same">Same text every period</option>
-                      <option value="different_per_period">Different text per period</option>
+                      <option value="same">{t("noteForm.sameEveryPeriod")}</option>
+                      <option value="different_per_period">{t("noteForm.differentPerPeriod")}</option>
                     </select>
                   </div>
                   {isEdit && section.periodic_behavior === "different_per_period" ? (
                     <p className="text-sm text-neutral-500">
-                      This manual part changes per date. Edit each occurrence in the{" "}
+                      {t("noteForm.changesPerDate")}
                       <Link href={`/notes/${noteId}/manual`} className="text-blue-600 hover:underline dark:text-blue-400">
-                        manual history editor
+                        {t("noteForm.manualHistoryEditor")}
                       </Link>.
                     </p>
                   ) : (
                     manualLanguages.map((langOpt) => (
                       <div key={langOpt.value} className="space-y-1">
-                        <label className="block text-sm font-medium mb-1">Text — {langOpt.label}</label>
+                        <label className="block text-sm font-medium mb-1">{t("noteForm.textFor", { language: langOpt.label })}</label>
                         <textarea
                           value={(section.mdByLanguage && section.mdByLanguage[langOpt.value]) ?? (langOpt.value === manualLanguages[0]?.value ? (section.md || "") : "")}
                           onChange={(e) => {
@@ -601,7 +599,7 @@ export function NoteForm({ initialNote, isNew = true, noteId, languages: languag
                             updateSection(index, { mdByLanguage: next, md: primary });
                           }}
                           rows={6}
-                          placeholder="Text in Markdown..."
+                          placeholder={t("notes.manualPlaceholder")}
                           className="w-full px-3 py-2 border rounded-md text-sm resize-y"
                         />
                       </div>
@@ -611,7 +609,7 @@ export function NoteForm({ initialNote, isNew = true, noteId, languages: languag
               ) : (
                 <div className="space-y-3">
                   <div>
-                    <label className="block text-sm font-medium mb-1">API endpoint</label>
+                    <label className="block text-sm font-medium mb-1">{t("noteForm.apiEndpoint")}</label>
                     <input
                       type="url"
                       value={section.api_url || ""}
@@ -621,17 +619,17 @@ export function NoteForm({ initialNote, isNew = true, noteId, languages: languag
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium mb-1">Result section / path</label>
+                    <label className="block text-sm font-medium mb-1">{t("noteForm.resultSection")}</label>
                     <input
                       type="text"
                       value={section.resultSection || ""}
                       onChange={(e) => updateSection(index, { resultSection: e.target.value })}
-                      placeholder="e.g. text / messes.lectures[]"
+                      placeholder={t("noteForm.resultSectionPlaceholder")}
                       className="w-full px-3 py-2 border rounded-md text-sm"
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium mb-1">Authorization (optional)</label>
+                    <label className="block text-sm font-medium mb-1">{t("noteForm.authOptional")}</label>
                     <input
                       type="text"
                       value={section.authorization || ""}
@@ -646,20 +644,20 @@ export function NoteForm({ initialNote, isNew = true, noteId, languages: languag
                     disabled={previews[index]?.loading}
                     className="px-4 py-2 bg-neutral-700 text-white rounded-md text-sm hover:bg-neutral-800 disabled:opacity-50"
                   >
-                    {previews[index]?.loading ? "Loading..." : "Preview API data"}
+                    {previews[index]?.loading ? t("common.loading") : t("noteForm.previewApi")}
                   </button>
                   {previews[index]?.error && (
                     <p className="text-sm text-red-600 dark:text-red-400">{previews[index]?.error}</p>
                   )}
                   {previews[index]?.extracted && (
                     <div>
-                      <label className="block text-sm font-medium mb-1">Extracted text</label>
+                      <label className="block text-sm font-medium mb-1">{t("noteForm.extractedText")}</label>
                       <pre className="whitespace-pre-wrap text-sm border rounded-md p-2">{previews[index]?.extracted}</pre>
                     </div>
                   )}
                   {previews[index]?.data !== undefined && previews[index]?.data !== null && (
                     <details>
-                      <summary className="text-sm cursor-pointer text-neutral-600 dark:text-neutral-400">Raw JSON</summary>
+                      <summary className="text-sm cursor-pointer text-neutral-600 dark:text-neutral-400">{t("noteForm.rawJson")}</summary>
                       <pre className="text-xs overflow-auto max-h-64 mt-1">{JSON.stringify(previews[index]?.data, null, 2)}</pre>
                     </details>
                   )}
@@ -677,7 +675,7 @@ export function NoteForm({ initialNote, isNew = true, noteId, languages: languag
                     return (
                       <div className="mt-3 space-y-2">
                         <div className="flex flex-wrap items-center gap-2">
-                          <label className="block text-sm font-medium">Field mapping (order, discriminator, style)</label>
+                          <label className="block text-sm font-medium">{t("noteForm.fieldMapping")}</label>
                           <button
                             type="button"
                             onClick={() => {
@@ -693,22 +691,22 @@ export function NoteForm({ initialNote, isNew = true, noteId, languages: languag
                               );
                             }}
                             className="text-xs px-2 py-1 border rounded hover:bg-neutral-100 dark:hover:bg-neutral-800"
-                            title="Replace language codes with $LANG in mapping paths"
+                            title={t("noteForm.useLangKeysTitle")}
                           >
-                            Use $LANG for language keys
+                            {t("noteForm.useLangKeys")}
                           </button>
                         </div>
                         <p className="text-xs text-neutral-500">
-                          Mapping paths support $LANG / $LANG_SHORT and can be edited directly, e.g. variants[0].texts.$LANG.text.
+                          {t("noteForm.mappingHelp")}
                         </p>
                         <div className="flex items-center gap-2 mb-2">
-                          <label className="text-sm">Discriminator field</label>
+                          <label className="text-sm">{t("noteForm.discriminatorField")}</label>
                           <select
                             value={disc}
                             onChange={(e) => updateSection(index, { discriminator: e.target.value })}
                             className="px-2 py-1 border rounded text-sm"
                           >
-                            <option value="none">none (no discriminator)</option>
+                            <option value="none">{t("noteForm.noDiscriminator")}</option>
                             {keys.map((k) => <option key={k} value={k}>{k}</option>)}
                           </select>
                         </div>
@@ -719,7 +717,7 @@ export function NoteForm({ initialNote, isNew = true, noteId, languages: languag
                               <input
                                 type="text"
                                 defaultValue={key}
-                                aria-label="Field path"
+                                aria-label={t("noteForm.fieldPath")}
                                 onKeyDown={(e) => {
                                   if (e.key === "Enter") e.currentTarget.blur();
                                 }}
@@ -738,14 +736,14 @@ export function NoteForm({ initialNote, isNew = true, noteId, languages: languag
                                 onChange={(e) => updateSection(index, { fieldStyles: { ...(section.fieldStyles || {}), [key]: e.target.value } })}
                                 className="px-2 py-1 border rounded"
                               >
-                                <option value="plain">plain</option>
-                                <option value="bold">bold</option>
-                                <option value="italic">italic</option>
+                                <option value="plain">{t('noteForm.stylePlain')}</option>
+                                <option value="bold">{t('noteForm.styleBold')}</option>
+                                <option value="italic">{t('noteForm.styleItalic')}</option>
                                 <option value="h2">h2</option>
                                 <option value="h3">h3</option>
-                                <option value="quote">quote</option>
-                                <option value="code">code</option>
-                                <option value="none">none (do not display)</option>
+                                <option value="quote">{t('noteForm.styleQuote')}</option>
+                                <option value="code">{t('noteForm.styleCode')}</option>
+                                <option value="none">{t("noteForm.styleNone")}</option>
                               </select>
                               <button type="button" onClick={() => {
                                 const next = [...arr];
@@ -769,7 +767,7 @@ export function NoteForm({ initialNote, isNew = true, noteId, languages: languag
                             onClick={() => updateSection(index, { fieldOrder: keys, discriminator: keys.includes("type") ? "type" : keys[0] })}
                             className="text-xs px-2 py-1 border rounded"
                           >
-                            Initialize mapping from preview
+                            {t("noteForm.initMapping")}
                           </button>
                         )}
 
@@ -797,7 +795,7 @@ export function NoteForm({ initialNote, isNew = true, noteId, languages: languag
                                   checked={section.showDiscriminator === true}
                                   onChange={(e) => updateSection(index, { showDiscriminator: e.target.checked })}
                                 />
-                                Display discriminator field
+                                {t("noteForm.displayDiscriminator")}
                               </label>
                               {rawSummaryValues.length > 0 && (
                                 <div className="space-y-1 mb-3">
@@ -820,21 +818,21 @@ export function NoteForm({ initialNote, isNew = true, noteId, languages: languag
                                             onChange={(e) => updateSection(index, { typeStyles: { ...(section.typeStyles || {}), [rawBase]: e.target.value } })}
                                             className="px-2 py-1 border rounded"
                                           >
-                                            <option value="plain">plain</option>
-                                            <option value="bold">bold</option>
-                                            <option value="italic">italic</option>
+                                            <option value="plain">{t('noteForm.stylePlain')}</option>
+                                            <option value="bold">{t('noteForm.styleBold')}</option>
+                                            <option value="italic">{t('noteForm.styleItalic')}</option>
                                             <option value="h2">h2</option>
                                             <option value="h3">h3</option>
-                                            <option value="quote">quote</option>
-                                            <option value="code">code</option>
-                                            <option value="none">none (do not display)</option>
+                                            <option value="quote">{t('noteForm.styleQuote')}</option>
+                                            <option value="code">{t('noteForm.styleCode')}</option>
+                                            <option value="none">{t("noteForm.styleNone")}</option>
                                           </select>
                                         </div>
                                       );
                                     })}
                                 </div>
                               )}
-                              <label className="block text-sm font-medium">Discriminator values (style and order)</label>
+                              <label className="block text-sm font-medium">{t("noteForm.discriminatorValues")}</label>
                               <div className="flex flex-wrap gap-2 mb-2">
                                 {sortedValues.map((val) => (
                                   <button
@@ -866,20 +864,20 @@ export function NoteForm({ initialNote, isNew = true, noteId, languages: languag
                                 return (
                                   <div className="space-y-2">
                                     <div className="flex items-center gap-2">
-                                      <span className="text-xs font-medium">{activeVal} style</span>
+                                      <span className="text-xs font-medium">{t("noteForm.styleFor", { value: activeVal })}</span>
                                       <select
                                         value={section.typeStyles?.[activeVal] || "plain"}
                                         onChange={(e) => updateSection(index, { typeStyles: { ...(section.typeStyles || {}), [activeVal]: e.target.value } })}
                                         className="px-2 py-1 border rounded text-xs"
                                       >
-                                        <option value="plain">plain</option>
-                                        <option value="bold">bold</option>
-                                        <option value="italic">italic</option>
+                                        <option value="plain">{t('noteForm.stylePlain')}</option>
+                                        <option value="bold">{t('noteForm.styleBold')}</option>
+                                        <option value="italic">{t('noteForm.styleItalic')}</option>
                                         <option value="h2">h2</option>
                                         <option value="h3">h3</option>
-                                        <option value="quote">quote</option>
-                                        <option value="code">code</option>
-                                        <option value="none">none (do not display)</option>
+                                        <option value="quote">{t('noteForm.styleQuote')}</option>
+                                        <option value="code">{t('noteForm.styleCode')}</option>
+                                        <option value="none">{t("noteForm.styleNone")}</option>
                                       </select>
                                     </div>
                                     <div className="space-y-1">
@@ -893,7 +891,7 @@ export function NoteForm({ initialNote, isNew = true, noteId, languages: languag
                                             <input
                                               type="text"
                                               defaultValue={key}
-                                              aria-label="Field path"
+                                              aria-label={t("noteForm.fieldPath")}
                                               onKeyDown={(e) => {
                                                 if (e.key === "Enter") e.currentTarget.blur();
                                               }}
@@ -921,14 +919,14 @@ export function NoteForm({ initialNote, isNew = true, noteId, languages: languag
                                               }}
                                               className="px-2 py-1 border rounded"
                                             >
-                                              <option value="plain">plain</option>
-                                              <option value="bold">bold</option>
-                                              <option value="italic">italic</option>
+                                              <option value="plain">{t('noteForm.stylePlain')}</option>
+                                              <option value="bold">{t('noteForm.styleBold')}</option>
+                                              <option value="italic">{t('noteForm.styleItalic')}</option>
                                               <option value="h2">h2</option>
                                               <option value="h3">h3</option>
-                                              <option value="quote">quote</option>
-                                              <option value="code">code</option>
-                                              <option value="none">none (do not display)</option>
+                                              <option value="quote">{t('noteForm.styleQuote')}</option>
+                                              <option value="code">{t('noteForm.styleCode')}</option>
+                                              <option value="none">{t("noteForm.styleNone")}</option>
                                             </select>
                                             <button type="button" onClick={() => {
                                               const next = [...arr];
@@ -967,17 +965,17 @@ export function NoteForm({ initialNote, isNew = true, noteId, languages: languag
             </div>
           ))}
           {sections.length === 0 && (
-            <p className="text-sm text-neutral-500">No sections. Add a part using the buttons above.</p>
+            <p className="text-sm text-neutral-500">{t("noteForm.noSections")}</p>
           )}
         </div>
       </div>
 
       <div className="flex items-center gap-3 pt-4 border-t border-neutral-200 dark:border-neutral-800">
         <button type="button" onClick={handleSave} disabled={saving || !title.trim()} className="px-6 py-2.5 bg-blue-600 text-white rounded-md font-medium text-sm hover:bg-blue-700 disabled:opacity-50">
-          {saving ? "Saving…" : isEdit ? "Save Note" : "Create Note"}
+          {saving ? t("notes.saving") : isEdit ? t("noteForm.saveNote") : t("noteForm.createNote")}
         </button>
         <button type="button" onClick={() => router.push("/notes")} className="px-4 py-2.5 border rounded-md text-sm hover:bg-neutral-100 dark:hover:bg-neutral-800">
-          Cancel
+          {t("common.cancel")}
         </button>
       </div>
     </div>

@@ -25,7 +25,7 @@ export function NewSongForm({
   preselectedAlbum?: string;
 }) {
   const router = useRouter();
-  const { languageLabel } = useTranslation();
+  const { t, languageLabel } = useTranslation();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const wordFileInputRef = useRef<HTMLInputElement>(null);
 
@@ -149,21 +149,21 @@ export function NewSongForm({
         if (result.detectedKey && !key) setKey(result.detectedKey);
         setWordFileName(file.name);
       } catch (err) {
-        setError(err instanceof Error ? err.message : "Failed to import Word document");
+        setError(err instanceof Error ? err.message : t('newSong.failedWord'));
       } finally {
         setImporting(false);
       }
     },
-    [title, key]
+    [title, key, t]
   );
 
   const handleSave = useCallback(async () => {
     if (!title.trim()) {
-      setError("Title is required");
+      setError(t('newSong.titleRequired'));
       return;
     }
     if (!chordpro.trim()) {
-      setError("Song content is required");
+      setError(t('newSong.contentRequired'));
       return;
     }
 
@@ -196,7 +196,7 @@ export function NewSongForm({
 
       if (!res.ok) {
         const data = await res.json();
-        throw new Error(data.error || "Failed to create song");
+        throw new Error(data.error || t('newSong.failedCreate'));
       }
 
       router.push(`/songs/${id}?lang=${lang}`);
@@ -207,20 +207,20 @@ export function NewSongForm({
         // ignore
       }
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "Failed to save");
+      setError(err instanceof Error ? err.message : t('newSong.failedSave'));
     } finally {
       setSaving(false);
     }
-  }, [title, lang, key, albumId, chordpro, router]);
+  }, [title, lang, key, albumId, chordpro, router, t]);
 
   return (
     <div className="max-w-full mx-auto px-4 sm:px-6 lg:px-8 py-8">
       <div className="flex items-center justify-between mb-6">
-        <h1 className="text-2xl font-bold">New Song</h1>
+        <h1 className="text-2xl font-bold">{t('newSong.heading')}</h1>
         <div className="flex items-center gap-3">
           {draftRestored && (
             <span className="text-xs text-amber-600 dark:text-amber-400">
-              Draft restored from autosave
+              {t('newSong.draftRestored')}
             </span>
           )}
           <button
@@ -232,7 +232,7 @@ export function NewSongForm({
                 : "border-neutral-300 dark:border-neutral-700 text-neutral-500 hover:text-neutral-700 dark:hover:text-neutral-300"
             }`}
           >
-            {autoSave ? "Autosave: On" : "Autosave: Off"}
+            {autoSave ? t('editor.autosaveOn') : t('editor.autosaveOff')}
           </button>
         </div>
       </div>
@@ -247,26 +247,26 @@ export function NewSongForm({
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
         <div>
           <label className="block text-sm font-medium text-neutral-700 dark:text-neutral-300 mb-1">
-            Title *
+            {t('newSong.title')} *
           </label>
           <input
             type="text"
             value={title}
             onChange={(e) => setTitle(e.target.value)}
-            placeholder="e.g. Amazing Grace"
+            placeholder={t('newSong.titlePlaceholder')}
             className="w-full px-3 py-2 border border-neutral-300 dark:border-neutral-700 rounded-md bg-white dark:bg-neutral-900 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
           />
         </div>
         <div>
           <label className="block text-sm font-medium text-neutral-700 dark:text-neutral-300 mb-1">
-            Album
+            {t('newSong.album')}
           </label>
           <select
             value={albumId}
             onChange={(e) => setAlbumId(e.target.value)}
             className="w-full px-3 py-2 border border-neutral-300 dark:border-neutral-700 rounded-md bg-white dark:bg-neutral-900 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
           >
-            <option value="">No Album</option>
+            <option value="">{t('bulkImport.noAlbum')}</option>
             {albums.map((a) => (
               <option key={a.id} value={a.id}>
                 {a.title} ({a.artist})
@@ -276,7 +276,7 @@ export function NewSongForm({
         </div>
         <div>
           <label className="block text-sm font-medium text-neutral-700 dark:text-neutral-300 mb-1">
-            Language
+            {t('common.language')}
           </label>
           <select
             value={lang}
@@ -292,13 +292,13 @@ export function NewSongForm({
         </div>
         <div>
           <label className="block text-sm font-medium text-neutral-700 dark:text-neutral-300 mb-1">
-            Key
+            {t('common.key')}
           </label>
           <input
             type="text"
             value={key}
             onChange={(e) => setKey(e.target.value)}
-            placeholder="e.g. G, Am, Bb"
+            placeholder={t('newSong.keyPlaceholder')}
             className="w-full px-3 py-2 border border-neutral-300 dark:border-neutral-700 rounded-md bg-white dark:bg-neutral-900 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
           />
         </div>
@@ -307,7 +307,7 @@ export function NewSongForm({
       {/* Import mode selector */}
       <div className="mb-4">
         <label className="block text-sm font-medium text-neutral-700 dark:text-neutral-300 mb-2">
-          Import Source
+          {t('newSong.importSource')}
         </label>
         <div className="flex gap-2">
           <button
@@ -319,7 +319,7 @@ export function NewSongForm({
                 : "border-neutral-300 dark:border-neutral-700 hover:bg-neutral-100 dark:hover:bg-neutral-800"
             }`}
           >
-            Write ChordPro
+            {t('newSong.modeManual')}
           </button>
           <button
             type="button"
@@ -330,7 +330,7 @@ export function NewSongForm({
                 : "border-neutral-300 dark:border-neutral-700 hover:bg-neutral-100 dark:hover:bg-neutral-800"
             }`}
           >
-            Import TXT File
+            {t('newSong.modeFile')}
           </button>
           <button
             type="button"
@@ -341,7 +341,7 @@ export function NewSongForm({
                 : "border-neutral-300 dark:border-neutral-700 hover:bg-neutral-100 dark:hover:bg-neutral-800"
             }`}
           >
-            Import from Word
+            {t('newSong.modeWord')}
           </button>
           <button
             type="button"
@@ -352,7 +352,7 @@ export function NewSongForm({
                 : "border-neutral-300 dark:border-neutral-700 hover:bg-neutral-100 dark:hover:bg-neutral-800"
             }`}
           >
-            Paste Text
+            {t('newSong.modePaste')}
           </button>
           <button
             type="button"
@@ -363,7 +363,7 @@ export function NewSongForm({
                 : "border-neutral-300 dark:border-neutral-700 hover:bg-neutral-100 dark:hover:bg-neutral-800"
             }`}
           >
-            Paste ChordPro
+            {t('newSong.modeChordpro')}
           </button>
         </div>
       </div>
@@ -380,7 +380,7 @@ export function NewSongForm({
                   onClick={() => fileInputRef.current?.click()}
                   className="px-4 py-2 text-sm border border-neutral-300 dark:border-neutral-700 rounded-md hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors"
                 >
-                  Choose File
+                  {t('newSong.chooseFile')}
                 </button>
                 <input
                   ref={fileInputRef}
@@ -396,17 +396,17 @@ export function NewSongForm({
                 )}
                 {!fileName && (
                   <span className="text-xs text-neutral-500">
-                    or paste / type text below
+                    {t('newSong.orPasteBelow')}
                   </span>
                 )}
               </div>
               <label className="block text-sm font-medium text-neutral-700 dark:text-neutral-300 mb-1">
-                Song text (with chords) &mdash; upload, paste, or type
+                {t('newSong.songTextUpload')}
               </label>
               <textarea
                 value={rawImport}
                 onChange={(e) => setRawImport(e.target.value)}
-                placeholder={`Paste or type your song here, e.g.:\n\nVerse 1:\n   G        G7      C        G\nAmazing grace, how sweet the sound\n     G        Em      D\nThat saved a wretch like me`}
+                placeholder={`${t('newSong.pasteFileHint')}\n\nVerse 1:\n   G        G7      C        G\nAmazing grace, how sweet the sound\n     G        Em      D\nThat saved a wretch like me`}
                 rows={14}
                 className="w-full px-3 py-2 border border-neutral-300 dark:border-neutral-700 rounded-md bg-white dark:bg-neutral-900 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
@@ -416,7 +416,7 @@ export function NewSongForm({
                 disabled={!rawImport.trim()}
                 className="mt-2 px-4 py-2 bg-blue-600 text-white text-sm rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
               >
-                Convert to ChordPro
+                {t('newSong.convert')}
               </button>
             </div>
           )}
@@ -424,7 +424,7 @@ export function NewSongForm({
           {importMode === "paste" && (
             <div className="mb-4">
               <label className="block text-sm font-medium text-neutral-700 dark:text-neutral-300 mb-1">
-                Paste your song text (with chords)
+                {t('newSong.pasteSongText')}
               </label>
               <textarea
                 value={rawImport}
@@ -438,7 +438,7 @@ export function NewSongForm({
                 onClick={handlePasteImport}
                 className="mt-2 px-4 py-2 bg-blue-600 text-white text-sm rounded-md hover:bg-blue-700 transition-colors"
               >
-                Convert to ChordPro
+                {t('newSong.convert')}
               </button>
             </div>
           )}
@@ -446,7 +446,7 @@ export function NewSongForm({
           {importMode === "word" && (
             <div className="mb-4">
               <p className="text-sm text-neutral-500 mb-3">
-                Choose a .docx Word document; it will be converted to ChordPro.
+                {t('newSong.wordHint')}
               </p>
               <div className="flex items-center gap-3 mb-3">
                 <button
@@ -455,7 +455,7 @@ export function NewSongForm({
                   disabled={importing}
                   className="px-4 py-2 text-sm border border-neutral-300 dark:border-neutral-700 rounded-md hover:bg-neutral-100 dark:hover:bg-neutral-800 disabled:opacity-50 transition-colors"
                 >
-                  {importing ? "Converting..." : "Choose File"}
+                  {importing ? t('editor.importConverting') : t('newSong.chooseFile')}
                 </button>
                 <input
                   ref={wordFileInputRef}
@@ -471,13 +471,13 @@ export function NewSongForm({
                 )}
                 {!wordFileName && !importing && (
                   <span className="text-xs text-neutral-500">
-                    Only .docx files are supported
+                    {t('newSong.onlyDocx')}
                   </span>
                 )}
               </div>
               {wordFileName && !importing && (
                 <p className="text-xs text-neutral-500">
-                  Converted. Review the ChordPro on the right and adjust if needed.
+                  {t('newSong.wordConverted')}
                 </p>
               )}
             </div>
@@ -486,16 +486,16 @@ export function NewSongForm({
           <div>
             <label className="block text-sm font-medium text-neutral-700 dark:text-neutral-300 mb-1">
               {importMode === "chordpro"
-                ? "Paste or type ChordPro"
+                ? t('newSong.labelChordproInput')
                 : importMode === "manual"
-                ? "ChordPro Content"
-                : "Converted ChordPro (editable)"}
+                ? t('newSong.labelChordproContent')
+                : t('newSong.labelConverted')}
             </label>
             <textarea
               value={chordpro}
               onChange={(e) => setChordpro(e.target.value)}
               placeholder={importMode === "chordpro"
-                ? `Paste your ChordPro content here, e.g.:\n\n{title: Amazing Grace}\n{key: G}\n\n{start_of_verse: Verse 1}\n[G]Amazing [G7]grace, how [C]sweet the [G]sound\nThat [G]saved a [Em]wretch like [D]me\n{end_of_verse}`
+                ? `${t('newSong.chordproHint')}\n\n{title: Amazing Grace}\n{key: G}\n\n{start_of_verse: Verse 1}\n[G]Amazing [G7]grace, how [C]sweet the [G]sound\nThat [G]saved a [Em]wretch like [D]me\n{end_of_verse}`
                 : `{title: My Song}\n{key: G}\n\n{start_of_verse: Verse 1}\n[G]First line of [C]lyrics\n[Am]Second line of [D]lyrics\n{end_of_verse}`}
               rows={importMode === "chordpro" ? 20 : 16}
               className="w-full px-3 py-2 border border-neutral-300 dark:border-neutral-700 rounded-md bg-white dark:bg-neutral-900 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-blue-500"
@@ -506,7 +506,7 @@ export function NewSongForm({
         {/* Right: preview */}
         <div>
           <label className="block text-sm font-medium text-neutral-700 dark:text-neutral-300 mb-1">
-            Preview
+            {t('newSong.preview')}
           </label>
           <div className="border border-neutral-200 dark:border-neutral-800 rounded-md p-4 min-h-[400px] bg-white dark:bg-neutral-950">
             {preview ? (
@@ -516,7 +516,7 @@ export function NewSongForm({
               />
             ) : (
               <p className="text-neutral-400 text-sm">
-                Enter or import song content to see a preview
+                {t('newSong.previewEmpty')}
               </p>
             )}
           </div>
@@ -531,14 +531,14 @@ export function NewSongForm({
           disabled={saving || !title.trim() || !chordpro.trim()}
           className="px-6 py-2.5 bg-blue-600 text-white rounded-md font-medium text-sm hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
         >
-          {saving ? "Creating..." : "Create Song"}
+          {saving ? t('newSong.creating') : t('newSong.create')}
         </button>
         <button
           type="button"
           onClick={() => router.push("/songs")}
           className="px-4 py-2.5 border border-neutral-300 dark:border-neutral-700 rounded-md text-sm hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors"
         >
-          Cancel
+          {t('common.cancel')}
         </button>
       </div>
     </div>

@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
 import { getSetlistLinkAllowedHosts, getSetlistLinkAllowHttp } from "@/lib/config";
+import { cookies } from "next/headers";
+import { getLocale, createT } from "@/lib/i18n/server";
 import { notFound, redirect } from "next/navigation";
 import { getSession, canCreateSetlist } from "@/lib/auth";
 import { isReadOnlyFor } from "@/lib/readonly";
@@ -11,6 +13,7 @@ export default async function NewSetlistPage() {
   const session = await getSession();
   if (!canCreateSetlist(session?.role ?? null)) redirect("/login");
 
+  const t = createT(getLocale(await cookies()));
   const songs = await listSongs();
   const songsWithLangs = await Promise.all(
     songs.map(async (s) => {
@@ -21,7 +24,7 @@ export default async function NewSetlistPage() {
 
   return (
     <div className="max-w-full mx-auto px-4 sm:px-6 lg:px-8 py-8">
-      <h1 className="text-2xl font-bold mb-6">New Setlist</h1>
+      <h1 className="text-2xl font-bold mb-6">{t("setlistApp.newSetlistTitle")}</h1>
       <SetlistEditor
         allowedLinkHosts={getSetlistLinkAllowedHosts()}
         allowHttpLinks={getSetlistLinkAllowHttp()}
@@ -33,4 +36,7 @@ export default async function NewSetlistPage() {
   );
 }
 
-export const metadata: Metadata = { title: "New Setlist" };
+export async function generateMetadata(): Promise<Metadata> {
+  const t = createT(getLocale(await cookies()));
+  return { title: t("setlistApp.newSetlistTitle") };
+}

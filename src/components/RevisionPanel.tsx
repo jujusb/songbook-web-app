@@ -32,13 +32,13 @@ export function RevisionPanel({ songId, lang }: RevisionPanelProps) {
     }
     try {
       const res = await fetch(`/api/songs/${songId}/revisions/${timestamp}?lang=${lang}`);
-      if (!res.ok) throw new Error("Failed to load revision");
+      if (!res.ok) throw new Error(t('revisionPanel.loadRevisionFailed'));
       const data = await res.json();
       setRevisionContent(data.content);
       setSelectedRevision(timestamp);
       setShowContent(true);
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "Failed to load revision");
+      setError(err instanceof Error ? err.message : t('revisionPanel.loadRevisionFailed'));
     }
   };
 
@@ -47,7 +47,7 @@ export function RevisionPanel({ songId, lang }: RevisionPanelProps) {
     (async () => {
       try {
         const res = await fetch(`/api/songs/${songId}/revisions?lang=${lang}`);
-        if (!res.ok) throw new Error("Failed to load revisions");
+        if (!res.ok) throw new Error(t('revisionPanel.loadRevisionsFailed'));
         const data = await res.json();
         const list: Revision[] = data.revisions || [];
         if (cancelled) return;
@@ -56,7 +56,7 @@ export function RevisionPanel({ songId, lang }: RevisionPanelProps) {
           const contentRes = await fetch(
             `/api/songs/${songId}/revisions/${list[0].timestamp}?lang=${lang}`
           );
-          if (!contentRes.ok) throw new Error("Failed to load revision");
+          if (!contentRes.ok) throw new Error(t('revisionPanel.loadRevisionFailed'));
           const contentData = await contentRes.json();
           if (cancelled) return;
           setRevisionContent(contentData.content);
@@ -65,7 +65,7 @@ export function RevisionPanel({ songId, lang }: RevisionPanelProps) {
         }
       } catch (err: unknown) {
         if (!cancelled) {
-          setError(err instanceof Error ? err.message : "Failed to load revisions");
+          setError(err instanceof Error ? err.message : t('revisionPanel.loadRevisionsFailed'));
         }
       } finally {
         if (!cancelled) setLoading(false);
@@ -74,7 +74,7 @@ export function RevisionPanel({ songId, lang }: RevisionPanelProps) {
     return () => {
       cancelled = true;
     };
-  }, [songId, lang]);
+  }, [songId, lang, t]);
 
   const formatTimestamp = (ts: string) => {
     // ts is in ISO format like "2024-03-01T12:00:00.000Z"
@@ -99,7 +99,7 @@ export function RevisionPanel({ songId, lang }: RevisionPanelProps) {
       // Reload page to show updated content
       window.location.reload();
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "Revert failed");
+      setError(err instanceof Error ? err.message : t('revisionPanel.revertFailed'));
     } finally {
       setBusy(null);
     }
@@ -116,13 +116,13 @@ export function RevisionPanel({ songId, lang }: RevisionPanelProps) {
       setSelectedRevision(null);
       window.location.reload();
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "Publish failed");
+      setError(err instanceof Error ? err.message : t('revisionPanel.publishFailed'));
     } finally {
       setBusy(null);
     }
   };
 
-  if (loading) return <div className="p-4 text-center text-neutral-500">Loading revisions...</div>;
+  if (loading) return <div className="p-4 text-center text-neutral-500">{t('revisionPanel.loading')}</div>;
 
   return (
     <div className="border-t border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-950">

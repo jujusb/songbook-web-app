@@ -3,15 +3,18 @@ import { notFound, redirect } from "next/navigation";
 import { getAlbum, listSongs, listArtists, getLanguagesConfig, resolveSongListTitle } from "@/lib/content";
 import { getSession, canEdit, canEditAlbum, getCurrentUser } from "@/lib/auth";
 import { isReadOnly } from "@/lib/readonly";
+import { cookies } from "next/headers";
+import { getLocale, createT } from "@/lib/i18n/server";
 import { AlbumForm } from "@/components/AlbumForm";
 
 export async function generateMetadata({ params }: { params: Promise<{ albumId: string }> }): Promise<Metadata> {
   const { albumId } = await params;
+  const t = createT(getLocale(await cookies(), 'en-US'));
   try {
     const album = await getAlbum(albumId);
-    return { title: `${album.title} - Edit` };
+    return { title: t('albumsApp.editTitle', { title: album.title }) };
   } catch {
-    return { title: "Edit Album" };
+    return { title: t('album.editAlbum') };
   }
 }
 

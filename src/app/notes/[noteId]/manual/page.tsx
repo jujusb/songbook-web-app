@@ -6,6 +6,7 @@ import { getNote } from "@/lib/content/notes";
 import { getLanguagesConfig } from "@/lib/content";
 import { NoteManualEditor } from "@/components/NoteManualEditor";
 import { noteApplicableLanguages } from "@/lib/notes";
+import { getLocale, createT } from "@/lib/i18n/server";
 
 export async function generateMetadata({
   params,
@@ -18,7 +19,8 @@ export async function generateMetadata({
   const { date } = await searchParams;
   const note = await getNote(noteId);
   const when = typeof date === "string" && /^\d{4}-\d{2}-\d{2}$/.test(date) ? ` - ${date}` : "";
-  return { title: note ? `${note.title} - Manual text${when}` : "Manual text" };
+  const t = createT(await getLocale());
+  return { title: note ? `${t("notesApp.manualTitle", { title: note.title })}${when}` : t("notesApp.manualText") };
 }
 
 export default async function NoteManualPage({

@@ -32,7 +32,7 @@ export function ProfilePartitionsForm({ initialInstrument }: { initialInstrument
           value={instrument}
           onChange={(e) => setInstrument(e.target.value)}
           className="px-3 py-2 rounded-lg border border-neutral-300 dark:border-neutral-700 text-sm bg-transparent focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
-          placeholder="e.g. guitar"
+          placeholder={t('profilePartitions.placeholder')}
           title={t('profile.partitionsNotes')}
         />
       </div>

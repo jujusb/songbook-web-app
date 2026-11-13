@@ -2,6 +2,7 @@
 
 import { useState, useRef, useEffect } from "react";
 import { createPortal } from "react-dom";
+import { useTranslation } from "@/lib/i18n";
 
 interface ActionItem {
   label: string;
@@ -21,10 +22,12 @@ interface ActionMenuProps {
 
 export function ActionMenu({
   items,
-  triggerLabel = "Actions",
+  triggerLabel,
   triggerIcon,
   position = "bottom",
 }: ActionMenuProps) {
+  const { t } = useTranslation();
+  const label = triggerLabel ?? t('admin.actions');
   const [open, setOpen] = useState(false);
   const triggerRef = useRef<HTMLButtonElement>(null);
   const menuRef = useRef<HTMLDivElement>(null);
@@ -114,7 +117,7 @@ export function ActionMenu({
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z" />
           </svg>
         )}
-        {triggerLabel && <span className="hidden sm:inline">{triggerLabel}</span>}
+        {label && <span className="hidden sm:inline">{label}</span>}
       </button>
       {open && createPortal(menuContent, document.body)}
     </div>

@@ -12,7 +12,7 @@ import {
   getLanguagesConfig,
   shouldShowSongInLanguage,
 } from "@/lib/content";
-import { getLocale } from "@/lib/i18n/server";
+import { getLocale, createT } from "@/lib/i18n/server";
 import { languageLabelFor } from "@/lib/i18n/labels";
 import { getSession, canAdmin, canEdit } from "@/lib/auth";
 import { DeleteButton } from "@/components/DeleteButton";
@@ -39,6 +39,7 @@ export default async function ArtistPage({
       ? langParam
       : getLocale(cookieStore, langConfig.default);
   const langLabel = languageLabelFor;
+  const t = createT(uiLang);
 
   let artist;
   try {
@@ -116,7 +117,7 @@ export default async function ArtistPage({
           href="/artists"
           className="text-sm text-blue-600 dark:text-blue-400 hover:underline mb-2 inline-block"
         >
-          &larr; All Artists
+          &larr; {t('artistsApp.allArtists')}
         </Link>
         <h1 className="text-3xl font-bold">{artist.name}</h1>
         {artist.bio && (
@@ -132,12 +133,17 @@ export default async function ArtistPage({
               rel="noopener noreferrer"
               className="text-blue-600 dark:text-blue-400 hover:underline"
             >
-              Website
+              {t('artist.website')}
             </a>
           )}
           <span>
-            {visibleAlbums.length} album{visibleAlbums.length !== 1 ? "s" : ""} &middot;{" "}
-            {totalSongs} song{totalSongs !== 1 ? "s" : ""}
+            {visibleAlbums.length === 1
+              ? t('artistsApp.albumOne', { n: visibleAlbums.length })
+              : t('artistsApp.albumMany', { n: visibleAlbums.length })}{" "}
+            &middot;{" "}
+            {totalSongs === 1
+              ? t('artistsApp.songOne', { n: totalSongs })
+              : t('artistsApp.songMany', { n: totalSongs })}
           </span>
         </div>
         {artist.tags.length > 0 && (
@@ -157,7 +163,7 @@ export default async function ArtistPage({
             href={`/pdf?scope=artist&id=${artistId}`}
             className="text-sm px-3 py-1.5 border border-neutral-300 dark:border-neutral-700 rounded-md hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors"
           >
-            Export PDF for this artist
+            {t('artistsApp.exportPdf')}
           </Link>
           {showDeleteActions && (
             <DeleteButton
@@ -190,15 +196,16 @@ export default async function ArtistPage({
                   </Link>
                   <div className="text-xs text-neutral-400 mt-0.5">
                     {album.year && <span>{album.year} &middot; </span>}
-                    {album.songDetails.length} song
-                    {album.songDetails.length !== 1 ? "s" : ""}
+                    {album.songDetails.length === 1
+                      ? t('artistsApp.songOne', { n: album.songDetails.length })
+                      : t('artistsApp.songMany', { n: album.songDetails.length })}
                   </div>
                 </div>
                 <Link
                   href={`/albums/${album.id}?lang=${uiLang}`}
                   className="text-xs text-blue-600 dark:text-blue-400 hover:underline"
                 >
-                  View album &rarr;
+                  {t('artistsApp.viewAlbum')} &rarr;
                 </Link>
               </div>
               <ol className="divide-y divide-neutral-200 dark:divide-neutral-800">

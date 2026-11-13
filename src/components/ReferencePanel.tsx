@@ -3,6 +3,9 @@
 import { useState } from "react";
 import Link from "next/link";
 import { getReferenceText, getHighlight } from "@/lib/content/references";
+import { useTranslation } from "@/lib/i18n";
+
+type Translate = (key: string, params?: Record<string, string | number>) => string;
 
 interface ReferenceLocation {
   line?: number;
@@ -27,11 +30,12 @@ interface Reference {
 }
 
 function getLocationLabel(
-  loc: { line?: number; verse?: string; chorus?: string }
+  loc: { line?: number; verse?: string; chorus?: string },
+  t: Translate,
 ): string | null {
   if (loc.verse) return loc.verse;
   if (loc.chorus) return loc.chorus;
-  if (loc.line !== undefined) return `Line ${loc.line + 1}`;
+  if (loc.line !== undefined) return t("referencePanel.line", { n: loc.line + 1 });
   return null;
 }
 
@@ -130,6 +134,7 @@ export function ReferencePanel({
   variant = "sidebar",
   defaultOpen = false,
 }: ReferencePanelProps) {
+  const { t } = useTranslation();
   const [open, setOpen] = useState(defaultOpen);
 
   const general = references.filter((r) => !isLocated(r));
@@ -139,13 +144,13 @@ export function ReferencePanel({
   for (const r of located) {
     if (r.locations && r.locations.length > 0) {
       for (const loc of r.locations) {
-        const label = getLocationLabel(loc);
+        const label = getLocationLabel(loc, t);
         if (label) {
           entries.push({ label, reference: r, highlight: getHighlight(loc, lang) || getHighlight(r, lang) });
         }
       }
     } else {
-      const label = getLocationLabel(r);
+      const label = getLocationLabel(r, t);
       if (label) {
         entries.push({ label, reference: r });
       }
@@ -164,7 +169,7 @@ export function ReferencePanel({
     <div className="border border-neutral-200 dark:border-neutral-800 rounded-lg p-4">
       <div className="flex items-center justify-between mb-3">
         <h3 className="text-sm font-semibold text-neutral-500 uppercase tracking-wide">
-          References
+          {t("referencePanel.heading")}
         </h3>
         {variant === "collapsible" && (
           <button
@@ -173,7 +178,7 @@ export function ReferencePanel({
             className="text-sm text-neutral-500 hover:text-neutral-700 dark:hover:text-neutral-300"
             aria-expanded={open}
           >
-            {open ? "Hide" : "Show"}
+            {open ? t("referencePanel.hide") : t("referencePanel.show")}
           </button>
         )}
       </div>
@@ -196,7 +201,7 @@ export function ReferencePanel({
               {general.length > 0 && (
                 <div className="border-t border-neutral-200 dark:border-neutral-800 pt-3">
                   <span className="text-xs font-medium text-neutral-400 uppercase tracking-wide">
-                    By Section
+                    {t("referencePanel.bySection")}
                   </span>
                 </div>
               )}
@@ -222,7 +227,7 @@ export function ReferencePanel({
           )}
 
           {references.length === 0 && (
-            <p className="text-sm text-neutral-400">No references.</p>
+            <p className="text-sm text-neutral-400">{t("referencePanel.noReferences")}</p>
           )}
         </>
       ) : null}
@@ -234,7 +239,7 @@ export function ReferencePanel({
       <details className="group">
         <summary className="flex items-center justify-between cursor-pointer list-none px-4 py-3 bg-neutral-50 dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-700 rounded-lg">
           <span className="font-medium text-sm text-neutral-900 dark:text-white">
-            References {references.length > 0 && `(${references.length})`}
+            {t("referencePanel.heading")} {references.length > 0 && `(${references.length})`}
           </span>
           <svg
             className={`w-5 h-5 text-neutral-500 transition-transform ${open ? "rotate-180" : ""}`}

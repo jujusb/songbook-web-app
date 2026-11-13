@@ -3,6 +3,7 @@
 import { useMemo, useRef, useState } from "react";
 import { buildSectionSpans, sectionForLine } from "@/lib/chordpro/visual-parse";
 import { renderVisualChordSheet } from "@/lib/chordpro/visual-render";
+import { useTranslation } from "@/lib/i18n";
 
 interface ReferenceLocation {
   line?: number;
@@ -34,6 +35,12 @@ interface Pick {
 }
 
 const REF_TYPES = ["link", "song", "text", "bible"];
+const REF_TYPE_LABEL_KEYS: Record<string, string> = {
+  link: "referencePicker.typeLink",
+  song: "referencePicker.typeSong",
+  text: "referencePicker.typeText",
+  bible: "referencePicker.typeBible",
+};
 
 export function ReferenceVisualPicker({
   source,
@@ -50,6 +57,7 @@ export function ReferenceVisualPicker({
   onAddLocationToRef: (refIndex: number, loc: ReferenceLocation) => void;
   onAddNewRef: (ref: Reference) => void;
 }) {
+  const { t } = useTranslation();
   const containerRef = useRef<HTMLDivElement>(null);
   const [pick, setPick] = useState<Pick | null>(null);
   const [targetIdx, setTargetIdx] = useState(-1);
@@ -170,15 +178,15 @@ export function ReferenceVisualPicker({
     const target = refs[targetIdx];
     const already =
       target?.label ||
-      `ref #${targetIdx + 1}`;
+      t("referencePicker.refNumber", { n: targetIdx + 1 });
     const exists = (target?.locations || []).some((l) => l.line === loc.line);
     if (exists) {
-      setApplied(`Already in \u00bb ${already} \u2014 same line`);
+      setApplied(t("referencePicker.alreadyInRef", { ref: already }));
       setTargetIdx(-1);
       return;
     }
     onAddLocationToRef(targetIdx, loc);
-    setApplied(`Added to \u00bb ${already} \u2022 remember to Save`);
+    setApplied(t("referencePicker.addedToRef", { ref: already }));
     setTargetIdx(-1);
   };
 
@@ -199,7 +207,7 @@ export function ReferenceVisualPicker({
     }
     onAddNewRef({ ...base, locations: [loc] });
     setApplied(
-      `Created \u00bb ${draft.label || draft.type} \u2022 remember to Save`
+      t("referencePicker.createdRef", { ref: draft.label || draft.type })
     );
     setCloneIdx(-1);
     setDraft({ type: "link", label: "", target: "", text: "" });
@@ -229,18 +237,17 @@ export function ReferenceVisualPicker({
         {/* Selection summary */}
         <div className="border border-neutral-200 dark:border-neutral-800 rounded-lg p-3 space-y-2">
           <div className="text-xs font-semibold text-neutral-500 uppercase tracking-wide">
-            Selection
+            {t("referencePicker.selection")}
           </div>
           {!pick ? (
             <p className="text-xs text-neutral-400 leading-relaxed">
-              Click a lyric line to anchor the reference, then drag over a part
-              of that line to capture it as the highlight.
+              {t("referencePicker.selectionHint")}
             </p>
           ) : (
             <>
               <div className="flex items-center gap-1.5 flex-wrap">
                 <span className="text-xs px-1.5 py-0.5 rounded bg-neutral-100 dark:bg-neutral-800 font-mono">
-                  Line {pick.lineIndex}
+                  {t("referencePicker.line", { n: pick.lineIndex })}
                 </span>
                 {pick.section && (
                   <span className="text-xs px-1.5 py-0.5 rounded bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-300 font-mono">
@@ -249,7 +256,7 @@ export function ReferenceVisualPicker({
                 )}
               </div>
               <div>
-                <label className={labelCls}>Highlight</label>
+                <label className={labelCls}>{t("referencePicker.highlight")}</label>
                 <div className="flex items-center gap-1">
                   <input
                     type="text"
@@ -258,7 +265,7 @@ export function ReferenceVisualPicker({
                       setPick({ ...pick, highlight: e.target.value, range: undefined })
                     }
                     className={inputCls}
-                    placeholder="selected part of the line"
+                    placeholder={t("referencePicker.highlightPlaceholder")}
                   />
                   {pick.highlight && (
                     <button
@@ -267,7 +274,7 @@ export function ReferenceVisualPicker({
                         setPick({ ...pick, highlight: "", range: undefined })
                       }
                       className="text-xs text-neutral-400 hover:text-neutral-600 px-1"
-                      title="Clear"
+                      title={t("referencePicker.clear")}
                     >
                       &times;
                     </button>
@@ -292,7 +299,7 @@ export function ReferenceVisualPicker({
                 : "text-neutral-500 hover:text-neutral-700 dark:hover:text-neutral-300"
             }`}
           >
-            Add to existing
+            {t("referencePicker.addToExisting")}
           </button>
           <button
             type="button"
@@ -303,7 +310,7 @@ export function ReferenceVisualPicker({
                 : "text-neutral-500 hover:text-neutral-700 dark:hover:text-neutral-300"
             }`}
           >
-            Create new
+            {t("referencePicker.createNew")}
           </button>
         </div>
 
@@ -311,7 +318,7 @@ export function ReferenceVisualPicker({
         {action === "add" && (
           <div className="border border-neutral-200 dark:border-neutral-800 rounded-lg p-3 space-y-2">
             <div className="text-xs font-semibold text-neutral-500 uppercase tracking-wide">
-              Add to existing reference
+              {t("referencePicker.addToExistingHeading")}
             </div>
             <select
               value={targetIdx}
@@ -320,10 +327,10 @@ export function ReferenceVisualPicker({
               }
               className={selectCls}
             >
-              <option value={-1}>&mdash; blank &mdash;</option>
+              <option value={-1}>{t("referencePicker.blank")}</option>
               {refs.map((r, i) => (
                 <option key={i} value={i}>
-                  {`${r.type} \u2014 ${r.label || "(no label)"}`}
+                  {`${r.type} \u2014 ${r.label || t("referencePicker.noLabel")}`}
                   {langBadge(r)}
                 </option>
               ))}
@@ -334,7 +341,7 @@ export function ReferenceVisualPicker({
               onClick={handleAddLocation}
               className="w-full text-xs px-3 py-1.5 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-40 transition-colors"
             >
-              + Add location
+              {t("referencePicker.addLocation")}
             </button>
           </div>
         )}
@@ -343,10 +350,10 @@ export function ReferenceVisualPicker({
         {action === "create" && (
           <div className="border border-neutral-200 dark:border-neutral-800 rounded-lg p-3 space-y-2">
             <div className="text-xs font-semibold text-neutral-500 uppercase tracking-wide">
-              Create new reference
+              {t("referencePicker.createHeading")}
             </div>
             <div>
-              <label className={labelCls}>Copy from</label>
+              <label className={labelCls}>{t("referencePicker.copyFrom")}</label>
               <select
                 value={cloneIdx}
                 onChange={(e) =>
@@ -354,17 +361,17 @@ export function ReferenceVisualPicker({
                 }
                 className={selectCls}
               >
-                <option value={-1}>&mdash; blank &mdash;</option>
+                <option value={-1}>{t("referencePicker.blank")}</option>
                 {refs.map((r, i) => (
                   <option key={i} value={i}>
-                    {`${r.type} \u2014 ${r.label || "(no label)"}`}
+                    {`${r.type} \u2014 ${r.label || t("referencePicker.noLabel")}`}
                   </option>
                 ))}
               </select>
             </div>
           <div className="grid grid-cols-2 gap-2">
             <div>
-              <label className={labelCls}>Type</label>
+              <label className={labelCls}>{t("referencePicker.type")}</label>
               <select
                 value={draft.type}
                 onChange={(e) => setDraft({ ...draft, type: e.target.value })}
@@ -372,13 +379,13 @@ export function ReferenceVisualPicker({
               >
                 {REF_TYPES.map((rt) => (
                   <option key={rt} value={rt}>
-                    {rt.charAt(0).toUpperCase() + rt.slice(1)}
+                    {t(REF_TYPE_LABEL_KEYS[rt])}
                   </option>
                 ))}
               </select>
             </div>
             <div>
-              <label className={labelCls}>Label</label>
+              <label className={labelCls}>{t("referencePicker.label")}</label>
               <input
                 type="text"
                 value={draft.label}
@@ -388,7 +395,7 @@ export function ReferenceVisualPicker({
             </div>
           </div>
           <div>
-            <label className={labelCls}>Target</label>
+            <label className={labelCls}>{t("referencePicker.target")}</label>
             <input
               type="text"
               value={draft.target}
@@ -397,7 +404,7 @@ export function ReferenceVisualPicker({
             />
           </div>
           <div>
-            <label className={labelCls}>Text (default)</label>
+            <label className={labelCls}>{t("referencePicker.textDefault")}</label>
             <textarea
               rows={2}
               value={draft.text}
@@ -411,7 +418,7 @@ export function ReferenceVisualPicker({
             onClick={handleCreate}
             className="w-full text-xs px-3 py-1.5 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-40 transition-colors"
           >
-            Create reference
+            {t("referencePicker.createReference")}
           </button>
         </div>
         )}

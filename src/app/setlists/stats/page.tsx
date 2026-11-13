@@ -1,11 +1,16 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
+import { cookies } from "next/headers";
+import { getLocale, createT } from "@/lib/i18n/server";
 import { getSession, canViewSetlistStats } from "@/lib/auth";
 import { collectSetlistUsage, type SetlistStatsPeriod } from "@/lib/setlist-stats";
 import { T } from "@/components/Translate";
 
-export const metadata: Metadata = { title: "Setlist statistics" };
+export async function generateMetadata(): Promise<Metadata> {
+  const t = createT(getLocale(await cookies()));
+  return { title: t("setlistApp.statsTitle") };
+}
 
 const PERIODS: Array<{ key: SetlistStatsPeriod; labelKey: string }> = [
   { key: "month", labelKey: "stats.lastMonth" },
