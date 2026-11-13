@@ -44,10 +44,11 @@ export async function generateMetadata({
   const { token } = await params;
   const setlist = await findSetlistByShareToken(token);
   if (!setlist) return { title: "Setlist" };
+  const title = setlist.date ? `${setlist.title} - ${setlist.date}` : setlist.title;
   return {
-    title: setlist.title,
+    title,
     openGraph: {
-      title: setlist.title,
+      title,
       images: ["/file.svg"],
       type: "website",
     },

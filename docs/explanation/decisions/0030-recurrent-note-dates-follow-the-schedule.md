@@ -51,6 +51,9 @@ Periodic behavior is not part of the rule.
 - The date picker on the note page (`/notes/<id>`) and in the manual text editor
   (`/notes/<id>/manual`) is the shared `RecurrentDateSelect` month calendar. Only allowed dates are
   clickable; other days are shown greyed out and cannot be selected.
+- The note page's date lives in `?date=`. Changing it updates the URL with `replaceState`, so the
+  tab title follows it. Browser back/forward does not move the calendar, since `replaceState` does
+  not trigger navigation.
 - If the date in the URL or the stored date is not allowed, the component moves to the nearest
   allowed date (on or after the stored date, otherwise the last one before it).
 
@@ -58,15 +61,33 @@ Periodic behavior is not part of the rule.
 
 - `DateCalendar` is the generic month grid: it takes an `isSelectable` predicate, marks days with
   saved data with a dot, and `RecurrentDateSelect` is built on it.
-- Setlist page (`SetlistHistoryBrowser`): the version dropdown is a calendar. Days with a saved
-  version are clickable and open that version. The current setlist's day opens the current setlist.
+- Setlist page (`SetlistHistoryBrowser`): the version selector is a calendar only (no heading, no
+  "New" button). Days with a saved version are clickable and open that version. The current
+  setlist's day opens the current setlist. The calendar highlights the day of the version on screen.
 - Setlist editor: the date field is a calendar where any day can be picked. Picking a day with a
   saved version opens that version for editing. Picking an empty day opens a new, empty setlist for
   that date (`?newDate=1&date=…&empty=1`). In new-date mode, picking an empty day clears the form
   to an empty setlist for that date.
-- Unsaved changes: the editor compares its form with the state it opened with. Before leaving
-  (back link, Cancel, New date, opening another day) it asks for confirmation. A `beforeunload`
-  prompt covers tab close and reload. Saving skips both prompts.
+- New dates start from an empty setlist: "Start from" defaults to "Empty setlist". Choosing the
+  current setlist or a previous date copies it.
+- Editing a version from another date shows that version's own date in the date field.
+
+### Tab titles
+
+Page titles include the date the page is about, taken from the page's data or URL:
+
+| Page | Title |
+| --- | --- |
+| Setlist view | `Title - YYYY-MM-DD` (the `?version=` date when a version is open) |
+| Setlist edit | `Title - Edit YYYY-MM-DD`, or `Title - New date YYYY-MM-DD` in new-date mode |
+| Shared setlist | `Title - YYYY-MM-DD` |
+| Note page | `Note - YYYY-MM-DD` from `?date=` |
+| Note manual text | `Note - Manual text - YYYY-MM-DD` from `?date=` |
+
+### Unsaved changes
+- The editor compares its form with the state it opened with. Before leaving (back link, Cancel,
+  New date, opening another day) it asks for confirmation. A `beforeunload` prompt covers tab close
+  and reload. Saving skips both prompts.
 
 ### Server validation
 

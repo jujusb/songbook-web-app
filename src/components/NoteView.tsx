@@ -12,9 +12,10 @@ import { RecurrentDateSelect } from "@/components/RecurrentDateSelect";
 interface NoteViewProps {
   noteId: string;
   autoScrollSpeed?: number;
+  initialDate?: string;
 }
 
-export function NoteView({ noteId, autoScrollSpeed }: NoteViewProps) {
+export function NoteView({ noteId, autoScrollSpeed, initialDate }: NoteViewProps) {
   const router = useRouter();
   const { locale } = useTranslation();
   const [note, setNote] = useState<NoteMetadata | null>(null);
@@ -27,9 +28,16 @@ export function NoteView({ noteId, autoScrollSpeed }: NoteViewProps) {
     ? resolveNoteLanguage(note.language, noteApplicableLanguages, locale)
     : undefined;
   const [loading, setLoading] = useState(true);
-  const [selectedDate, setSelectedDate] = useState(
-    new Date().toISOString().slice(0, 10)
+  const [selectedDate, setSelectedDateState] = useState(
+    initialDate ?? new Date().toISOString().slice(0, 10)
   );
+  // Keep the date in the URL (?date=) so it survives reloads and shows in the tab title.
+  const setSelectedDate = (next: string) => {
+    setSelectedDateState(next);
+    const url = new URL(window.location.href);
+    url.searchParams.set("date", next);
+    window.history.replaceState(null, "", url.toString());
+  };
   const [manualPeriodState, setManualPeriodState] = useState<{
     date: string;
     content: NoteManualPeriod | null;

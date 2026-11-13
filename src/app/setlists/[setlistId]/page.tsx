@@ -4,7 +4,7 @@ import { getSetlistLinkAllowedHosts, getSetlistLinkAllowHttp, getSetlistDefaultM
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 import Link from "next/link";
-import { getSetlist, getSong, getSongTranslation, getSongTranslations, getSongTitle, listSetlistVersions, getSetlistVersion } from "@/lib/content";
+import { getSetlist, getSong, getSongTranslation, getSongTranslations, getSongTitle, listSetlistVersions, getSetlistVersion, parseSetlistVersionDate } from "@/lib/content";
 import { getSession, getCurrentUser, canEdit, canAdmin, canViewSetlist, canCreateSetlist, canViewSetlistStats } from "@/lib/auth";
 import { isSongItem, isNoteItem, isLinkItem, isRecurrentNoteItem } from "@/lib/content/schemas";
 import { renderNoteRefText } from "@/lib/note-render";
@@ -16,11 +16,24 @@ import { DeleteButton } from "@/components/DeleteButton";
 import { getSetlistVoiceShares } from "@/lib/navidrome/setlist-shares";
 import { normalizeSetlistMode } from "@/lib/setlist-modes";
 
-export async function generateMetadata({ params }: { params: Promise<{ setlistId: string }> }): Promise<Metadata> {
+export async function generateMetadata({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ setlistId: string }>;
+  searchParams: Promise<{ version?: string }>;
+}): Promise<Metadata> {
   const { setlistId } = await params;
+  const { version } = await searchParams;
   try {
     const setlist = await getSetlist(setlistId);
-    return { title: setlist.title };
+    const base = setlist.title;
+    if (version && version !== "current") {
+      const dated = await getSetlistVersion(setlist.sharedFrom?.setlistId ?? setlistId, version).catch(() => null);
+      const date = dated?.date || parseSetlistVersionDate(version);
+      return { title: date ? `${base} - ${date}` : base };
+    }
+    return { title: setlist.date ? `${base} - ${setlist.date}` : base };
   } catch {
     return { title: "Setlist" };
   }

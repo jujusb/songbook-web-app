@@ -13,10 +13,14 @@
 
 ### Setlist dates
 
-On the setlist page, days with a saved version are highlighted with a dot; click one to open it.
+On the setlist page, the calendar shows days with a saved version as dotted. Click one to open it.
 In the setlist editor, pick a day with a saved setlist to open it for editing. Picking an empty day
-opens a new, empty setlist for that date. If you have unsaved changes, the editor asks for
-confirmation before leaving, and also when you close the tab or reload.
+opens a new, empty setlist for that date. New dates start empty by default; choose **Start from**
+to copy the current setlist or a previous date instead. If you have unsaved changes, the editor asks
+for confirmation before leaving, and also when you close the tab or reload.
+
+Tab titles include the date: a setlist opened on a version shows that version's date, and the note
+page shows the date from `?date=` in the URL.
 
 ### Date rules
 

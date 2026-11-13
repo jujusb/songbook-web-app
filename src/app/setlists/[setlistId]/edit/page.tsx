@@ -1,16 +1,31 @@
 import type { Metadata } from "next";
 import { getSetlistLinkAllowedHosts, getSetlistLinkAllowHttp } from "@/lib/config";
 import { notFound, redirect } from "next/navigation";
-import { getSetlist, getSetlistVersion, listSongs, getSongTranslations, getShareBaseUrl, listSetlistVersionContents } from "@/lib/content";
+import { getSetlist, getSetlistVersion, listSongs, getSongTranslations, getShareBaseUrl, listSetlistVersionContents , parseSetlistVersionDate } from "@/lib/content";
 import { getSession, canEdit, canCreateSetlist, canManageSetlistShares, canManageSetlistHistory } from "@/lib/auth";
 import { SetlistEditor } from "@/components/SetlistEditor";
 import { SetlistShareControls } from "@/components/SetlistShareControls";
 
-export async function generateMetadata({ params }: { params: Promise<{ setlistId: string }> }): Promise<Metadata> {
+export async function generateMetadata({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ setlistId: string }>;
+  searchParams: Promise<{ version?: string; newDate?: string; date?: string }>;
+}): Promise<Metadata> {
   const { setlistId } = await params;
+  const { version, newDate, date } = await searchParams;
   try {
     const setlist = await getSetlist(setlistId);
-    return { title: `${setlist.title} - Edit` };
+    const isNewDate = newDate === "1" || newDate === "true";
+    let when = setlist.date || "";
+    if (isNewDate) when = date || "";
+    else if (version && version !== "current") {
+      const dated = await getSetlistVersion(setlistId, version).catch(() => null);
+      when = dated?.date || parseSetlistVersionDate(version) || when;
+    }
+    const verb = isNewDate ? "New date" : "Edit";
+    return { title: when ? `${setlist.title} - ${verb} ${when}` : `${setlist.title} - ${verb}` };
   } catch {
     return { title: "Edit Setlist" };
   }

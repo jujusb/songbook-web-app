@@ -9,12 +9,16 @@ import { noteApplicableLanguages } from "@/lib/notes";
 
 export async function generateMetadata({
   params,
+  searchParams,
 }: {
   params: Promise<{ noteId: string }>;
+  searchParams: Promise<{ date?: string }>;
 }): Promise<Metadata> {
   const { noteId } = await params;
+  const { date } = await searchParams;
   const note = await getNote(noteId);
-  return { title: note ? `${note.title} - Manual text` : "Manual text" };
+  const when = typeof date === "string" && /^\d{4}-\d{2}-\d{2}$/.test(date) ? ` - ${date}` : "";
+  return { title: note ? `${note.title} - Manual text${when}` : "Manual text" };
 }
 
 export default async function NoteManualPage({
