@@ -1004,6 +1004,9 @@ print: {
     error: 'error',
   },
   noteManual: {
+    readOnlyApi: 'Resultado de API externa (solo lectura)',
+    readOnlyStatic: 'Texto fijo (solo lectura)',
+    apiLoading: 'Cargando…',
     versionRestored: 'Versión restaurada',
     noManualParts: 'Esta nota no tiene partes de texto manual que cambien por periodo. Añada una en el ',
     noteEditor: 'editor de notas',

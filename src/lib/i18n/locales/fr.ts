@@ -1004,6 +1004,9 @@ const fr: Translations = {
     error: 'erreur',
   },
   noteManual: {
+    readOnlyApi: 'Résultat de l’API externe (lecture seule)',
+    readOnlyStatic: 'Texte fixe (lecture seule)',
+    apiLoading: 'Chargement…',
     versionRestored: 'Version restaurée',
     noManualParts: "Cette note ne contient aucune partie manuelle qui change selon la période. Ajoutez-en une dans l'",
     noteEditor: 'éditeur de note',

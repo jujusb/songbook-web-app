@@ -1002,6 +1002,9 @@ const en = {
     error: 'error',
   },
   noteManual: {
+    readOnlyApi: 'External API result (read-only)',
+    readOnlyStatic: 'Fixed text (read-only)',
+    apiLoading: 'Loading…',
     versionRestored: 'Version restored',
     noManualParts: 'This note has no manual parts that change per period. Add one in the ',
     noteEditor: 'note editor',

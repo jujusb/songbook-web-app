@@ -4,8 +4,10 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { languageLabelFor } from "@/lib/i18n/labels";
 import { RecurrentDateSelect } from "@/components/RecurrentDateSelect";
+import { MarkdownView } from "@/components/MarkdownView";
 import { useTranslation } from "@/lib/i18n";
 import {
+  resolveNoteLanguage,
   noteManualSectionKey,
   type NoteManualPeriod,
   type NoteManualSectionContent,
@@ -51,7 +53,7 @@ export function NoteManualEditor({
   languages,
   initialDate,
 }: NoteManualEditorProps) {
-  const { t } = useTranslation();
+  const { t, locale } = useTranslation();
   const manualSections = useMemo<ManualSectionRef[]>(
     () =>
       (note.sections || note.content || [])
@@ -70,6 +72,50 @@ export function NoteManualEditor({
 
   const [selectedDate, setSelectedDate] = useState(initialDate);
   const [drafts, setDrafts] = useState<ManualDrafts>(() => buildDrafts(manualSections, null));
+  // Every section in saved order (editable, static and API), for the layout.
+  const allSections = useMemo<ManualSectionRef[]>(
+    () =>
+      (note.sections || note.content || []).map((section, index) => ({
+        key: noteManualSectionKey(section, index),
+        index,
+        section,
+      })),
+    [note],
+  );
+  const isEditablePart = (section: ManualSectionRef["section"]) =>
+    section.type === "manual" && (section.periodic_behavior ?? note.periodic_behavior) === "different_per_period";
+  // API results for the selected date, keyed by section index (read-only).
+  const [apiTexts, setApiTexts] = useState<Record<number, string>>({});
+  useEffect(() => {
+    let cancelled = false;
+    const apiParts = allSections.filter(({ section }) => section.type === "api" && section.api_url);
+    if (apiParts.length === 0) return;
+    (async () => {
+      const entries = await Promise.all(
+        apiParts.map(async ({ index, section }) => {
+          try {
+            const res = await fetch(`/api/notes/${noteId}/preview/${index}`, {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ lang: resolveNoteLanguage(note.language, section.languages, locale) || note.language, date: selectedDate }),
+            });
+            const payload = (await res.json()) as { text?: string; tabs?: Array<{ text: string }>; error?: string };
+            if (!res.ok) return [index, `[${section.name || "api"}] ${payload?.error || `HTTP ${res.status}`}`] as const;
+            const text = payload.tabs?.length ? payload.tabs.map((tab) => tab.text).join("\n\n") : payload.text || "";
+            return [index, text] as const;
+          } catch (err) {
+            return [index, `[${section.name || "api"}] ${err instanceof Error ? err.message : ""}`] as const;
+          }
+        }),
+      );
+      if (!cancelled) setApiTexts(Object.fromEntries(entries));
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [allSections, noteId, note.language, selectedDate, locale]);
+  const staticText = (section: ManualSectionRef["section"], lang: string) =>
+    section.mdByLanguage?.[lang] ?? section.md ?? "";
   const [versions, setVersions] = useState<NoteManualVersionInfo[]>([]);
   const [selectedVersion, setSelectedVersion] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
@@ -210,7 +256,7 @@ export function NoteManualEditor({
         />
       </div>
 
-      {manualSections.length === 0 ? (
+      {allSections.length === 0 ? (
         <p className="text-sm text-neutral-500">
           {t("noteManual.noManualParts")}
           <Link href={`/notes/${noteId}/edit`} className="text-blue-600 hover:underline dark:text-blue-400">
@@ -221,46 +267,72 @@ export function NoteManualEditor({
         <p className="text-sm text-neutral-500">{t("notes.loading")}</p>
       ) : (
         <div className="space-y-6">
-          {manualSections.map(({ key, index, section }, position) => (
-            <div key={key} className="border rounded-md p-4 space-y-3">
-              <div className="flex items-center justify-between gap-2">
-                <h2 className="font-medium">
-                  {section.name || t("noteManual.manualPart", { number: position + 1 })}
-                </h2>
-                <span className="text-xs text-neutral-500">
-                  {(section.periodic_behavior ?? note.periodic_behavior) === "different_per_period"
-                    ? t("noteManual.changesPerDate")
-                    : t("noteManual.position", { number: index + 1 })}
-                </span>
-              </div>
-              {languages.map((lang) => {
-                const draft = drafts[key] ?? {};
-                const value =
-                  draft.mdByLanguage?.[lang] ??
-                  (lang === languages[0] ? draft.md ?? "" : "");
-                return (
-                  <div key={lang} className="space-y-1">
-                    <label className="block text-sm font-medium">
-                      {t("noteForm.textFor", { language: languageLabelFor(lang) })}
-                    </label>
-                    <textarea
-                      value={value}
-                      onChange={(e) => {
-                        const mdByLanguage = { ...(draft.mdByLanguage || {}) };
-                        mdByLanguage[lang] = e.target.value;
-                        const primary = mdByLanguage[languages[0]] || e.target.value;
-                        updateDraft(key, { mdByLanguage, md: primary });
-                      }}
-                      rows={6}
-                      placeholder={t("notes.manualPlaceholder")}
-                      className="w-full px-3 py-2 border rounded-md text-sm resize-y"
-                    />
+          {allSections.map(({ key, index, section }, position) => {
+            if (!isEditablePart(section)) {
+              const lang = resolveNoteLanguage(note.language, section.languages, locale) || note.language;
+              const isApi = section.type === "api";
+              const text = isApi ? apiTexts[index] ?? t("noteManual.apiLoading") : staticText(section, lang);
+              return (
+                <div key={key} className="border rounded-md p-4 space-y-2 bg-neutral-50 dark:bg-neutral-900" data-testid="manual-readonly-part">
+                  <div className="flex items-center justify-between gap-2">
+                    <h2 className="font-medium">{section.name || t("noteManual.manualPart", { number: position + 1 })}</h2>
+                    <span className="text-xs text-neutral-500">{isApi ? t("noteManual.readOnlyApi") : t("noteManual.readOnlyStatic")}</span>
                   </div>
-                );
-              })}
-            </div>
-          ))}
+                  <MarkdownView text={text} />
+                </div>
+              );
+            }
+            return (
 
+              <div key={key} className="border rounded-md p-4 space-y-3">
+                <div className="flex items-center justify-between gap-2">
+                  <h2 className="font-medium">
+                    {section.name || t("noteManual.manualPart", { number: position + 1 })}
+                  </h2>
+                  <span className="text-xs text-neutral-500">
+                    {(section.periodic_behavior ?? note.periodic_behavior) === "different_per_period"
+                      ? t("noteManual.changesPerDate")
+                      : t("noteManual.position", { number: index + 1 })}
+                  </span>
+                </div>
+                {languages.map((lang) => {
+                  const draft = drafts[key] ?? {};
+                  const value =
+                    draft.mdByLanguage?.[lang] ??
+                    (lang === languages[0] ? draft.md ?? "" : "");
+                  return (
+                    <div key={lang} className="space-y-1">
+                      <label className="block text-sm font-medium">
+                        {t("noteForm.textFor", { language: languageLabelFor(lang) })}
+                      </label>
+                      <textarea
+                        value={value}
+                        onChange={(e) => {
+                          const mdByLanguage = { ...(draft.mdByLanguage || {}) };
+                          mdByLanguage[lang] = e.target.value;
+                          const primary = mdByLanguage[languages[0]] || e.target.value;
+                          updateDraft(key, { mdByLanguage, md: primary });
+                        }}
+                        rows={6}
+                        placeholder={t("notes.manualPlaceholder")}
+                        className="w-full px-3 py-2 border rounded-md text-sm resize-y"
+                      />
+                    </div>
+                  );
+                })}
+              </div>
+            
+            );
+          })}
+
+          {manualSections.length === 0 && (
+            <p className="text-sm text-neutral-500">
+              {t("noteManual.noManualParts")}
+              <Link href={`/notes/${noteId}/edit`} className="text-blue-600 hover:underline dark:text-blue-400">
+                {t("noteManual.noteEditor")}
+              </Link>.
+            </p>
+          )}
           {selectedVersion && (
             <div className="flex flex-wrap items-center gap-2 rounded-md border border-amber-300 bg-amber-50 p-3 text-sm text-amber-900 dark:border-amber-700 dark:bg-amber-950 dark:text-amber-100">
               <span>{t("notes.viewingVersion", { version: selectedVersion ?? "" })}</span>
