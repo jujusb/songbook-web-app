@@ -1004,6 +1004,7 @@ const fr: Translations = {
     error: 'erreur',
   },
   noteManual: {
+    languageTabs: 'Langues',
     readOnlyApi: 'Résultat de l’API externe (lecture seule)',
     readOnlyStatic: 'Texte fixe (lecture seule)',
     apiLoading: 'Chargement…',

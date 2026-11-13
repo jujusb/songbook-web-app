@@ -1002,6 +1002,7 @@ const en = {
     error: 'error',
   },
   noteManual: {
+    languageTabs: 'Languages',
     readOnlyApi: 'External API result (read-only)',
     readOnlyStatic: 'Fixed text (read-only)',
     apiLoading: 'Loading…',

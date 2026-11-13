@@ -7,7 +7,6 @@ import { RecurrentDateSelect } from "@/components/RecurrentDateSelect";
 import { MarkdownView } from "@/components/MarkdownView";
 import { useTranslation } from "@/lib/i18n";
 import {
-  resolveNoteLanguage,
   noteManualSectionKey,
   type NoteManualPeriod,
   type NoteManualSectionContent,
@@ -53,7 +52,7 @@ export function NoteManualEditor({
   languages,
   initialDate,
 }: NoteManualEditorProps) {
-  const { t, locale } = useTranslation();
+  const { t } = useTranslation();
   const manualSections = useMemo<ManualSectionRef[]>(
     () =>
       (note.sections || note.content || [])
@@ -71,6 +70,10 @@ export function NoteManualEditor({
   );
 
   const [selectedDate, setSelectedDate] = useState(initialDate);
+  // One language is shown at a time; drafts for all languages stay in state.
+  const defaultLang = languages.includes(note.language) ? note.language : languages[0] ?? note.language;
+  const [activeLang, setActiveLang] = useState(defaultLang);
+  const currentLang = languages.includes(activeLang) ? activeLang : defaultLang;
   const [drafts, setDrafts] = useState<ManualDrafts>(() => buildDrafts(manualSections, null));
   // Every section in saved order (editable, static and API), for the layout.
   const allSections = useMemo<ManualSectionRef[]>(
@@ -97,7 +100,7 @@ export function NoteManualEditor({
             const res = await fetch(`/api/notes/${noteId}/preview/${index}`, {
               method: "POST",
               headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({ lang: resolveNoteLanguage(note.language, section.languages, locale) || note.language, date: selectedDate }),
+              body: JSON.stringify({ lang: currentLang, date: selectedDate }),
             });
             const payload = (await res.json()) as { text?: string; tabs?: Array<{ text: string }>; error?: string };
             if (!res.ok) return [index, `[${section.name || "api"}] ${payload?.error || `HTTP ${res.status}`}`] as const;
@@ -113,7 +116,7 @@ export function NoteManualEditor({
     return () => {
       cancelled = true;
     };
-  }, [allSections, noteId, note.language, selectedDate, locale]);
+  }, [allSections, noteId, currentLang, selectedDate]);
   const staticText = (section: ManualSectionRef["section"], lang: string) =>
     section.mdByLanguage?.[lang] ?? section.md ?? "";
   const [versions, setVersions] = useState<NoteManualVersionInfo[]>([]);
@@ -267,9 +270,32 @@ export function NoteManualEditor({
         <p className="text-sm text-neutral-500">{t("notes.loading")}</p>
       ) : (
         <div className="space-y-6">
+          {languages.length > 1 && (
+            <div role="tablist" aria-label={t("noteManual.languageTabs")} className="flex flex-wrap gap-1 border-b border-neutral-200 dark:border-neutral-700">
+              {languages.map((lang) => {
+                const active = lang === currentLang;
+                return (
+                  <button
+                    key={lang}
+                    type="button"
+                    role="tab"
+                    aria-selected={active}
+                    onClick={() => setActiveLang(lang)}
+                    className={`-mb-px border-b-2 px-3 py-1.5 text-sm ${
+                      active
+                        ? "border-blue-600 font-medium text-blue-600 dark:text-blue-400"
+                        : "border-transparent text-neutral-500 hover:text-neutral-800 dark:hover:text-neutral-200"
+                    }`}
+                  >
+                    {languageLabelFor(lang)}
+                  </button>
+                );
+              })}
+            </div>
+          )}
           {allSections.map(({ key, index, section }, position) => {
             if (!isEditablePart(section)) {
-              const lang = resolveNoteLanguage(note.language, section.languages, locale) || note.language;
+              const lang = currentLang;
               const isApi = section.type === "api";
               const text = isApi ? apiTexts[index] ?? t("noteManual.apiLoading") : staticText(section, lang);
               return (
@@ -295,13 +321,14 @@ export function NoteManualEditor({
                       : t("noteManual.position", { number: index + 1 })}
                   </span>
                 </div>
-                {languages.map((lang) => {
+                {(() => {
+                  const lang = currentLang;
                   const draft = drafts[key] ?? {};
                   const value =
                     draft.mdByLanguage?.[lang] ??
                     (lang === languages[0] ? draft.md ?? "" : "");
                   return (
-                    <div key={lang} className="space-y-1">
+                    <div className="space-y-1">
                       <label className="block text-sm font-medium">
                         {t("noteForm.textFor", { language: languageLabelFor(lang) })}
                       </label>
@@ -319,7 +346,7 @@ export function NoteManualEditor({
                       />
                     </div>
                   );
-                })}
+                })()}
               </div>
             
             );

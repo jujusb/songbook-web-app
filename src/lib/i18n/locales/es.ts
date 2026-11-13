@@ -1004,6 +1004,7 @@ print: {
     error: 'error',
   },
   noteManual: {
+    languageTabs: 'Idiomas',
     readOnlyApi: 'Resultado de API externa (solo lectura)',
     readOnlyStatic: 'Texto fijo (solo lectura)',
     apiLoading: 'Cargando…',
