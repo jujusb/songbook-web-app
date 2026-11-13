@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { notesApi, NoteSearchResult } from '@/lib/notes';
+import { useTranslation } from '@/lib/i18n';
 
 interface NotesSearchProps {
   onSelect: (note: unknown) => void;
@@ -10,6 +11,7 @@ export const NotesSearch: React.FC<NotesSearchProps> = ({
   onSelect,
   defaultQuery = ''
 }) => {
+  const { t } = useTranslation();
   const [query, setQuery] = useState(defaultQuery);
   const [results, setResults] = useState<NoteSearchResult[]>([]);
   const [loading, setLoading] = useState(false);
@@ -41,7 +43,7 @@ export const NotesSearch: React.FC<NotesSearchProps> = ({
       <div className="flex flex-row">
         <input
           className="flex-1 p-2 border rounded focus-ring-2 focus-blue-500"
-          placeholder="Search notes..."
+          placeholder={t('notes.searchPlaceholder')}
           value={query}
           onChange={(e) => setQuery(e.target.value)}
         />
@@ -59,11 +61,11 @@ export const NotesSearch: React.FC<NotesSearchProps> = ({
           value={recurrentType || ''}
           onChange={(e) => setRecurrentType(e.target.value || undefined)}
         >
-          <option value="">Recurrent type</option>
-          <option value="weekly">Weekly</option>
-          <option value="monthly">Monthly</option>
-          <option value="specific-dates">Specific Dates</option>
-          <option value="daily">Daily</option>
+          <option value="">{t('notes.anyType')}</option>
+          <option value="weekly">{t('notes.typeWeekly')}</option>
+          <option value="monthly">{t('notes.typeMonthly')}</option>
+          <option value="specific-dates">{t('notes.typeSpecificDates')}</option>
+          <option value="daily">{t('notes.typeDaily')}</option>
         </select>
         
         <select
@@ -71,10 +73,10 @@ export const NotesSearch: React.FC<NotesSearchProps> = ({
           value={language}
           onChange={(e) => setLanguage(e.target.value || 'en-US')}
         >
-          <option value="en-US">English</option>
-          <option value="es-ES">Spanish</option>
-          <option value="fr-FR">French</option>
-          <option value="de">German</option>
+          <option value="en-US">{t('notes.langEnglish')}</option>
+          <option value="es-ES">{t('notes.langSpanish')}</option>
+          <option value="fr-FR">{t('notes.langFrench')}</option>
+          <option value="de">{t('notes.langGerman')}</option>
         </select>
         
         <button className="bg-blue-500 text-white p-2 rounded" onClick={handleSearch}>
@@ -95,7 +97,7 @@ export const NotesSearch: React.FC<NotesSearchProps> = ({
               </p>
             </div>
           ))
-        ) : <p className="text-sm text-gray-500">No results found</p>
+        ) : <p className="text-sm text-gray-500">{t('notes.noSearchResults')}</p>
         }
       </div>
     </div>

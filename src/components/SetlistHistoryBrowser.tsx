@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { DateCalendar } from "@/components/DateCalendar";
+import { useTranslation } from "@/lib/i18n";
 
 interface HistoryVersion {
   label: string;
@@ -38,6 +39,7 @@ export function SetlistHistoryBrowser({
   versionHrefBase,
   currentDate = "",
 }: Props) {
+  const { t } = useTranslation();
   const router = useRouter();
   const targetId = historySetlistId || setlistId;
   const [versions, setVersions] = useState<HistoryVersion[]>(initialVersions);
@@ -88,10 +90,10 @@ export function SetlistHistoryBrowser({
             if (label) router.push(`${base}?version=${encodeURIComponent(label)}${query}`, { scroll: false });
             else router.push(shareToken && !versionHrefBase ? `${base}?share=${encodeURIComponent(shareToken)}` : base, { scroll: false });
           }}
-          footer={<>Days with a dot have a saved version. Click one to open it; the selected day is the one on screen.</>}
+          footer={<>{t("dates.historyHint")}</>}
         />
         {historySetlistId && historySetlistId !== setlistId && (
-          <span className="text-xs text-neutral-400">History from the original setlist</span>
+          <span className="text-xs text-neutral-400">{t("dates.historyFromOriginal")}</span>
         )}
       </div>
       {versions.some((v) => v.description) && (

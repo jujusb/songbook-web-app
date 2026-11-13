@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { notesApi } from '@/lib/notes';
+import { useTranslation } from "@/lib/i18n";
 
 interface Note {
   id: string;
@@ -20,12 +21,13 @@ interface Note {
 }
 
 export const NotesList: React.FC<{ readOnly?: boolean }> = ({ readOnly = false }) => {
+  const { t } = useTranslation();
   const [notes, setNotes] = useState<Note[]>([]);
   const [loading, setLoading] = useState(false);
 
   const handleDelete = async (id: string, e: React.MouseEvent) => {
     e.stopPropagation();
-    if (!confirm('Delete this note?')) return;
+    if (!confirm(t('notes.confirmDelete'))) return;
     await notesApi.deleteNote(id);
     const notes = await notesApi.getAllNotes();
     setNotes(notes);
@@ -44,21 +46,21 @@ export const NotesList: React.FC<{ readOnly?: boolean }> = ({ readOnly = false }
   return (
     <div className="p-6 max-w-2xl">
       <div className="flex justify-between items-center mb-6">
-        <h1 className="text-3xl font-bold">Recurrent Notes</h1>
+        <h1 className="text-3xl font-bold">{t('notes.title')}</h1>
         {!readOnly && (
           <button
             className="bg-blue-600 text-white px-4 py-2 rounded-md font-medium text-sm hover:bg-blue-700 transition-colors"
             onClick={() => window.location.href = `/notes/new`}
           >
-            New Note
+            {t('notes.newNote')}
           </button>
         )}
       </div>
 
       {loading ? (
-        <p className="text-sm text-gray-500">Loading notes...</p>
+        <p className="text-sm text-gray-500">{t('notes.loadingNotes')}</p>
       ) : notes.length === 0 ? (
-        <p className="text-sm text-gray-500 text-center">No notes found</p>
+        <p className="text-sm text-gray-500 text-center">{t('notes.noNotes')}</p>
       ) : (
         <div className="space-y-4">
           {notes.map((note) => (

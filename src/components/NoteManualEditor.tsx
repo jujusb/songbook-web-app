@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { languageLabelFor } from "@/lib/i18n/labels";
 import { RecurrentDateSelect } from "@/components/RecurrentDateSelect";
+import { useTranslation } from "@/lib/i18n";
 import {
   noteManualSectionKey,
   type NoteManualPeriod,
@@ -50,6 +51,7 @@ export function NoteManualEditor({
   languages,
   initialDate,
 }: NoteManualEditorProps) {
+  const { t } = useTranslation();
   const manualSections = useMemo<ManualSectionRef[]>(
     () =>
       (note.sections || note.content || [])
@@ -94,12 +96,12 @@ export function NoteManualEditor({
         setSelectedVersion(null);
       } catch (err) {
         if (requestId !== requestIdRef.current) return;
-        setError(err instanceof Error ? err.message : "Failed to load content");
+        setError(err instanceof Error ? err.message : t("notes.loadFailed"));
       } finally {
         if (requestId === requestIdRef.current) setLoading(false);
       }
     },
-    [baseUrl, manualSections],
+    [baseUrl, manualSections, t],
   );
 
   useEffect(() => {
@@ -133,7 +135,7 @@ export function NoteManualEditor({
       setSelectedVersion(null);
       setMessage("Saved");
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to save");
+      setError(err instanceof Error ? err.message : t("notes.saveFailed"));
     } finally {
       setSaving(false);
     }
@@ -151,7 +153,7 @@ export function NoteManualEditor({
       setDrafts(buildDrafts(manualSections, data.content ?? null));
       setSelectedVersion(label);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to load version");
+      setError(err instanceof Error ? err.message : t("notes.loadFailed"));
     }
   };
 
@@ -172,7 +174,7 @@ export function NoteManualEditor({
       setSelectedVersion(null);
       setMessage("Version restored");
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to restore");
+      setError(err instanceof Error ? err.message : t("notes.saveFailed"));
     } finally {
       setSaving(false);
     }
@@ -182,19 +184,19 @@ export function NoteManualEditor({
     <div className="p-6 max-w-2xl space-y-6">
       <div className="flex items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold">Manual text history</h1>
+          <h1 className="text-3xl font-bold">{t("notes.manualHistoryTitle")}</h1>
           <p className="text-sm text-neutral-500">{note.title}</p>
         </div>
         <Link
           href={`/notes/${noteId}`}
           className="px-3 py-1.5 text-sm border rounded-md hover:bg-neutral-100 dark:hover:bg-neutral-800"
         >
-          Back to note
+          {t("notes.backToNote")}
         </Link>
       </div>
 
       <div>
-        <label className="block text-sm font-medium mb-1">Date</label>
+        <label className="block text-sm font-medium mb-1">{t("notes.date")}</label>
         <RecurrentDateSelect
           note={note}
           value={selectedDate}
@@ -216,7 +218,7 @@ export function NoteManualEditor({
           </Link>.
         </p>
       ) : loading ? (
-        <p className="text-sm text-neutral-500">Loading…</p>
+        <p className="text-sm text-neutral-500">{t("notes.loading")}</p>
       ) : (
         <div className="space-y-6">
           {manualSections.map(({ key, index, section }, position) => (
@@ -250,7 +252,7 @@ export function NoteManualEditor({
                         updateDraft(key, { mdByLanguage, md: primary });
                       }}
                       rows={6}
-                      placeholder="Text in Markdown..."
+                      placeholder={t("notes.manualPlaceholder")}
                       className="w-full px-3 py-2 border rounded-md text-sm resize-y"
                     />
                   </div>
@@ -261,7 +263,7 @@ export function NoteManualEditor({
 
           {selectedVersion && (
             <div className="flex flex-wrap items-center gap-2 rounded-md border border-amber-300 bg-amber-50 p-3 text-sm text-amber-900 dark:border-amber-700 dark:bg-amber-950 dark:text-amber-100">
-              <span>Viewing version {selectedVersion}.</span>
+              <span>{t("notes.viewingVersion", { version: selectedVersion ?? "" })}</span>
               <button
                 type="button"
                 onClick={handleRestore}
@@ -289,13 +291,13 @@ export function NoteManualEditor({
             disabled={saving || loading}
             className="px-4 py-2 text-sm bg-blue-600 text-white rounded-md disabled:opacity-50"
           >
-            {saving ? "Saving…" : "Save for this date"}
+            {saving ? t("notes.saving") : t("notes.saveForDate")}
           </button>
 
           <div className="space-y-2">
-            <h2 className="font-medium">History for {selectedDate}</h2>
+            <h2 className="font-medium">{t("notes.historyFor", { date: selectedDate })}</h2>
             {versions.length === 0 ? (
-              <p className="text-sm text-neutral-500">No earlier versions yet.</p>
+              <p className="text-sm text-neutral-500">{t("notes.noEarlierVersions")}</p>
             ) : (
               <ul className="space-y-1">
                 {versions.map((version) => (

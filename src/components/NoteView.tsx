@@ -17,7 +17,7 @@ interface NoteViewProps {
 
 export function NoteView({ noteId, autoScrollSpeed, initialDate }: NoteViewProps) {
   const router = useRouter();
-  const { locale } = useTranslation();
+  const { t, locale } = useTranslation();
   const [note, setNote] = useState<NoteMetadata | null>(null);
   const noteApiSections = note ? (note.sections || note.content || []).filter((s) => s.type === "api") : [];
   const noteApplicableLanguages =
@@ -156,10 +156,10 @@ export function NoteView({ noteId, autoScrollSpeed, initialDate }: NoteViewProps
   };
 
   if (loading) {
-    return <div className="p-6">Loading note…</div>;
+    return <div className="p-6">{t("notes.loading")}</div>;
   }
   if (!note) {
-    return <div className="p-6">Note not found</div>;
+    return <div className="p-6">{t("notes.notFound")}</div>;
   }
 
   return (
@@ -176,26 +176,26 @@ export function NoteView({ noteId, autoScrollSpeed, initialDate }: NoteViewProps
               href={`/notes/${noteId}/manual?date=${encodeURIComponent(selectedDate)}`}
               className="px-3 py-1.5 text-sm border rounded-md hover:bg-neutral-100 dark:hover:bg-neutral-800"
             >
-              Edit manual text
+              {t("notes.editManualText")}
             </Link>
           )}
-          <button type="button" onClick={() => router.push(`/notes/${noteId}/edit`)} className="px-3 py-1.5 text-sm border rounded-md hover:bg-neutral-100 dark:hover:bg-neutral-800">Edit</button>
-          <button type="button" onClick={handleDelete} className="px-3 py-1.5 text-sm border rounded-md text-red-600 hover:bg-red-50 dark:hover:bg-red-950">Delete</button>
+          <button type="button" onClick={() => router.push(`/notes/${noteId}/edit`)} className="px-3 py-1.5 text-sm border rounded-md hover:bg-neutral-100 dark:hover:bg-neutral-800">{t("notes.edit")}</button>
+          <button type="button" onClick={handleDelete} className="px-3 py-1.5 text-sm border rounded-md text-red-600 hover:bg-red-50 dark:hover:bg-red-950">{t("notes.delete")}</button>
         </div>
       </div>
       <p className="text-sm text-neutral-500">
         {(effectiveLanguage || note.language)} • {note.recurrent_type} • {note.periodic_behavior}
-        {note.published ? " • published" : " • private"}
-        {note.publishedDates && note.publishedDates.length ? ` (dates: ${note.publishedDates.join(", ")})` : ""}
+        {note.published ? ` • ${t("notes.published")}` : ` • ${t("notes.private")}`}
+        {note.publishedDates && note.publishedDates.length ? ` (${t("notes.publishedDates")}: ${note.publishedDates.join(", ")})` : ""}
       </p>
 
       <div>
-        <label className="block text-sm font-medium mb-1">Date</label>
+        <label className="block text-sm font-medium mb-1">{t("notes.date")}</label>
         <RecurrentDateSelect note={note} value={selectedDate} onChange={setSelectedDate} />
       </div>
 
       {previewLoading ? (
-        <p className="text-sm text-neutral-500">Loading…</p>
+        <p className="text-sm text-neutral-500">{t("notes.loading")}</p>
       ) : previewError ? (
         <p className="text-sm text-red-600">{previewError}</p>
       ) : tabbed ? (

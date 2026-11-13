@@ -1,13 +1,14 @@
 "use client";
 
 import { useEffect } from "react";
+import { useTranslation } from "@/lib/i18n";
 import { DateCalendar } from "@/components/DateCalendar";
 import {
   addDaysIso,
-  describeNoteRecurrence,
   isSelectableNoteDate,
   parseIsoDate,
   selectableNoteDates,
+  WEEKDAY_SCHEDULES,
 } from "@/lib/note-schedule";
 import type { NoteMetadata } from "@/lib/notes";
 
@@ -35,8 +36,34 @@ interface RecurrentDateSelectProps {
   autoCorrect?: boolean;
 }
 
+/** Localized, human-readable rule for the calendar footer. */
+function describeRule(note: NoteMetadata, t: (key: string, params?: Record<string, string | number>) => string, locale: string): string {
+  switch (note.recurrent_type) {
+    case "daily":
+      return t("dates.ruleDaily");
+    case "specific-dates":
+      return t("dates.ruleSpecific");
+    case "weekly": {
+      const index = WEEKDAY_SCHEDULES.indexOf(note.recurrent_schedule as (typeof WEEKDAY_SCHEDULES)[number]);
+      if (index < 0) return note.recurrent_schedule ?? "";
+      const day = new Intl.DateTimeFormat(locale, { weekday: "long", timeZone: "UTC" }).format(
+        new Date(Date.UTC(2024, 0, 7 + index)),
+      );
+      return t("dates.ruleWeekly", { day });
+    }
+    case "monthly":
+      if (note.recurrent_schedule === "first") return t("dates.ruleFirst");
+      if (note.recurrent_schedule === "first-second") return t("dates.ruleFirstSecond");
+      if (note.recurrent_schedule === "last") return t("dates.ruleLast");
+      return t("dates.ruleMonthly");
+    default:
+      return "";
+  }
+}
+
 /** Month calendar for a recurrent note: only dates its recurrence allows are clickable. */
 export function RecurrentDateSelect({ note, value, onChange, autoCorrect = true }: RecurrentDateSelectProps) {
+  const { t, locale } = useTranslation();
   const today = new Date().toISOString().slice(0, 10);
   const valid = isSelectableNoteDate(note, value);
   const hasAnyDate = allowedNoteDates(note, value, today).length > 0;
@@ -55,8 +82,8 @@ export function RecurrentDateSelect({ note, value, onChange, autoCorrect = true 
       isSelectable={(date) => isSelectableNoteDate(note, date)}
       footer={
         <>
-          {describeNoteRecurrence(note)}
-          {!hasAnyDate && <span className="block text-red-600">No dates available for this schedule.</span>}
+          {describeRule(note, t, locale)}
+          {!hasAnyDate && <span className="block text-red-600">{t("dates.noDatesAvailable")}</span>}
         </>
       }
     />

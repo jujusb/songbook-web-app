@@ -266,8 +266,8 @@ export function SetlistEditor({
   /** Ask before leaving with unsaved changes. Returns false when the user cancels. */
   const confirmLeave = useCallback(() => {
     if (!isDirty || leavingRef.current) return true;
-    return window.confirm("You have unsaved changes. Leave this page and discard them?");
-  }, [isDirty]);
+    return window.confirm(t("setlistDates.unsavedChanges"));
+  }, [isDirty, t]);
 
   // Warn on tab close or reload while there are unsaved changes.
   useEffect(() => {
@@ -327,15 +327,15 @@ export function SetlistEditor({
 
   const handleSave = async () => {
     if (!title.trim()) {
-      setError("Title is required");
+      setError(t("setlistDates.titleRequired"));
       return;
     }
     if (newDate && !date.trim()) {
-      setError("Date is required");
+      setError(t("setlistDates.dateRequired"));
       return;
     }
     if (newDate && currentDate && date.trim() === currentDate) {
-      setError(`A setlist already uses the date ${currentDate}. Choose another date.`);
+      setError(t("setlistDates.dateUsed", { date: currentDate }));
       return;
     }
     for (const s of songs) {
@@ -446,7 +446,7 @@ export function SetlistEditor({
         }}
         className="text-sm text-blue-600 dark:text-blue-400 hover:underline inline-block"
       >
-        &larr; {newDate ? "Back to setlist" : isNew ? "Back to setlists" : "Back to setlist"}
+        &larr; {newDate || !isNew ? t("setlistDates.backToSetlist") : t("setlistDates.backToSetlists")}
       </Link>
       {error && (
         <div className="px-4 py-2 bg-red-50 dark:bg-red-950 border border-red-200 dark:border-red-800 rounded-md text-red-700 dark:text-red-300 text-sm">
@@ -477,8 +477,7 @@ export function SetlistEditor({
               onChange={handleDatePick}
               footer={
                 <>
-                  Dots mark dates with a saved setlist. Picking one opens it; picking an empty day starts a new
-                  setlist for that date.
+                  {t("setlistDates.editorHint")}
                 </>
               }
             />
@@ -486,14 +485,14 @@ export function SetlistEditor({
         )}
         {newDate && (
           <div className="sm:col-span-2">
-            <label className="block text-sm font-medium mb-1">Start from</label>
+            <label className="block text-sm font-medium mb-1">{t("setlistDates.startFrom")}</label>
             <select
               value={copySource}
               onChange={(e) => applyCopySource(e.target.value)}
               className="w-full px-3 py-2 border border-neutral-300 dark:border-neutral-700 rounded-md bg-white dark:bg-neutral-900 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
             >
-              <option value="current">Current setlist (copy)</option>
-              <option value="empty">Empty setlist</option>
+              <option value="current">{t("setlistDates.currentCopy")}</option>
+              <option value="empty">{t("setlistDates.emptySetlist")}</option>
               {previousVersions.map((version) => (
                 <option key={version.label} value={version.label}>
                   {version.eventDate || version.date || version.label}
@@ -502,7 +501,7 @@ export function SetlistEditor({
               ))}
             </select>
             <p className="mt-1 text-xs text-neutral-500">
-              Copy the image and songs from the current setlist or a previous date, then adjust them below.
+              {t("setlistDates.startFromHint")}
             </p>
           </div>
         )}

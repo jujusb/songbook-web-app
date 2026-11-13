@@ -2,12 +2,18 @@
 
 import { useMemo, useState, type ReactNode } from "react";
 import { parseIsoDate } from "@/lib/note-schedule";
+import { useTranslation } from "@/lib/i18n";
 
-const WEEKDAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
-const MONTHS = [
-  "January", "February", "March", "April", "May", "June",
-  "July", "August", "September", "October", "November", "December",
-];
+/** Localized weekday and month names via Intl, so no English list is hardcoded. */
+function weekdayLabels(locale: string): string[] {
+  const fmt = new Intl.DateTimeFormat(locale, { weekday: "short", timeZone: "UTC" });
+  // 2024-01-07 was a Sunday.
+  return Array.from({ length: 7 }, (_, i) => fmt.format(new Date(Date.UTC(2024, 0, 7 + i))));
+}
+
+function monthLabel(locale: string, year: number, month: number): string {
+  return new Intl.DateTimeFormat(locale, { month: "long", year: "numeric", timeZone: "UTC" }).format(new Date(Date.UTC(year, month - 1, 1)));
+}
 
 interface DateCalendarProps {
   /** Selected date (YYYY-MM-DD). Empty shows the current month. */
@@ -24,6 +30,7 @@ interface DateCalendarProps {
 
 /** Month grid where only the days `isSelectable` accepts can be clicked. */
 export function DateCalendar({ value, onChange, isSelectable, marked, footer, label }: DateCalendarProps) {
+  const { t, locale } = useTranslation();
   const parts = parseIsoDate(value);
   const anchorYear = parts?.year ?? new Date().getUTCFullYear();
   const anchorMonth = parts?.month ?? new Date().getUTCMonth() + 1;
@@ -56,13 +63,13 @@ export function DateCalendar({ value, onChange, isSelectable, marked, footer, la
     <div className="inline-block rounded-md border border-neutral-300 dark:border-neutral-700 bg-white dark:bg-neutral-900 p-3 text-sm">
       {label && <div className="mb-1 text-xs text-neutral-500">{label}</div>}
       <div className="mb-2 flex items-center justify-between gap-2">
-        <button type="button" onClick={() => shift(-1)} aria-label="Previous month" className="px-2 py-1 rounded hover:bg-neutral-100 dark:hover:bg-neutral-800">&larr;</button>
-        <span className="font-medium" data-testid="calendar-month">{MONTHS[view.month - 1]} {view.year}</span>
-        <button type="button" onClick={() => shift(1)} aria-label="Next month" className="px-2 py-1 rounded hover:bg-neutral-100 dark:hover:bg-neutral-800">&rarr;</button>
+        <button type="button" onClick={() => shift(-1)} aria-label={t("dates.previousMonth")} className="px-2 py-1 rounded hover:bg-neutral-100 dark:hover:bg-neutral-800">&larr;</button>
+        <span className="font-medium" data-testid="calendar-month">{monthLabel(locale, view.year, view.month)}</span>
+        <button type="button" onClick={() => shift(1)} aria-label={t("dates.nextMonth")} className="px-2 py-1 rounded hover:bg-neutral-100 dark:hover:bg-neutral-800">&rarr;</button>
       </div>
 
       <div className="mb-1 grid grid-cols-7 gap-1 text-center text-xs text-neutral-500">
-        {WEEKDAYS.map((w) => <span key={w}>{w}</span>)}
+        {weekdayLabels(locale).map((w) => <span key={w}>{w}</span>)}
       </div>
 
       <div className="grid grid-cols-7 gap-1 text-center">
