@@ -88,7 +88,9 @@ export function NoteManualEditor({
   const isEditablePart = (section: ManualSectionRef["section"]) =>
     section.type === "manual" && (section.periodic_behavior ?? note.periodic_behavior) === "different_per_period";
   // API results for the selected date, keyed by section index (read-only).
-  const [apiTexts, setApiTexts] = useState<Record<number, string>>({});
+  const [apiTexts, setApiTexts] = useState<Record<number, { text: string; tabs?: Array<{ title: string; text: string }> }>>({});
+  // Active result tab per API section (only used when the API returns several results).
+  const [apiTab, setApiTab] = useState<Record<number, number>>({});
   useEffect(() => {
     let cancelled = false;
     const apiParts = allSections.filter(({ section }) => section.type === "api" && section.api_url);
@@ -103,11 +105,12 @@ export function NoteManualEditor({
               body: JSON.stringify({ lang: currentLang, date: selectedDate }),
             });
             const payload = (await res.json()) as { text?: string; tabs?: Array<{ text: string }>; error?: string };
-            if (!res.ok) return [index, `[${section.name || "api"}] ${payload?.error || `HTTP ${res.status}`}`] as const;
-            const text = payload.tabs?.length ? payload.tabs.map((tab) => tab.text).join("\n\n") : payload.text || "";
-            return [index, text] as const;
+            if (!res.ok) return [index, { text: `[${section.name || "api"}] ${payload?.error || `HTTP ${res.status}`}` }] as const;
+            const tabs = payload.tabs && payload.tabs.length > 0 ? payload.tabs : undefined;
+            const text = payload.text ?? "";
+            return [index, { text, tabs }] as const;
           } catch (err) {
-            return [index, `[${section.name || "api"}] ${err instanceof Error ? err.message : ""}`] as const;
+            return [index, { text: `[${section.name || "api"}] ${err instanceof Error ? err.message : ""}` }] as const;
           }
         }),
       );
@@ -297,14 +300,42 @@ export function NoteManualEditor({
             if (!isEditablePart(section)) {
               const lang = currentLang;
               const isApi = section.type === "api";
-              const text = isApi ? apiTexts[index] ?? t("noteManual.apiLoading") : staticText(section, lang);
+              const api = apiTexts[index];
+              const text = isApi ? api?.text ?? t("noteManual.apiLoading") : staticText(section, lang);
+              const tabs = isApi ? api?.tabs : undefined;
+              const activeTab = Math.min(apiTab[index] ?? 0, (tabs?.length ?? 1) - 1);
               return (
                 <div key={key} className="border rounded-md p-4 space-y-2 bg-neutral-50 dark:bg-neutral-900" data-testid="manual-readonly-part">
                   <div className="flex items-center justify-between gap-2">
                     <h2 className="font-medium">{section.name || t("noteManual.manualPart", { number: position + 1 })}</h2>
                     <span className="text-xs text-neutral-500">{isApi ? t("noteManual.readOnlyApi") : t("noteManual.readOnlyStatic")}</span>
                   </div>
-                  <MarkdownView text={text} />
+                  {tabs ? (
+                    <>
+                      {text && <MarkdownView text={text} />}
+                      <div role="tablist" className="flex flex-wrap gap-1 border-b border-neutral-200 dark:border-neutral-700">
+                        {tabs.map((tab, i) => (
+                          <button
+                            key={`${tab.title}-${i}`}
+                            type="button"
+                            role="tab"
+                            aria-selected={i === activeTab}
+                            onClick={() => setApiTab((prev) => ({ ...prev, [index]: i }))}
+                            className={`-mb-px border-b-2 px-3 py-1.5 text-sm ${
+                              i === activeTab
+                                ? "border-blue-600 font-medium text-blue-600 dark:text-blue-400"
+                                : "border-transparent text-neutral-500 hover:text-neutral-800 dark:hover:text-neutral-200"
+                            }`}
+                          >
+                            {tab.title}
+                          </button>
+                        ))}
+                      </div>
+                      <MarkdownView text={tabs[activeTab]?.text || ""} />
+                    </>
+                  ) : (
+                    <MarkdownView text={text} />
+                  )}
                 </div>
               );
             }

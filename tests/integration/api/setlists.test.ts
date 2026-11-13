@@ -373,6 +373,33 @@ describe('API /api/setlists', () => {
       expect(data.ownerId).toBe('creator');
     });
 
+    it('saves a changed song language', async () => {
+      await saveSetlist({
+        id: 'lang-setlist',
+        title: 'Lang Setlist',
+        date: '2026-11-15',
+        songs: [{ type: 'song', songId: 'song1', lang: 'en' }],
+        ownerId: 'creator',
+      });
+
+      mockAuth(creatorToken);
+      const req = createMockRequest('PUT', {
+        id: 'lang-setlist',
+        title: 'Lang Setlist',
+        date: '2026-11-15',
+        songs: [{ type: 'song', songId: 'song1', lang: 'fr' }],
+      });
+      const response = await setlistsPUT(req);
+      expect(response.status).toBe(200);
+
+      const { getSetlist } = await import('@/lib/content');
+      const saved = await getSetlist('lang-setlist');
+      expect(saved.songs[0]).toMatchObject({ songId: 'song1', lang: 'fr' });
+      const { getSetlistVersion } = await import('@/lib/content');
+      const version = await getSetlistVersion('lang-setlist', '2026-11-15');
+      expect(version.songs[0]).toMatchObject({ songId: 'song1', lang: 'fr' });
+    });
+
     it('lets an admin update any setlist', async () => {
       await saveSetlist({
         id: 'other-setlist',

@@ -600,6 +600,58 @@ function normalizeDiscriminatorValue(value: unknown): string {
   return raw.replace(/_\d+$/, '');
 }
 
+/** An array item is shown unless its type is hidden via typeVisibility or styled 'none'. */
+function isDiscriminatorItemVisible(section: Partial<NoteSection>, item: unknown, discriminator: string): boolean {
+  if (!item || typeof item !== 'object') return true;
+  const sec = section as Record<string, unknown>;
+  const tv = sec.typeVisibility as Record<string, boolean> | undefined;
+  const ts = sec.typeStyles as Record<string, string> | undefined;
+  const rawType = String((item as Record<string, unknown>)[discriminator]);
+  const nt = normalizeDiscriminatorValue(rawType);
+  if (tv && tv[nt] === false) return false;
+  if (tv && tv[rawType] === false) return false;
+  const style = String(ts?.[nt] ?? ts?.[rawType] ?? '').toLowerCase();
+  return style !== 'none';
+}
+
+/**
+ * Splits visible array items by their raw discriminator value. A value that
+ * occurs 2+ times becomes a tab (tab order = first appearance); other items stay inline.
+ */
+function groupRepeatedDiscriminatorItems(
+  section: Partial<NoteSection>,
+  items: unknown[],
+  discriminator: string,
+): { inline: unknown[]; tabs: Array<{ title: string; items: unknown[] }> } {
+  const visible = items.filter((item) => isDiscriminatorItemVisible(section, item, discriminator));
+  const keyOf = (item: unknown): string | undefined => {
+    if (!item || typeof item !== 'object') return undefined;
+    const raw = (item as Record<string, unknown>)[discriminator];
+    return raw === undefined || raw === null ? undefined : String(raw);
+  };
+  const counts = new Map<string, number>();
+  for (const item of visible) {
+    const key = keyOf(item);
+    if (key !== undefined) counts.set(key, (counts.get(key) ?? 0) + 1);
+  }
+  const inline: unknown[] = [];
+  const groups = new Map<string, unknown[]>();
+  for (const item of visible) {
+    const key = keyOf(item);
+    if (key !== undefined && (counts.get(key) ?? 0) >= 2) {
+      const bucket = groups.get(key) ?? [];
+      bucket.push(item);
+      groups.set(key, bucket);
+    } else {
+      inline.push(item);
+    }
+  }
+  return {
+    inline,
+    tabs: [...groups.entries()].map(([title, groupItems]) => ({ title, items: groupItems })),
+  };
+}
+
 export function extractApiSectionText(rawSection0: Partial<NoteSection>, data: unknown, lang?: string): string {
   // Use the saved shape directly (fields / discriminatorValues) while keeping
   // backward compatibility with legacy structures.
@@ -725,17 +777,8 @@ export function extractApiSectionText(rawSection0: Partial<NoteSection>, data: u
     const { resultSection: _a, resultPath: _b, result_path: _c, ...rest } = section as Record<string, unknown>;
     const discriminator = String((section as Record<string, unknown>).discriminator || (section as Record<string, unknown>).typeField || 'type');
     const order = (section as Record<string, unknown>).typeStyleOrder;
-    const tv = (section as Record<string, unknown>).typeVisibility as Record<string, boolean> | undefined;
     // Skip items whose type is hidden or styled as 'none'
-    const workingTarget = target.filter((item) => {
-      if (!item || typeof item !== 'object') return true;
-      const nt = normalizeDiscriminatorValue((item as Record<string, unknown>)[discriminator]);
-      const ts = (section as Record<string, unknown>).typeStyles as Record<string, string> | undefined;
-      if (tv && tv[nt] === false) return false;
-      if (tv && tv[String((item as Record<string, unknown>)[discriminator])] === false) return false;
-      const style = String(ts?.[nt] ?? ts?.[String((item as Record<string, unknown>)[discriminator])] ?? '').toLowerCase();
-      return style !== 'none';
-    });
+    const workingTarget = target.filter((item) => isDiscriminatorItemVisible(section, item, discriminator));
     const joined = workingTarget
       .map((item) => extractApiSectionText(rest as Partial<NoteSection>, item, lang))
       .filter(Boolean)
@@ -911,6 +954,20 @@ export function formatApiSectionPreview(
     });
     if (tabs.length > 1) {
       return { text: '', tabs };
+    }
+  }
+
+  if (!candidate && items && hasDiscriminator && items.every((m) => m && typeof m === 'object')) {
+    const { inline, tabs } = groupRepeatedDiscriminatorItems(rawSection, items, discriminator as string);
+    if (tabs.length > 0) {
+      const sectionNoResult = { ...rawSection, resultSection: undefined };
+      return {
+        text: extractApiSectionText(sectionNoResult, inline, lang),
+        tabs: tabs.map((tab) => ({
+          title: tab.title,
+          text: extractApiSectionText(sectionNoResult, tab.items, lang),
+        })),
+      };
     }
   }
 

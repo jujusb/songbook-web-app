@@ -321,6 +321,66 @@ describe('language placeholders in mapping paths', () => {
   });
 });
 
+describe('repeated discriminator values in an array', () => {
+  const repeatSection = {
+    type: 'api',
+    resultSection: 'items[]',
+    discriminator: 'type',
+    fields: [{ name: 'text', style: 'plain' }],
+    typeStyles: { none: 'none' },
+  };
+  const repeatData = {
+    items: [
+      { type: 'lecture_2', text: 'L2 a' },
+      { type: 'lecture_1', text: 'L1 a' },
+      { type: 'psaume', text: 'P once' },
+      { type: 'lecture_2', text: 'L2 b' },
+      { type: 'lecture_1', text: 'L1 b' },
+      { type: 'hidden', text: 'skip me' },
+      { type: 'hidden', text: 'skip me too' },
+    ],
+  };
+
+  it('creates one tab per value occurring 2+ times, in first-appearance order', () => {
+    const result = formatApiSectionPreview(
+      { ...repeatSection, typeStyles: { hidden: 'none' } } as never,
+      repeatData,
+      'es-ES',
+    );
+
+    expect(result.tabs?.map((t) => t.title)).toEqual(['lecture_2', 'lecture_1']);
+    expect(result.tabs?.[0].text).toContain('L2 a');
+    expect(result.tabs?.[0].text).toContain('L2 b');
+    expect(result.tabs?.[1].text).toContain('L1 b');
+    expect(result.tabs?.[1].text).not.toContain('L2');
+  });
+
+  it('keeps values occurring once inline, and never shows none-styled values', () => {
+    const result = formatApiSectionPreview(
+      { ...repeatSection, typeStyles: { hidden: 'none' } } as never,
+      repeatData,
+      'es-ES',
+    );
+
+    expect(result.text).toContain('P once');
+    expect(result.text).not.toContain('skip me');
+    expect(result.tabs?.flatMap((t) => t.text)).not.toContain('skip me');
+    expect(result.tabs?.some((t) => t.text.includes('skip me'))).toBe(false);
+  });
+
+  it('does not create tabs when every value occurs once', () => {
+    const result = formatApiSectionPreview(
+      repeatSection as never,
+      { items: [{ type: 'a', text: 'x' }, { type: 'b', text: 'y' }] },
+      'es-ES',
+    );
+
+    expect(result.tabs).toBeUndefined();
+    expect(result.text).toContain('x');
+    expect(result.text).toContain('y');
+  });
+});
+
 describe('resolveNoteLanguage', () => {
   it('uses the preferred language when all languages apply', () => {
     expect(resolveNoteLanguage('es-ES', [], 'fr-FR')).toBe('fr-FR');

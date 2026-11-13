@@ -553,7 +553,12 @@ export async function saveSetlist(setlist: SetlistInput): Promise<void> {
       mode: validated.mode || existingCurrent?.mode || getSetlistDefaultMode(),
       modified: new Date().toISOString(),
     };
-    const versionDir = path.join(dir, validated.id, date);
+    // Write to the same folder hydrateSetlist reads. When a timestamped folder
+    // exists for this date it is the current one, so saving to the plain date
+    // folder would leave the displayed setlist unchanged.
+    const latest = await latestVersionFolder(validated.id);
+    const folder = latest && latest.date === date ? latest.label : date;
+    const versionDir = path.join(dir, validated.id, folder);
     await mkdir(versionDir, { recursive: true });
     await writeFile(path.join(versionDir, 'setlist.yaml'), yaml.dump(version, { lineWidth: -1 }), 'utf-8');
   }

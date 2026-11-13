@@ -128,7 +128,8 @@ export function NoteView({ noteId, autoScrollSpeed, initialDate }: NoteViewProps
         if (!res.ok) throw new Error(payload?.error || `HTTP ${res.status}`);
         if (payload.tabs?.length) {
           tabsCandidate = payload.tabs;
-        } else if (payload.text) {
+        }
+        if (payload.text) {
           chunks.push(payload.text);
         }
       } catch (err) {
@@ -138,7 +139,7 @@ export function NoteView({ noteId, autoScrollSpeed, initialDate }: NoteViewProps
       }
     }
     if (cancelled) return;
-    setTabbed(tabsCandidate && tabsCandidate.length > 1 ? tabsCandidate : null);
+    setTabbed(tabsCandidate && tabsCandidate.length > 0 ? tabsCandidate : null);
     setActiveTab(0);
     setPreviewText(chunks.filter(Boolean).join("\n\n"));
     setPreviewLoading(false);
@@ -200,6 +201,7 @@ export function NoteView({ noteId, autoScrollSpeed, initialDate }: NoteViewProps
         <p className="text-sm text-red-600">{previewError}</p>
       ) : tabbed ? (
         <div className="space-y-3">
+          {previewText && <MarkdownView text={previewText} />}
           <div className="flex flex-wrap gap-2 border-b border-neutral-200 dark:border-neutral-700">
             {tabbed.map((tab, i) => (
               <button

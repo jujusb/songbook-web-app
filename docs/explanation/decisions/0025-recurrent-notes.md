@@ -410,6 +410,15 @@ Implementation avoids hard-coded mass/lecture terms and instead detects any arra
 - If a normalized type is marked `none`, all corresponding items are omitted.
 - Null/empty fields are omitted from both mapping and rendered output.
 
+### Repeated discriminator values inside a `[]` array
+
+- Within one array selected by `[]`, items are first filtered (hidden types and `none`-styled types are dropped).
+- Each raw discriminator value (e.g. `lecture_1`) occurring 2+ times among the remaining items becomes a tab titled with that raw value.
+- Tabs follow the order of first appearance in the array. `typeStyleOrder` does not affect tab order.
+- Values occurring once stay inline, in their array order, shown above the tabs.
+- A `none`-styled value never gets a tab, even if it occurs 2+ times.
+- If no value repeats, no tabs are shown.
+
 ## Addendum — Publishing and server-side storage
 
 ### Publishing
