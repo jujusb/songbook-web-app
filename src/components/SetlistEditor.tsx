@@ -29,6 +29,8 @@ interface AvailableSong {
   title: string;
   key?: string;
   translations: string[];
+  /** Title of the song in each translation language. */
+  titles?: Record<string, string>;
 }
 
 function newItemId(): string {
@@ -112,6 +114,7 @@ export function SetlistEditor({
   );
   const isDirty = JSON.stringify({ title, description, image, date, songs }) !== baseline;
   const [search, setSearch] = useState("");
+  const [searchLang, setSearchLang] = useState("");
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [dragIndex, setDragIndex] = useState<number | null>(null);
@@ -146,14 +149,12 @@ export function SetlistEditor({
   const songMap = useMemo(() => new Map(availableSongs.map((s) => [s.id, s])), [availableSongs]);
 
   const addSong = useCallback(
-    (songId: string) => {
+    (songId: string, lang: string) => {
       if (songCount >= MAX_SONGS) {
         setError(t('setlist.maxSongsReached', { count: MAX_SONGS }));
         return;
       }
-      const song = songMap.get(songId);
-      if (!song) return;
-      const lang = song.translations[0] || "en-US";
+      if (!songMap.get(songId)) return;
       setSongs((prev) => [...prev, { type: "song", songId, lang }]);
       setSearch("");
     },
@@ -419,12 +420,24 @@ export function SetlistEditor({
   };
 
   const lowerSearch = search.toLowerCase();
-  const filteredSongs = search.trim()
-    ? availableSongs.filter(
-        (s) =>
-          s.title.toLowerCase().includes(lowerSearch) ||
-          s.id.toLowerCase().includes(lowerSearch)
-      )
+  // Languages present in the song catalogue, for the search language filter.
+  const searchLanguages = useMemo(
+    () => Array.from(new Set(availableSongs.flatMap((s) => s.translations))).sort(),
+    [availableSongs],
+  );
+  const titleOf = (song: AvailableSong, lang: string) => song.titles?.[lang] || song.title;
+  // One result row per (song, language). With no language selected, every
+  // translation is listed with its own title; a selected language narrows it.
+  const resultRows = search.trim()
+    ? availableSongs.flatMap((song) => {
+        const langs = searchLang
+          ? song.translations.includes(searchLang) ? [searchLang] : []
+          : song.translations;
+        const matches =
+          song.id.toLowerCase().includes(lowerSearch) ||
+          langs.some((lang) => titleOf(song, lang).toLowerCase().includes(lowerSearch));
+        return matches ? langs.map((lang) => ({ song, lang, title: titleOf(song, lang) })) : [];
+      })
     : [];
 
   const backHref = isNew
@@ -780,37 +793,47 @@ export function SetlistEditor({
 
         {/* Add songs */}
         <div className="relative">
-          <input
-            type="text"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder={songCount >= MAX_SONGS ? t('setlist.maxSongsReached', { count: MAX_SONGS }) : t("setlistEditor.searchSongs")}
-            disabled={songCount >= MAX_SONGS}
-            className="w-full px-3 py-2 border border-neutral-300 dark:border-neutral-700 rounded-md bg-white dark:bg-neutral-900 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
-          />
-          {filteredSongs.length > 0 && songCount < MAX_SONGS && (
+          <div className="flex gap-2">
+            <input
+              type="text"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder={songCount >= MAX_SONGS ? t('setlist.maxSongsReached', { count: MAX_SONGS }) : t("setlistEditor.searchSongs")}
+              disabled={songCount >= MAX_SONGS}
+              className="flex-1 min-w-0 px-3 py-2 border border-neutral-300 dark:border-neutral-700 rounded-md bg-white dark:bg-neutral-900 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
+            />
+            <select
+              value={searchLang}
+              onChange={(e) => setSearchLang(e.target.value)}
+              aria-label={t("setlistEditor.searchLanguage")}
+              title={t("setlistEditor.searchLanguage")}
+              disabled={songCount >= MAX_SONGS}
+              className="px-2 py-2 border border-neutral-300 dark:border-neutral-700 rounded-md bg-white dark:bg-neutral-900 text-sm disabled:opacity-50"
+              data-testid="setlist-search-language"
+            >
+              <option value="">{t("setlistEditor.allLanguages")}</option>
+              {searchLanguages.map((code) => (
+                <option key={code} value={code}>{languageLabel(code)}</option>
+              ))}
+            </select>
+          </div>
+          {resultRows.length > 0 && songCount < MAX_SONGS && (
             <div className="absolute z-10 mt-1 w-full max-h-60 overflow-auto border border-neutral-200 dark:border-neutral-700 rounded-md bg-white dark:bg-neutral-900 shadow-lg">
-              {filteredSongs.slice(0, 20).map((song) => (
+              {resultRows.slice(0, 20).map(({ song, lang, title }) => (
                 <button
-                  key={song.id}
+                  key={`${song.id}:${lang}`}
                   type="button"
-                  onClick={() => addSong(song.id)}
+                  onClick={() => addSong(song.id, lang)}
                   className="w-full text-left px-3 py-2 text-sm hover:bg-neutral-50 dark:hover:bg-neutral-800 flex items-center gap-2"
+                  data-testid="setlist-song-result"
                 >
-                  <span className="flex-1 truncate">{song.title}</span>
+                  <span className="flex-1 truncate">{title}</span>
                   {song.key && (
                     <span className="text-xs text-neutral-400">{song.key}</span>
                   )}
-                  <div className="flex gap-0.5">
-                    {song.translations.map((lang) => (
-                      <span
-                        key={lang}
-                        className="text-[10px] px-1 py-0.5 bg-neutral-100 dark:bg-neutral-800 rounded text-neutral-500"
-                      >
-                        {languageLabel(lang)}
-                      </span>
-                    ))}
-                  </div>
+                  <span className="text-[10px] px-1 py-0.5 bg-neutral-100 dark:bg-neutral-800 rounded text-neutral-500">
+                    {languageLabel(lang)}
+                  </span>
                 </button>
               ))}
             </div>

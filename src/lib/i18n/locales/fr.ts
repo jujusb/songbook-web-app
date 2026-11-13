@@ -1030,6 +1030,8 @@ const fr: Translations = {
     publishedRevision: 'Révision publiée',
   },
   setlistEditor: {
+    searchLanguage: 'Langue de recherche',
+    allLanguages: 'Toutes les langues',
     setlistNotFound: 'Setlist introuvable',
     saveFailed: "Échec de l'enregistrement",
     titleLabel: 'Titre *',

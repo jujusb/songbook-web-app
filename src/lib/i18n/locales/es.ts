@@ -1030,6 +1030,8 @@ print: {
     publishedRevision: 'Revisión publicada',
   },
   setlistEditor: {
+    searchLanguage: 'Idioma de búsqueda',
+    allLanguages: 'Todos los idiomas',
     setlistNotFound: 'Setlist no encontrada',
     saveFailed: 'Error al guardar',
     titleLabel: 'Título *',

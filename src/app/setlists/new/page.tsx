@@ -5,7 +5,7 @@ import { getLocale, createT } from "@/lib/i18n/server";
 import { notFound, redirect } from "next/navigation";
 import { getSession, canCreateSetlist } from "@/lib/auth";
 import { isReadOnlyFor } from "@/lib/readonly";
-import { listSongs, getSongTranslations } from "@/lib/content";
+import { listSongs, getSongTranslations, getSongTitle } from "@/lib/content";
 import { SetlistEditor } from "@/components/SetlistEditor";
 
 export default async function NewSetlistPage() {
@@ -18,7 +18,10 @@ export default async function NewSetlistPage() {
   const songsWithLangs = await Promise.all(
     songs.map(async (s) => {
       const translations = await getSongTranslations(s.id);
-      return { id: s.id, title: s.title, key: s.key, translations };
+      const titles = Object.fromEntries(
+        await Promise.all(translations.map(async (lang) => [lang, await getSongTitle(s.id, lang).catch(() => s.title)] as const)),
+      );
+      return { id: s.id, title: s.title, key: s.key, translations, titles };
     })
   );
 

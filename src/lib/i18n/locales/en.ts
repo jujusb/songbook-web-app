@@ -1028,6 +1028,8 @@ const en = {
     publishedRevision: 'Published revision',
   },
   setlistEditor: {
+    searchLanguage: 'Search language',
+    allLanguages: 'All languages',
     setlistNotFound: 'Setlist not found',
     saveFailed: 'Save failed',
     titleLabel: 'Title *',

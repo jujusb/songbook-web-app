@@ -3,7 +3,7 @@ import { getSetlistLinkAllowedHosts, getSetlistLinkAllowHttp } from "@/lib/confi
 import { cookies } from "next/headers";
 import { getLocale, createT } from "@/lib/i18n/server";
 import { notFound, redirect } from "next/navigation";
-import { getSetlist, getSetlistVersion, listSongs, getSongTranslations, getShareBaseUrl, listSetlistVersionContents , parseSetlistVersionDate } from "@/lib/content";
+import { getSetlist, getSetlistVersion, listSongs, getSongTranslations, getShareBaseUrl, listSetlistVersionContents , parseSetlistVersionDate, getSongTitle } from "@/lib/content";
 import { getSession, canEdit, canCreateSetlist, canManageSetlistShares, canManageSetlistHistory } from "@/lib/auth";
 import { SetlistEditor } from "@/components/SetlistEditor";
 import { SetlistShareControls } from "@/components/SetlistShareControls";
@@ -84,7 +84,10 @@ export default async function SetlistEditPage({
   const songsWithLangs = await Promise.all(
     songs.map(async (s) => {
       const translations = await getSongTranslations(s.id);
-      return { id: s.id, title: s.title, key: s.key, translations };
+      const titles = Object.fromEntries(
+        await Promise.all(translations.map(async (lang) => [lang, await getSongTitle(s.id, lang).catch(() => s.title)] as const)),
+      );
+      return { id: s.id, title: s.title, key: s.key, translations, titles };
     })
   );
 
