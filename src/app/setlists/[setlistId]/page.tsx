@@ -5,7 +5,7 @@ import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { getSetlist, getSong, getSongTranslation, getSongTranslations, getSongTitle, listSetlistVersions, getSetlistVersion } from "@/lib/content";
-import { getSession, getCurrentUser, canEdit, canAdmin, canViewSetlist, canCreateSetlist, canManageSetlistHistory, canViewSetlistStats } from "@/lib/auth";
+import { getSession, getCurrentUser, canEdit, canAdmin, canViewSetlist, canCreateSetlist, canViewSetlistStats } from "@/lib/auth";
 import { isSongItem, isNoteItem, isLinkItem, isRecurrentNoteItem } from "@/lib/content/schemas";
 import { renderNoteRefText } from "@/lib/note-render";
 import { SetlistReadOnlyView, type SetlistReadOnlyEntry } from "@/components/SetlistReadOnlyView";
@@ -92,7 +92,6 @@ export default async function SetlistPage({
   // The current setlist's own date (not the viewed version's).
   const currentSetlistDate = (await getSetlist(sourceSetlistId).catch(() => null))?.date ?? "";
   const currentVersion = versionParam || null;
-  const canManageHistory = canManageSetlistHistory(role, sourceSetlist, userId);
   const presentHref = `/setlists/${setlistId}/present${
     shareParam ? `?share=${shareParam}` : ""
   }`;
@@ -199,7 +198,6 @@ export default async function SetlistPage({
         setlistId={setlistId}
         historySetlistId={sourceSetlistId}
         canEdit={showEditActions}
-        canManage={canManageHistory}
         initialVersions={historyVersions}
         currentVersion={currentVersion}
         currentDate={currentSetlistDate}

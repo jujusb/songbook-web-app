@@ -289,7 +289,6 @@ export default async function SetlistSharePage({
         setlistId={setlist.id}
         historySetlistId={sourceSetlistId}
         canEdit={false}
-        canManage={false}
         initialVersions={historyVersions}
         currentVersion={versionParam || null}
         shareToken={setlist.shareToken}

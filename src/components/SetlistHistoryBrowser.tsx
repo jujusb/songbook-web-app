@@ -19,8 +19,6 @@ interface Props {
   /** Setlist whose versions are listed (the original for saved/shared setlists). */
   historySetlistId?: string;
   canEdit: boolean;
-  /** Whether this user may restore versions / create dated versions. */
-  canManage?: boolean;
   initialVersions: HistoryVersion[];
   currentVersion: string | null;
   /** Optional share token so a public share page can read history. */
@@ -34,8 +32,6 @@ interface Props {
 export function SetlistHistoryBrowser({
   setlistId,
   historySetlistId,
-  canEdit,
-  canManage,
   initialVersions,
   currentVersion,
   shareToken,
@@ -44,7 +40,6 @@ export function SetlistHistoryBrowser({
 }: Props) {
   const router = useRouter();
   const targetId = historySetlistId || setlistId;
-  const manage = canManage ?? canEdit;
   const [versions, setVersions] = useState<HistoryVersion[]>(initialVersions);
 
   const shareQuery = shareToken ? `?share=${encodeURIComponent(shareToken)}` : "";
@@ -80,20 +75,7 @@ export function SetlistHistoryBrowser({
   const viewedDate = viewedEntry ? dateOf(viewedEntry) : currentDate;
 
   return (
-    <section className="mt-8 rounded-md border border-neutral-200 p-4 dark:border-neutral-800">
-      <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-        <h2 className="text-lg font-semibold">Version history</h2>
-        {manage && (
-          <button
-            type="button"
-            onClick={() => router.push(`/setlists/${targetId}/edit?newDate=1`)}
-            className="rounded-md bg-blue-600 px-3 py-1.5 text-sm text-white hover:bg-blue-700"
-            aria-label="New setlist date"
-          >
-            New
-          </button>
-        )}
-      </div>
+    <section className="mt-8">
       <div className="flex flex-wrap items-center gap-3">
         <DateCalendar
           value={viewedDate}

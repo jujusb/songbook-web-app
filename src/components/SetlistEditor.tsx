@@ -94,18 +94,20 @@ export function SetlistEditor({
   const [description, setDescription] = useState(initialSetlist?.description || "");
   const [image, setImage] = useState(initialSetlist?.image || "");
   const [date, setDate] = useState(initialSetlist?.date || "");
-  const [songs, setSongs] = useState<SetlistItem[]>(startEmpty ? [] : initialSetlist?.songs || []);
-  const [copySource, setCopySource] = useState(startEmpty ? "empty" : "current");
+  // New dates start from an empty setlist unless the user picks a source.
+  const startFromEmpty = startEmpty || newDate;
+  const [songs, setSongs] = useState<SetlistItem[]>(startFromEmpty ? [] : initialSetlist?.songs || []);
+  const [copySource, setCopySource] = useState(startFromEmpty ? "empty" : "current");
   // Set right before a deliberate navigation after saving, so no prompt is shown.
   const leavingRef = useRef(false);
   // Snapshot of the form as it was opened; the form is dirty when it differs.
   const [baseline] = useState(() =>
     JSON.stringify({
       title: initialSetlist?.title || "",
-      description: startEmpty ? "" : initialSetlist?.description || "",
-      image: startEmpty ? "" : initialSetlist?.image || "",
+      description: startFromEmpty ? "" : initialSetlist?.description || "",
+      image: startFromEmpty ? "" : initialSetlist?.image || "",
       date: initialSetlist?.date || "",
-      songs: startEmpty ? [] : initialSetlist?.songs || [],
+      songs: startFromEmpty ? [] : initialSetlist?.songs || [],
     }),
   );
   const isDirty = JSON.stringify({ title, description, image, date, songs }) !== baseline;

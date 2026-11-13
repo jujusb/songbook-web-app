@@ -106,7 +106,11 @@ export default async function SetlistEditPage({
           title: setlist.title,
           description: setlist.description || "",
           image: setlist.image || "",
-          date: isNewDate ? prefillDate : setlist.date || "",
+          date: isNewDate
+            ? prefillDate
+            : setlist.date ||
+              (versionParam ? datedVersions.find((v) => v.label === versionParam)?.date : undefined) ||
+              "",
           songs: setlist.songs,
         }}
         isNew={false}
