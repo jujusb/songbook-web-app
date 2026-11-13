@@ -21,11 +21,13 @@ export default async function SetlistEditPage({
   searchParams,
 }: {
   params: Promise<{ setlistId: string }>;
-  searchParams: Promise<{ version?: string; newDate?: string }>;
+  searchParams: Promise<{ version?: string; newDate?: string; date?: string; empty?: string }>;
 }) {
   const { setlistId } = await params;
-  const { version: versionParam, newDate: newDateParam } = await searchParams;
+  const { version: versionParam, newDate: newDateParam, date: dateParam, empty: emptyParam } = await searchParams;
+  const startEmpty = emptyParam === "1";
   const isNewDate = newDateParam === "1" || newDateParam === "true";
+  const prefillDate = typeof dateParam === "string" && /^\d{4}-\d{2}-\d{2}$/.test(dateParam) ? dateParam : "";
 
   let setlist;
   try {
@@ -65,8 +67,16 @@ export default async function SetlistEditPage({
     })
   );
 
+  // Every dated version, so the date calendar can open an existing date or start a new one.
+  const versionContents = await listSetlistVersionContents(setlistId);
+  const datedVersions = versionContents
+    .map((version) => ({ label: version.label, date: version.eventDate || version.date || "" }))
+    .filter((version) => /^\d{4}-\d{2}-\d{2}$/.test(version.date));
+  const baseSetlist = await getSetlist(setlistId).catch(() => null);
+  const currentDate = baseSetlist?.date ?? "";
+
   const previousVersions = isNewDate
-    ? (await listSetlistVersionContents(setlistId)).filter(
+    ? versionContents.filter(
         (version) => version.label !== setlist.date && version.eventDate !== setlist.date,
       )
     : [];
@@ -96,13 +106,15 @@ export default async function SetlistEditPage({
           title: setlist.title,
           description: setlist.description || "",
           image: setlist.image || "",
-          date: isNewDate ? "" : setlist.date || "",
+          date: isNewDate ? prefillDate : setlist.date || "",
           songs: setlist.songs,
         }}
         isNew={false}
         newDate={isNewDate}
         previousVersions={previousVersions}
-        currentDate={isNewDate ? setlist.date || "" : ""}
+        currentDate={currentDate}
+        startEmpty={isNewDate && startEmpty}
+        datedVersions={datedVersions}
         versionLabel={!isNewDate && versionParam && versionParam !== 'current' ? versionParam : undefined}
       />
     </div>

@@ -54,6 +54,20 @@ Periodic behavior is not part of the rule.
 - If the date in the URL or the stored date is not allowed, the component moves to the nearest
   allowed date (on or after the stored date, otherwise the last one before it).
 
+### Dated setlists use the same calendar
+
+- `DateCalendar` is the generic month grid: it takes an `isSelectable` predicate, marks days with
+  saved data with a dot, and `RecurrentDateSelect` is built on it.
+- Setlist page (`SetlistHistoryBrowser`): the version dropdown is a calendar. Days with a saved
+  version are clickable and open that version. The current setlist's day opens the current setlist.
+- Setlist editor: the date field is a calendar where any day can be picked. Picking a day with a
+  saved version opens that version for editing. Picking an empty day opens a new, empty setlist for
+  that date (`?newDate=1&date=…&empty=1`). In new-date mode, picking an empty day clears the form
+  to an empty setlist for that date.
+- Unsaved changes: the editor compares its form with the state it opened with. Before leaving
+  (back link, Cancel, New date, opening another day) it asks for confirmation. A `beforeunload`
+  prompt covers tab close and reload. Saving skips both prompts.
+
 ### Server validation
 
 - `POST /api/setlists` and `PUT /api/setlists` reject a recurrent-note item whose date the note does
@@ -99,4 +113,5 @@ Periodic behavior is not part of the rule.
 - `src/components/SetlistEditor.tsx` (add panel and item rows use `RecurrentDateSelect`), `src/components/NoteForm.tsx`
   (`SCHEDULES_BY_TYPE`)
 - `src/lib/i18n/locales/{en,fr,es}.ts` (`setlist.dateNotAllowed`)
-- Tests: `tests/unit/lib/note-schedule.test.ts`, `tests/unit/lib/setlist-recurrent-dates.test.ts`, `tests/components/RecurrentDateSelect.test.tsx`
+- `src/components/DateCalendar.tsx`, `src/components/SetlistHistoryBrowser.tsx`, `src/app/setlists/[setlistId]/edit/page.tsx`, `src/components/SetlistEditor.tsx` (`confirmLeave`, `handleDatePick`)
+- Tests: `tests/components/SetlistEditor.dirty.test.tsx`, `tests/components/DateCalendar.test.tsx`, `tests/unit/lib/note-schedule.test.ts`, `tests/unit/lib/setlist-recurrent-dates.test.ts`, `tests/components/RecurrentDateSelect.test.tsx`

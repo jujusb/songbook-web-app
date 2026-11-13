@@ -11,6 +11,13 @@
 7. The note will be added to the setlist with the selected date's version
 8. Save the setlist
 
+### Setlist dates
+
+On the setlist page, days with a saved version are highlighted with a dot; click one to open it.
+In the setlist editor, pick a day with a saved setlist to open it for editing. Picking an empty day
+opens a new, empty setlist for that date. If you have unsaved changes, the editor asks for
+confirmation before leaving, and also when you close the tab or reload.
+
 ### Date rules
 
 The date picker on the note page and in the manual text editor is a month calendar. Only the dates

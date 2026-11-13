@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import { DateCalendar } from "@/components/DateCalendar";
 
 interface HistoryVersion {
   label: string;
@@ -26,6 +27,8 @@ interface Props {
   shareToken?: string;
   /** Base URL for selecting a version (defaults to `/setlists/<setlistId>`). */
   versionHrefBase?: string;
+  /** Date of the current setlist (the one opened without `?version`). */
+  currentDate?: string;
 }
 
 export function SetlistHistoryBrowser({
@@ -37,14 +40,12 @@ export function SetlistHistoryBrowser({
   currentVersion,
   shareToken,
   versionHrefBase,
+  currentDate = "",
 }: Props) {
   const router = useRouter();
   const targetId = historySetlistId || setlistId;
   const manage = canManage ?? canEdit;
   const [versions, setVersions] = useState<HistoryVersion[]>(initialVersions);
-  // The selected entry always mirrors the URL, so the dropdown never drifts
-  // from the version actually being displayed.
-  const selected = currentVersion && currentVersion !== "current" ? currentVersion : "";
 
   const shareQuery = shareToken ? `?share=${encodeURIComponent(shareToken)}` : "";
 
@@ -65,6 +66,19 @@ export function SetlistHistoryBrowser({
 
   const dateOf = (version: HistoryVersion) => version.eventDate || version.date || "";
 
+  // One dated version per day: the latest label wins when several share a date.
+  const versionByDate = new Map<string, string>();
+  for (const v of versions) {
+    if (v.label === "current") continue;
+    const d = dateOf(v);
+    if (/^\d{4}-\d{2}-\d{2}$/.test(d)) versionByDate.set(d, v.label);
+  }
+  // The day of the version on screen; the current setlist when none is selected.
+  const viewedEntry = currentVersion && currentVersion !== "current"
+    ? versions.find((v) => v.label === currentVersion)
+    : undefined;
+  const viewedDate = viewedEntry ? dateOf(viewedEntry) : currentDate;
+
   return (
     <section className="mt-8 rounded-md border border-neutral-200 p-4 dark:border-neutral-800">
       <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
@@ -81,24 +95,19 @@ export function SetlistHistoryBrowser({
         )}
       </div>
       <div className="flex flex-wrap items-center gap-3">
-        <select
-          className="rounded-md border border-neutral-300 bg-white px-3 py-1.5 text-sm dark:border-neutral-700 dark:bg-neutral-900"
-          value={selected}
-          onChange={(e) => {
-            const label = e.target.value;
+        <DateCalendar
+          value={viewedDate}
+          marked={new Set([...versionByDate.keys(), ...(currentDate ? [currentDate] : [])])}
+          isSelectable={(date) => versionByDate.has(date) || date === currentDate}
+          onChange={(date) => {
+            const label = date === currentDate ? null : versionByDate.get(date) ?? null;
             const base = versionHrefBase || `/setlists/${setlistId}`;
             const query = shareToken && !versionHrefBase ? `&share=${encodeURIComponent(shareToken)}` : "";
             if (label) router.push(`${base}?version=${encodeURIComponent(label)}${query}`, { scroll: false });
             else router.push(shareToken && !versionHrefBase ? `${base}?share=${encodeURIComponent(shareToken)}` : base, { scroll: false });
           }}
-        >
-          <option value="">Current version</option>
-          {versions.filter((v) => v.label !== "current").map((v) => (
-            <option key={v.label} value={v.label}>
-              {dateOf(v) || v.title || v.label}{v.date && v.eventDate && v.date !== v.eventDate ? ` • ${v.label}` : ""}
-            </option>
-          ))}
-        </select>
+          footer={<>Days with a dot have a saved version. Click one to open it; the selected day is the one on screen.</>}
+        />
         {historySetlistId && historySetlistId !== setlistId && (
           <span className="text-xs text-neutral-400">History from the original setlist</span>
         )}

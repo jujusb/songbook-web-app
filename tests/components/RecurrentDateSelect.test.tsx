@@ -30,7 +30,7 @@ describe('RecurrentDateSelect calendar', () => {
     renderWithProviders(
       <RecurrentDateSelect note={sundayNote} value="2026-11-15" onChange={() => {}} />,
     );
-    expect(screen.getByTestId('note-calendar-month')).toHaveTextContent('November 2026');
+    expect(screen.getByTestId('calendar-month')).toHaveTextContent('November 2026');
     expect(enabledDays()).toEqual(['2026-11-01', '2026-11-08', '2026-11-15', '2026-11-22', '2026-11-29']);
   });
 
@@ -56,7 +56,7 @@ describe('RecurrentDateSelect calendar', () => {
       <RecurrentDateSelect note={sundayNote} value="2026-11-15" onChange={() => {}} />,
     );
     fireEvent.click(screen.getByRole('button', { name: 'Next month' }));
-    expect(screen.getByTestId('note-calendar-month')).toHaveTextContent('December 2026');
+    expect(screen.getByTestId('calendar-month')).toHaveTextContent('December 2026');
     expect(enabledDays()).toEqual(['2026-12-06', '2026-12-13', '2026-12-20', '2026-12-27']);
   });
 

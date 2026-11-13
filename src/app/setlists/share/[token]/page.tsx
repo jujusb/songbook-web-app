@@ -96,6 +96,8 @@ export default async function SetlistSharePage({
   }
 
   const historyVersions = await listSetlistVersions(sourceSetlistId);
+  // The current setlist's own date (not the viewed version's).
+  const currentSetlistDate = (await getSetlist(sourceSetlistId).catch(() => null))?.date ?? "";
   const currentMode = normalizeSetlistMode(
     typeof mode === "string" ? mode : sourceSetlist.mode || getSetlistDefaultMode()
   );
@@ -291,6 +293,7 @@ export default async function SetlistSharePage({
         initialVersions={historyVersions}
         currentVersion={versionParam || null}
         shareToken={setlist.shareToken}
+        currentDate={currentSetlistDate}
         versionHrefBase={`/setlists/share/${encodeURIComponent(token)}`}
       />
     </div>

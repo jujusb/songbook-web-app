@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback, useEffect, useMemo } from "react";
+import { useState, useCallback, useEffect, useMemo, useRef } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useTranslation } from "@/lib/i18n";
@@ -9,6 +9,7 @@ import { validateLinkUrl } from "@/lib/setlist-links";
 import { notesApi, type NoteMetadata } from "@/lib/notes";
 import { isSelectableNoteDate } from "@/lib/note-schedule";
 import { RecurrentDateSelect, nearestAllowedNoteDate } from "@/components/RecurrentDateSelect";
+import { DateCalendar } from "@/components/DateCalendar";
 import {
   isHttpUrl,
   isSongItem,
@@ -64,6 +65,8 @@ export function SetlistEditor({
    newDate = false,
    previousVersions = [],
    currentDate = "",
+   datedVersions = [],
+   startEmpty = false,
    allowedLinkHosts = [],
   allowHttpLinks = false,
 }: {
@@ -80,6 +83,10 @@ export function SetlistEditor({
   previousVersions?: PreviousVersion[];
   /** Date of the current setlist; a new date may not reuse it. */
   currentDate?: string;
+  /** Every dated version (label + date). Picking one of these opens it. */
+  datedVersions?: Array<{ label: string; date: string }>;
+  /** Start a new date with no songs (picked from an empty calendar day). */
+  startEmpty?: boolean;
 }) {
   const router = useRouter();
   const { languageLabel, t } = useTranslation();
@@ -87,8 +94,21 @@ export function SetlistEditor({
   const [description, setDescription] = useState(initialSetlist?.description || "");
   const [image, setImage] = useState(initialSetlist?.image || "");
   const [date, setDate] = useState(initialSetlist?.date || "");
-  const [songs, setSongs] = useState<SetlistItem[]>(initialSetlist?.songs || []);
-  const [copySource, setCopySource] = useState("current");
+  const [songs, setSongs] = useState<SetlistItem[]>(startEmpty ? [] : initialSetlist?.songs || []);
+  const [copySource, setCopySource] = useState(startEmpty ? "empty" : "current");
+  // Set right before a deliberate navigation after saving, so no prompt is shown.
+  const leavingRef = useRef(false);
+  // Snapshot of the form as it was opened; the form is dirty when it differs.
+  const [baseline] = useState(() =>
+    JSON.stringify({
+      title: initialSetlist?.title || "",
+      description: startEmpty ? "" : initialSetlist?.description || "",
+      image: startEmpty ? "" : initialSetlist?.image || "",
+      date: initialSetlist?.date || "",
+      songs: startEmpty ? [] : initialSetlist?.songs || [],
+    }),
+  );
+  const isDirty = JSON.stringify({ title, description, image, date, songs }) !== baseline;
   const [search, setSearch] = useState("");
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -239,6 +259,66 @@ export function SetlistEditor({
     [dragIndex]
   );
 
+  const setlistId = initialSetlist?.id;
+
+  /** Ask before leaving with unsaved changes. Returns false when the user cancels. */
+  const confirmLeave = useCallback(() => {
+    if (!isDirty || leavingRef.current) return true;
+    return window.confirm("You have unsaved changes. Leave this page and discard them?");
+  }, [isDirty]);
+
+  // Warn on tab close or reload while there are unsaved changes.
+  useEffect(() => {
+    if (!isDirty) return;
+    const onBeforeUnload = (event: BeforeUnloadEvent) => {
+      if (leavingRef.current) return;
+      event.preventDefault();
+      event.returnValue = "";
+    };
+    window.addEventListener("beforeunload", onBeforeUnload);
+    return () => window.removeEventListener("beforeunload", onBeforeUnload);
+  }, [isDirty]);
+
+  const navigate = useCallback(
+    (href: string) => {
+      if (!confirmLeave()) return;
+      leavingRef.current = true;
+      router.push(href);
+    },
+    [confirmLeave, router],
+  );
+
+  // Picking a day opens its saved setlist, or starts an empty setlist for it.
+  const handleDatePick = useCallback(
+    (picked: string) => {
+      if (!setlistId) return;
+      const base = `/setlists/${setlistId}/edit`;
+      if (picked === currentDate) {
+        if (!newDate && !versionLabel) return;
+        navigate(base);
+        return;
+      }
+      const existing = datedVersions.find((v) => v.date === picked);
+      if (existing) {
+        navigate(`${base}?version=${encodeURIComponent(existing.label)}`);
+        return;
+      }
+      if (newDate) {
+        if (picked === date) return;
+        if (!confirmLeave()) return;
+        // Show an empty setlist for the picked date.
+        setDate(picked);
+        setDescription("");
+        setImage("");
+        setSongs([]);
+        setCopySource("empty");
+        return;
+      }
+      navigate(`${base}?newDate=1&date=${encodeURIComponent(picked)}&empty=1`);
+    },
+    [setlistId, currentDate, datedVersions, newDate, versionLabel, date, confirmLeave, navigate],
+  );
+
   const handleDragEnd = useCallback(() => {
     setDragIndex(null);
   }, []);
@@ -298,6 +378,7 @@ export function SetlistEditor({
 
         const saved = await res.json().catch(() => ({}));
         const label = saved?.label || date.trim();
+        leavingRef.current = true;
         router.push(`/setlists/${initialSetlist.id}?version=${encodeURIComponent(label)}`);
         router.refresh();
         return;
@@ -325,6 +406,7 @@ export function SetlistEditor({
       }
 
       const saved = await res.json();
+      leavingRef.current = true;
       router.push(`/setlists/${saved.id}${versionLabel ? `?version=${encodeURIComponent(versionLabel)}` : ""}`);
       router.refresh();
     } catch (err: unknown) {
@@ -353,6 +435,13 @@ export function SetlistEditor({
     <div className="space-y-6">
       <Link
         href={backHref}
+        onClick={(event) => {
+          if (!confirmLeave()) {
+            event.preventDefault();
+            return;
+          }
+          leavingRef.current = true;
+        }}
         className="text-sm text-blue-600 dark:text-blue-400 hover:underline inline-block"
       >
         &larr; {newDate ? "Back to setlist" : isNew ? "Back to setlists" : "Back to setlist"}
@@ -379,13 +468,17 @@ export function SetlistEditor({
         {!linkOnly && (
           <div>
             <label className="block text-sm font-medium mb-1">Date{newDate ? " *" : ""}</label>
-            <input
-              type="date"
+            <DateCalendar
               value={date}
-              onChange={(e) => setDate(e.target.value)}
-              disabled={!!versionLabel}
-              required={newDate}
-              className="w-full px-3 py-2 border border-neutral-300 dark:border-neutral-700 rounded-md bg-white dark:bg-neutral-900 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              isSelectable={() => true}
+              marked={new Set([...datedVersions.map((v) => v.date), ...(currentDate ? [currentDate] : [])])}
+              onChange={handleDatePick}
+              footer={
+                <>
+                  Dots mark dates with a saved setlist. Picking one opens it; picking an empty day starts a new
+                  setlist for that date.
+                </>
+              }
             />
           </div>
         )}
@@ -743,7 +836,7 @@ export function SetlistEditor({
         {!isNew && !newDate && initialSetlist?.id && (
           <button
             type="button"
-            onClick={() => router.push(`/setlists/${initialSetlist.id}/edit?newDate=1`)}
+            onClick={() => navigate(`/setlists/${initialSetlist.id}/edit?newDate=1`)}
             className="px-4 py-2 bg-neutral-700 text-white rounded-md text-sm hover:bg-neutral-800 transition-colors"
           >
             New date
@@ -751,7 +844,12 @@ export function SetlistEditor({
         )}
         <button
           type="button"
-          onClick={() => router.back()}
+          onClick={() => {
+            if (confirmLeave()) {
+              leavingRef.current = true;
+              router.back();
+            }
+          }}
           className="px-4 py-2 border border-neutral-300 dark:border-neutral-700 rounded-md text-sm hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors"
         >
           Cancel

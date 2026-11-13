@@ -89,6 +89,8 @@ export default async function SetlistPage({
 
   const voiceShares = await getSetlistVoiceShares(sourceSetlist, session?.role ?? 'public');
   const historyVersions = await listSetlistVersions(sourceSetlistId);
+  // The current setlist's own date (not the viewed version's).
+  const currentSetlistDate = (await getSetlist(sourceSetlistId).catch(() => null))?.date ?? "";
   const currentVersion = versionParam || null;
   const canManageHistory = canManageSetlistHistory(role, sourceSetlist, userId);
   const presentHref = `/setlists/${setlistId}/present${
@@ -200,6 +202,7 @@ export default async function SetlistPage({
         canManage={canManageHistory}
         initialVersions={historyVersions}
         currentVersion={currentVersion}
+        currentDate={currentSetlistDate}
         versionHrefBase={`/setlists/${setlistId}`}
       />
 
