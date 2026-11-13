@@ -97,6 +97,19 @@ export function noteApplicableLanguages(
   return filtered.length > 0 ? filtered : siteLanguages;
 }
 
+/**
+ * Languages a note can be shown in: its own language plus every language its
+ * API sections and manual texts provide. Sorted, without duplicates.
+ */
+export function noteLanguages(note: Pick<NoteMetadata, 'language' | 'sections'> & { content?: NoteSection[] }): string[] {
+  const set = new Set<string>([note.language]);
+  for (const section of note.sections || note.content || []) {
+    for (const lang of section.languages || []) set.add(lang);
+    for (const lang of Object.keys(section.mdByLanguage || {})) set.add(lang);
+  }
+  return Array.from(set).filter(Boolean).sort();
+}
+
 export interface NoteMetadata {
   id: string;
   title: string;

@@ -474,7 +474,7 @@ export function setlistContentKey(setlist: Setlist): string {
       if (isNoteItem(item)) return { type: 'note', id: item.id, text: item.text };
       if (isLinkItem(item)) return { type: 'link', id: item.id, url: item.url, title: item.title ?? '' };
       if (isRecurrentNoteItem(item)) {
-        return { type: 'recurrent-note', id: item.id, noteId: item.noteId, date: item.date };
+        return { type: 'recurrent-note', id: item.id, noteId: item.noteId, date: item.date, lang: item.lang };
       }
       if (isSongItem(item)) return { type: 'song', songId: item.songId, lang: item.lang };
       return item;

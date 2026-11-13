@@ -183,7 +183,7 @@ export default async function SetlistPage({
   };
   const noteRefTexts = new Map(
     await Promise.all(
-      sourceSetlist.songs.filter(isRecurrentNoteItem).map(async (item) => [item.id, await renderNoteRefText(item.noteId, item.date)] as const)
+      sourceSetlist.songs.filter(isRecurrentNoteItem).map(async (item) => [item.id, await renderNoteRefText(item.noteId, item.date, item.lang)] as const)
     )
   );
   let songCursor = 0;

@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 import { useTranslation } from "@/lib/i18n";
 import { getSetlistMaxSongs } from "@/lib/config";
 import { validateLinkUrl } from "@/lib/setlist-links";
-import { notesApi, type NoteMetadata } from "@/lib/notes";
+import { notesApi, noteLanguages, type NoteMetadata } from "@/lib/notes";
 import { isSelectableNoteDate } from "@/lib/note-schedule";
 import { RecurrentDateSelect, nearestAllowedNoteDate } from "@/components/RecurrentDateSelect";
 import { DateCalendar } from "@/components/DateCalendar";
@@ -122,6 +122,7 @@ export function SetlistEditor({
   const [recurrentNotes, setRecurrentNotes] = useState<NoteMetadata[]>([]);
   const [pickNoteId, setPickNoteId] = useState("");
   const [pickChoice, setPickChoice] = useState("");
+  const [pickLang, setPickLang] = useState("");
 
   useEffect(() => {
     let cancelled = false;
@@ -136,6 +137,7 @@ export function SetlistEditor({
   const noteTitle = (noteId: string) => recurrentNotes.find((n) => n.id === noteId)?.title || noteId;
 
   const pickedNote = recurrentNotes.find((n) => n.id === pickNoteId);
+  const pickLangOptions = useMemo(() => (pickedNote ? noteLanguages(pickedNote) : []), [pickedNote]);
   const todayIso = new Date().toISOString().slice(0, 10);
   // The calendar's choice when it is allowed, otherwise the next allowed date.
   const pickDate = pickedNote
@@ -172,12 +174,14 @@ export function SetlistEditor({
   // Only dates allowed by the note's recurrence rule can be added.
   const addRecurrentNote = useCallback(() => {
     if (!pickedNote || !pickDate || !isSelectableNoteDate(pickedNote, pickDate)) return;
-    setSongs((prev) => [...prev, { type: "recurrent-note", id: newItemId(), noteId: pickNoteId, date: pickDate }]);
+    const lang = pickLangOptions.includes(pickLang) ? pickLang : pickLangOptions[0];
+    setSongs((prev) => [...prev, { type: "recurrent-note", id: newItemId(), noteId: pickNoteId, date: pickDate, lang }]);
     setShowRecurrent(false);
     setPickNoteId("");
     setPickChoice("");
+    setPickLang("");
     setError(null);
-  }, [pickNoteId, pickedNote, pickDate]);
+  }, [pickNoteId, pickedNote, pickDate, pickLang, pickLangOptions]);
 
   const uploadSetlistImage = useCallback(async (file: File) => {
     const form = new FormData();
@@ -620,8 +624,20 @@ export function SetlistEditor({
                         if (!note) {
                           return <span className="text-xs text-red-600">{item.date}</span>;
                         }
+                        const itemLangs = noteLanguages(note);
+                        const itemLang = item.lang && itemLangs.includes(item.lang) ? item.lang : itemLangs[0] ?? "";
                         return (
-                          <div data-testid="setlist-recurrent-item-date">
+                          <div className="flex items-center gap-2 flex-wrap" data-testid="setlist-recurrent-item-date">
+                            <select
+                              value={itemLang}
+                              onChange={(e) => updateItem(index, { lang: e.target.value })}
+                              aria-label={t("setlistEditor.noteLanguage")}
+                              className="px-2 py-1 border border-neutral-300 dark:border-neutral-700 rounded bg-white dark:bg-neutral-900 text-xs"
+                            >
+                              {itemLangs.map((code) => (
+                                <option key={code} value={code}>{languageLabel(code)}</option>
+                              ))}
+                            </select>
                             <RecurrentDateSelect
                               note={note}
                               value={item.date}
@@ -778,7 +794,21 @@ export function SetlistEditor({
             </select>
             <label className="text-xs text-neutral-500">{t("setlist.noteDate")}</label>
             {pickedNote && (
-              <RecurrentDateSelect note={pickedNote} value={pickDate} onChange={setPickChoice} />
+              <>
+                <label className="text-xs text-neutral-500">{t("setlistEditor.noteLanguage")}</label>
+                <select
+                  value={pickLangOptions.includes(pickLang) ? pickLang : pickLangOptions[0] ?? ""}
+                  onChange={(e) => setPickLang(e.target.value)}
+                  aria-label={t("setlistEditor.noteLanguage")}
+                  className="px-2 py-1.5 border border-neutral-300 dark:border-neutral-700 rounded bg-white dark:bg-neutral-900 text-sm"
+                  data-testid="setlist-recurrent-language"
+                >
+                  {pickLangOptions.map((code) => (
+                    <option key={code} value={code}>{languageLabel(code)}</option>
+                  ))}
+                </select>
+                <RecurrentDateSelect note={pickedNote} value={pickDate} onChange={setPickChoice} />
+              </>
             )}
             <button
               type="button"

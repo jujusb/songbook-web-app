@@ -1030,6 +1030,7 @@ const fr: Translations = {
     publishedRevision: 'Révision publiée',
   },
   setlistEditor: {
+    noteLanguage: 'Langue de la note',
     searchLanguage: 'Langue de recherche',
     allLanguages: 'Toutes les langues',
     setlistNotFound: 'Setlist introuvable',

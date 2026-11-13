@@ -1028,6 +1028,7 @@ const en = {
     publishedRevision: 'Published revision',
   },
   setlistEditor: {
+    noteLanguage: 'Note language',
     searchLanguage: 'Search language',
     allLanguages: 'All languages',
     setlistNotFound: 'Setlist not found',

@@ -13,13 +13,13 @@ function localDate(ymd: string): Date {
   return new Date(y, m - 1, d);
 }
 
-export async function renderRecurrentNoteForDate(note: NoteMetadata, date: string): Promise<string> {
+export async function renderRecurrentNoteForDate(note: NoteMetadata, date: string, langOverride?: string): Promise<string> {
   const manualPeriod = await getNoteManualPeriod(note.id, date).catch(() => null);
   const legacyOverride = note.periodOverrides?.[date];
   let legacyOverrideUsed = false;
 
   const chunks: string[] = [];
-  const lang = note.language;
+  const lang = langOverride || note.language;
   const sections = note.sections || note.content || [];
   for (const [index, section] of sections.entries()) {
     if (section.type === "manual") {
@@ -65,8 +65,8 @@ export async function renderRecurrentNoteForDate(note: NoteMetadata, date: strin
 }
 
 /** Load a note by id and render it for the date; returns a short message when unavailable. */
-export async function renderNoteRefText(noteId: string, date: string): Promise<string> {
+export async function renderNoteRefText(noteId: string, date: string, lang?: string): Promise<string> {
   const note = await getNote(noteId).catch(() => null);
   if (!note) return "";
-  return renderRecurrentNoteForDate(note, date);
+  return renderRecurrentNoteForDate(note, date, lang);
 }

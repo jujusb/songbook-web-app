@@ -1030,6 +1030,7 @@ print: {
     publishedRevision: 'Revisión publicada',
   },
   setlistEditor: {
+    noteLanguage: 'Idioma de la nota',
     searchLanguage: 'Idioma de búsqueda',
     allLanguages: 'Todos los idiomas',
     setlistNotFound: 'Setlist no encontrada',
