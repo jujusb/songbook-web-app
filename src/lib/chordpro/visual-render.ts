@@ -61,11 +61,15 @@ function splitSegments(lyrics: string, chords: { position: number; chord: string
     }
     starts.push({ start, chord: cp.chord });
   }
-  return starts.map((seg, i) => ({
-    chord: seg.chord,
-    start: seg.start,
-    end: i + 1 < starts.length ? starts[i + 1].start : lyrics.length,
-  }));
+  return starts
+    .map((seg, i) => ({
+      chord: seg.chord,
+      start: seg.start,
+      end: i + 1 < starts.length ? starts[i + 1].start : lyrics.length,
+    }))
+    // An empty chord-less segment (e.g. a chord moved back to the start of its
+    // word) would otherwise render as a visible `&nbsp;` at the start of the line.
+    .filter((seg) => !(seg.chord === "" && seg.start === seg.end));
 }
 
 function renderMetadataDirective(raw: string): string | null {
@@ -472,15 +476,24 @@ const labeledRepeat = raw.match(
     // character-count chord spacing would drift. Segments place each chord
     // directly above its own text, whatever the glyph widths are.
     if (wrapSegments || inChorus) {
-      const text = line.lyrics || "\u00A0";
-      const segments = splitSegments(text, line.chords);
+      // Leading whitespace before the first chord would render as a visible
+      // gap at the start of the line. Drop it and shift chord positions to match.
+      const leading = line.chords.length > 0 ? (line.lyrics.match(/^\s*/)?.[0].length ?? 0) : 0;
+      const text = line.chords.length > 0 && leading > 0
+        ? line.lyrics.slice(leading) || "\u00A0"
+        : line.lyrics || "\u00A0";
+      const chordsShifted = line.chords.map((cp) => ({
+        chord: cp.chord,
+        position: Math.max(0, cp.position - leading),
+      }));
+      const segments = splitSegments(text, chordsShifted);
       const segHtml = segments
         .map((seg) => {
           const piece = text.slice(seg.start, seg.end);
           let body = escapeHtml(piece);
           if (highlightRange && highlightRange.line === contentLine) {
-            const from = Math.max(highlightRange.start, seg.start);
-            const to = Math.min(highlightRange.end, seg.end);
+            const from = Math.max(highlightRange.start - leading, seg.start);
+            const to = Math.min(highlightRange.end - leading, seg.end);
             if (to > from) {
               body =
                 escapeHtml(text.slice(seg.start, from)) +
