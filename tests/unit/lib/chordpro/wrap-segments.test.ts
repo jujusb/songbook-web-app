@@ -36,10 +36,10 @@ describe('renderVisualChordSheet wrapSegments', () => {
 });
 
 describe('renderVisualChordSheet wrapSegments word boundaries', () => {
-  it('does not split a word when a chord sits inside it', () => {
+  it('places a chord inside a word at its exact character position', () => {
     const html = renderVisualChordSheet('ex[A]ample of [G]text', { wrapSegments: true });
-    expect(html).toContain('<span class="vce-lyrics-text">example of </span>');
-    expect(html).not.toContain('>ex</span>');
+    expect(html).toContain('<span class="vce-lyrics-text">ex</span>');
+    expect(html).toContain('<span class="vce-chord">A</span><span class="vce-lyrics-text">ample of </span>');
   });
 
   it('keeps a chord at a word boundary where it was', () => {
@@ -50,12 +50,10 @@ describe('renderVisualChordSheet wrapSegments word boundaries', () => {
 });
 
 describe('renderVisualChordSheet wrapSegments spaces', () => {
-  it('does not start a segment with the space a chord sits on', () => {
+  it('keeps a chord on a space at its exact position', () => {
     const html = renderVisualChordSheet('Hello[G] world', { wrapSegments: true });
-    expect(html).toContain('<span class="vce-lyrics-text">Hello </span>');
-    expect(html).toContain('<span class="vce-chord">G</span>');
-    expect(html).toContain('<span class="vce-lyrics-text">world</span>');
-    expect(html).not.toContain('<span class="vce-lyrics-text"> world</span>');
+    expect(html).toContain('<span class="vce-lyrics-text">Hello</span>');
+    expect(html).toContain('<span class="vce-chord">G</span><span class="vce-lyrics-text"> world</span>');
   });
 });
 

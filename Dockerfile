@@ -10,6 +10,24 @@ COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 RUN npm run build
 
+# Development: runs `next dev` with hot reload. The project is bind-mounted
+# over /app by docker-compose.yml, so source edits need no image rebuild.
+FROM node:26-alpine AS dev
+ENV NEXT_TELEMETRY_DISABLED=1
+ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true
+ENV PUPPETEER_EXECUTABLE_PATH=/usr/lib/chromium/chromium-headless-shell
+RUN apk add \
+    chromium-headless-shell \
+    font-noto \
+    font-noto-cjk \
+    font-noto-emoji \
+    ca-certificates
+WORKDIR /app
+COPY package.json package-lock.json ./
+RUN npm ci
+EXPOSE 3000
+CMD ["npm", "run", "dev"]
+
 # Production
 FROM alpine:3.24 AS runner
 ENV NODE_ENV=production

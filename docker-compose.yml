@@ -7,22 +7,29 @@ networks:
 
 services:
   songbook:
-    build: .
-    image: songbook-web-app:latest
+    # Development build: `next dev` with hot reload. Source is bind-mounted, so
+    # code/content edits apply without rebuilding. Rebuild only when
+    # package.json / package-lock.json change (`docker compose up --build`).
+    build:
+      context: .
+      target: dev
+    image: songbook-web-app:dev
     container_name: songbook
     ports:
       - "${SONGBOOK_ADMIN_PORT:-3000}:3000"
     volumes:
-      # For development, mount the current directory to the app directory
-      - ./package.json:/app/package.json
-      - ./package-lock.json:/app/package-lock.json
-      - ./src:/app/src
+      - .:/app
+      # Keep container-built dependencies and Next.js cache out of the host tree.
+      - /app/node_modules
+      - /app/.next
       - ${SONGBOOK_DATA_DIR:-./data}:/app/data
     environment:
       - NODE_ENV=development
+      - WATCHPACK_POLLING=${SONGBOOK_WATCH_POLLING:-false}
       - HOSTNAME=0.0.0.0
       - PORT=3000
       - DATA_DIR=/app/data
+      - SONGBOOK_DEV_ALLOWED_ORIGINS=${SONGBOOK_DEV_ALLOWED_ORIGINS:-}
       # --- Revision garbage collection (0 keeps everything) ---
       - REVISIONS_MAX_COUNT=${SONGBOOK_REVISIONS_MAX_COUNT:-50}
       - REVISIONS_MAX_AGE_DAYS=${SONGBOOK_REVISIONS_MAX_AGE_DAYS:-90}
@@ -75,6 +82,9 @@ services:
   # Serves the same content/music, mounted read-only, with SONGBOOK_READONLY=1.
   # Point your public hostname at SONGBOOK_PUBLIC_PORT and keep `songbook` private.
   songbook-public:
+    build:
+      context: .
+      target: runner
     image: songbook-web-app:latest
     container_name: songbook-public
     ports:

@@ -499,6 +499,8 @@ a.ref-marker:hover {
 
 .visual-chord-sheet .vce-line.wrap .vce-lyrics-text {
   display: inline;
+  /* Segments of one word must join with no gap (the base style pads 1px). */
+  padding: 0;
   white-space: pre-wrap;
   /* Break inside a word only when a single word is wider than the screen. */
   word-break: normal;
