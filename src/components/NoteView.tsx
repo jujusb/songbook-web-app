@@ -45,8 +45,6 @@ export function NoteView({ noteId, autoScrollSpeed, initialDate }: NoteViewProps
   const manualPeriod =
     manualPeriodState?.date === selectedDate ? manualPeriodState.content : null;
   const [previewText, setPreviewText] = useState("");
-  const [tabbed, setTabbed] = useState<Array<{ title: string; text: string }> | null>(null);
-  const [activeTab, setActiveTab] = useState(0);
   const [previewError, setPreviewError] = useState<string | null>(null);
   const [previewLoading, setPreviewLoading] = useState(false);
 
@@ -87,7 +85,6 @@ export function NoteView({ noteId, autoScrollSpeed, initialDate }: NoteViewProps
     setPreviewLoading(true);
     setPreviewError(null);
     const chunks: string[] = [];
-    let tabsCandidate: Array<{ title: string; text: string }> | null = null;
     let legacyOverrideUsed = false;
     for (const [sectionIndex, section] of (note.sections || note.content || []).entries()) {
       if (section.type === "manual") {
@@ -122,13 +119,9 @@ export function NoteView({ noteId, autoScrollSpeed, initialDate }: NoteViewProps
         });
         const payload = (await res.json()) as {
           text?: string;
-          tabs?: Array<{ title: string; text: string }>;
           error?: string;
         };
         if (!res.ok) throw new Error(payload?.error || `HTTP ${res.status}`);
-        if (payload.tabs?.length) {
-          tabsCandidate = payload.tabs;
-        }
         if (payload.text) {
           chunks.push(payload.text);
         }
@@ -139,8 +132,6 @@ export function NoteView({ noteId, autoScrollSpeed, initialDate }: NoteViewProps
       }
     }
     if (cancelled) return;
-    setTabbed(tabsCandidate && tabsCandidate.length > 0 ? tabsCandidate : null);
-    setActiveTab(0);
     setPreviewText(chunks.filter(Boolean).join("\n\n"));
     setPreviewLoading(false);
   };
@@ -199,23 +190,6 @@ export function NoteView({ noteId, autoScrollSpeed, initialDate }: NoteViewProps
         <p className="text-sm text-neutral-500">{t("notes.loading")}</p>
       ) : previewError ? (
         <p className="text-sm text-red-600">{previewError}</p>
-      ) : tabbed ? (
-        <div className="space-y-3">
-          {previewText && <MarkdownView text={previewText} />}
-          <div className="flex flex-wrap gap-2 border-b border-neutral-200 dark:border-neutral-700">
-            {tabbed.map((tab, i) => (
-              <button
-                key={i}
-                type="button"
-                onClick={() => setActiveTab(i)}
-                className={`px-3 py-2 text-sm border-b-2 ${activeTab === i ? "border-blue-600 text-blue-600" : "border-transparent text-neutral-500"}`}
-              >
-                {tab.title}
-              </button>
-            ))}
-          </div>
-          <MarkdownView text={tabbed[activeTab]?.text || ""} />
-        </div>
       ) : (
         <MarkdownView text={previewText} />
       )}

@@ -614,44 +614,6 @@ function isDiscriminatorItemVisible(section: Partial<NoteSection>, item: unknown
   return style !== 'none';
 }
 
-/**
- * Splits visible array items by their raw discriminator value. A value that
- * occurs 2+ times becomes a tab (tab order = first appearance); other items stay inline.
- */
-function groupRepeatedDiscriminatorItems(
-  section: Partial<NoteSection>,
-  items: unknown[],
-  discriminator: string,
-): { inline: unknown[]; tabs: Array<{ title: string; items: unknown[] }> } {
-  const visible = items.filter((item) => isDiscriminatorItemVisible(section, item, discriminator));
-  const keyOf = (item: unknown): string | undefined => {
-    if (!item || typeof item !== 'object') return undefined;
-    const raw = (item as Record<string, unknown>)[discriminator];
-    return raw === undefined || raw === null ? undefined : String(raw);
-  };
-  const counts = new Map<string, number>();
-  for (const item of visible) {
-    const key = keyOf(item);
-    if (key !== undefined) counts.set(key, (counts.get(key) ?? 0) + 1);
-  }
-  const inline: unknown[] = [];
-  const groups = new Map<string, unknown[]>();
-  for (const item of visible) {
-    const key = keyOf(item);
-    if (key !== undefined && (counts.get(key) ?? 0) >= 2) {
-      const bucket = groups.get(key) ?? [];
-      bucket.push(item);
-      groups.set(key, bucket);
-    } else {
-      inline.push(item);
-    }
-  }
-  return {
-    inline,
-    tabs: [...groups.entries()].map(([title, groupItems]) => ({ title, items: groupItems })),
-  };
-}
-
 export function extractApiSectionText(rawSection0: Partial<NoteSection>, data: unknown, lang?: string): string {
   // Use the saved shape directly (fields / discriminatorValues) while keeping
   // backward compatibility with legacy structures.
@@ -897,14 +859,8 @@ export const extractSectionText = extractApiSectionText;
 export const renderApiSection = extractApiSectionText;
 export const extractNoteSection = extractApiSectionText;
 
-export interface NotePreviewTab {
-  title: string;
-  text: string;
-}
-
 export interface NotePreviewContent {
   text: string;
-  tabs?: NotePreviewTab[];
 }
 
 export function formatApiSectionPreview(
@@ -912,65 +868,6 @@ export function formatApiSectionPreview(
   data: unknown,
   lang?: string,
 ): NotePreviewContent {
-  const section = rawSection as Record<string, unknown>;
-  const resultSection = section.resultSection as string | undefined;
-  const resolved = getNestedValue(data, resultSection, lang);
-  const items = Array.isArray(resolved)
-    ? resolved
-    : Array.isArray(data)
-      ? data
-      : null;
-  const discriminator = section.discriminator as string | undefined;
-  const hasDiscriminator = Boolean(discriminator && discriminator !== 'none');
-
-  const candidate = items && items.length > 1 && items.every((m) => m && typeof m === 'object')
-    && !(
-      hasDiscriminator &&
-      items.every((m) => m && typeof m === 'object' && (m as Record<string, unknown>)[discriminator as string] !== undefined)
-    )
-    ? (() => {
-        const first = items[0] as Record<string, unknown>;
-        const listProp = Object.keys(first).find((k) => {
-          const val = first[k];
-          return Array.isArray(val) && val.length > 0 && val.every((x) => x && typeof x === 'object');
-        });
-        return listProp ? { listProp, items } : null;
-      })()
-    : null;
-
-  if (candidate) {
-    const tabs = candidate.items.map((group, idx) => {
-      const m = group as Record<string, unknown>;
-      const titleProp =
-        (['titre', 'title', 'name', 'label', 'heading'] as string[]).find((k) => typeof m[k] === 'string') ||
-        Object.keys(m).find((k) => typeof m[k] === 'string' && !Array.isArray(m[k]));
-      const title = String(titleProp ? m[titleProp] : `Tab ${idx + 1}`);
-      const lectures = (m[candidate.listProp] as unknown[]) || [];
-      const text = lectures
-        .map((lec) => extractApiSectionText({ ...rawSection, resultSection: undefined }, lec, lang))
-        .filter(Boolean)
-        .join('\n\n');
-      return { title, text };
-    });
-    if (tabs.length > 1) {
-      return { text: '', tabs };
-    }
-  }
-
-  if (!candidate && items && hasDiscriminator && items.every((m) => m && typeof m === 'object')) {
-    const { inline, tabs } = groupRepeatedDiscriminatorItems(rawSection, items, discriminator as string);
-    if (tabs.length > 0) {
-      const sectionNoResult = { ...rawSection, resultSection: undefined };
-      return {
-        text: extractApiSectionText(sectionNoResult, inline, lang),
-        tabs: tabs.map((tab) => ({
-          title: tab.title,
-          text: extractApiSectionText(sectionNoResult, tab.items, lang),
-        })),
-      };
-    }
-  }
-
   return { text: extractApiSectionText(rawSection, data, lang) };
 }
 

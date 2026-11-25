@@ -4,7 +4,7 @@ import { useEffect, useRef } from "react";
 import { EditorState } from "@codemirror/state";
 import { EditorView as CMEditorView } from "@codemirror/view";
 import { markdown } from "@codemirror/lang-markdown";
-import { syntaxHighlighting, defaultHighlightStyle } from "@codemirror/language";
+import { songbookEditorTheme } from "@/lib/codemirror-theme";
 
 export function ReadOnlyChordSource({
   source,
@@ -23,16 +23,10 @@ export function ReadOnlyChordSource({
       doc: source,
       extensions: [
         markdown(),
-        syntaxHighlighting(defaultHighlightStyle),
+        ...songbookEditorTheme(),
         EditorState.readOnly.of(true),
         CMEditorView.editable.of(false),
         CMEditorView.lineWrapping,
-        CMEditorView.theme({
-          "&": { height: "100%", fontSize: "14px" },
-          ".cm-scroller": { overflow: "auto" },
-          ".cm-content": { fontFamily: "var(--font-geist-mono), monospace" },
-          "&.cm-focused": { outline: "none" },
-        }),
       ],
     });
 

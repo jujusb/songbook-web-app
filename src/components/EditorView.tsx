@@ -5,11 +5,11 @@ import { EditorState } from "@codemirror/state";
 import { EditorView as CMEditorView, keymap } from "@codemirror/view";
 import { defaultKeymap, history, historyKeymap } from "@codemirror/commands";
 import { markdown } from "@codemirror/lang-markdown";
-import { syntaxHighlighting, defaultHighlightStyle } from "@codemirror/language";
 import { searchKeymap } from "@codemirror/search";
 import { saveSongAction, saveSongReferencesAction } from "@/app/actions";
 import { VisualChordEditor } from "@/components/VisualChordEditor";
 import { ReadOnlyChordSource } from "@/components/ReadOnlyChordSource";
+import { songbookEditorTheme } from "@/lib/codemirror-theme";
 import { renderVisualChordSheet } from "@/lib/chordpro/visual-render";
 import { useTranslation } from "@/lib/i18n";
 import { txtToChordPro } from "@/lib/chordpro/txt-import";
@@ -94,14 +94,9 @@ export function EditorView({
         keymap.of([...defaultKeymap, ...historyKeymap, ...searchKeymap]),
         history(),
         markdown(),
-        syntaxHighlighting(defaultHighlightStyle),
+        ...songbookEditorTheme(),
         updateListener,
         CMEditorView.lineWrapping,
-        CMEditorView.theme({
-          "&": { height: "100%", fontSize: "14px" },
-          ".cm-scroller": { overflow: "auto" },
-          ".cm-content": { fontFamily: "var(--font-geist-mono), monospace" },
-        }),
       ],
     });
 
